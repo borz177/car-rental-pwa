@@ -1,12 +1,13 @@
 
 import 'dotenv/config';
-import express from 'express';
+import express, { Request, Response, NextFunction, RequestHandler } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import cors from 'cors';
-import { Pool } from 'pg';
+import pg from 'pg';
 import { randomUUID } from 'crypto';
 
+const { Pool } = pg;
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'autopro_super_secret_2025';
@@ -155,27 +156,23 @@ const mapKeys = (obj: any, mapper: (s: string) => string) => {
   return newObj;
 };
 
-app.use(cors());
-app.use(express.json({ limit: '50mb' }) as any);
+app.use(cors() as RequestHandler);
+app.use(express.json({ limit: '50mb' }) as RequestHandler);
 
-interface AuthRequest extends express.Request {
-  user?: { id: string; role: string };
-}
-
-/* Using express namespaces for types to avoid ambiguity with global Fetch Request/Response */
-const authenticateToken = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+// Add explicit RequestHandler typing to resolve middleware vs PathParams overload issues
+const authenticateToken: RequestHandler = (req: any, res: any, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) { res.status(401).json({ message: 'No token' }); return; }
 
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, JWT_SECRET, (err: any, decoded: any) => {
     if (err) { res.status(403).json({ message: 'Invalid token' }); return; }
-    (req as AuthRequest).user = decoded as any;
+    req.user = decoded;
     next();
   });
 };
 
-app.post('/api/auth/register', async (req: express.Request, res: express.Response) => {
+app.post('/api/auth/register', async (req: any, res: any) => {
   const { email, password, name, role } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
   const id = randomUUID();
@@ -191,7 +188,7 @@ app.post('/api/auth/register', async (req: express.Request, res: express.Respons
   }
 });
 
-app.post('/api/auth/login', async (req: express.Request, res: express.Response) => {
+app.post('/api/auth/login', async (req: any, res: any) => {
   const { email, password } = req.body;
   const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
   if (rows.length === 0) return res.status(401).json({ message: 'User not found' });
@@ -205,45 +202,45 @@ app.post('/api/auth/login', async (req: express.Request, res: express.Response) 
   res.json({ user: mapKeys(safeUser, toCamelCase), token });
 });
 
-app.get('/api/auth/me', authenticateToken, async (req: express.Request, res: express.Response) => {
-  const authReq = req as AuthRequest;
-  const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [authReq.user!.id]);
+app.get('/api/auth/me', authenticateToken, async (req: any, res: any) => {
+  const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
+  if (rows.length === 0) return res.status(404).json({ message: 'Not found' });
   const { password_hash, ...safeUser } = rows[0];
   res.json(mapKeys(safeUser, toCamelCase));
 });
 
 const setupCrud = (resource: string, fields: string[]) => {
-  app.get(`/api/${resource}`, authenticateToken, async (req: express.Request, res: express.Response) => {
-    const authReq = req as AuthRequest;
-    const { rows } = await pool.query(`SELECT * FROM ${resource} WHERE owner_id = $1 OR client_id = $1`, [authReq.user!.id]);
+  app.get(`/api/${resource}`, authenticateToken, async (req: any, res: any) => {
+    const { rows } = await pool.query(`SELECT * FROM ${resource} WHERE owner_id = $1 OR client_id = $1`, [req.user.id]);
     res.json(rows.map(r => mapKeys(r, toCamelCase)));
   });
 
-  app.post(`/api/${resource}`, authenticateToken, async (req: express.Request, res: express.Response) => {
-    const authReq = req as AuthRequest;
+  app.post(`/api/${resource}`, authenticateToken, async (req: any, res: any) => {
     const id = randomUUID();
     const data = mapKeys(req.body, toSnakeCase);
     const columns = ['id', 'owner_id', ...fields];
-    const values = [id, authReq.user!.id, ...fields.map(f => data[f])];
+    const values = [id, req.user.id, ...fields.map(f => data[f])];
     const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
 
-    await pool.query(`INSERT INTO ${resource} (${columns.join(', ')}) VALUES (${placeholders})`, values);
-    res.status(201).json({ ...req.body, id, ownerId: authReq.user!.id });
+    try {
+      await pool.query(`INSERT INTO ${resource} (${columns.join(', ')}) VALUES (${placeholders})`, values);
+      res.status(201).json({ ...req.body, id, ownerId: req.user.id });
+    } catch (e: any) {
+      res.status(500).json({ message: e.message });
+    }
   });
 
-  app.put(`/api/${resource}/:id`, authenticateToken, async (req: express.Request, res: express.Response) => {
-    const authReq = req as AuthRequest;
+  app.put(`/api/${resource}/:id`, authenticateToken, async (req: any, res: any) => {
     const data = mapKeys(req.body, toSnakeCase);
     const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
-    const values = [...fields.map(f => data[f]), req.params.id, authReq.user!.id];
+    const values = [...fields.map(f => data[f]), req.params.id, req.user.id];
 
     await pool.query(`UPDATE ${resource} SET ${setClause} WHERE id = $${fields.length + 1} AND owner_id = $${fields.length + 2}`, values);
     res.json({ ...req.body, id: req.params.id });
   });
 
-  app.delete(`/api/${resource}/:id`, authenticateToken, async (req: express.Request, res: express.Response) => {
-    const authReq = req as AuthRequest;
-    await pool.query(`DELETE FROM ${resource} WHERE id = $1 AND owner_id = $2`, [req.params.id, authReq.user!.id]);
+  app.delete(`/api/${resource}/:id`, authenticateToken, async (req: any, res: any) => {
+    await pool.query(`DELETE FROM ${resource} WHERE id = $1 AND owner_id = $2`, [req.params.id, req.user.id]);
     res.status(204).send();
   });
 };
@@ -254,9 +251,10 @@ setupCrud('staff', ['name', 'login', 'password_hash', 'role']);
 setupCrud('investors', ['name', 'phone', 'email', 'total_invested', 'balance']);
 setupCrud('rentals', ['car_id', 'client_id', 'start_date', 'start_time', 'end_date', 'end_time', 'total_amount', 'status', 'contract_number', 'payment_status']);
 setupCrud('requests', ['car_id', 'client_id', 'client_name', 'start_date', 'start_time', 'end_date', 'end_time', 'status']);
+setupCrud('requests', ['car_id', 'client_id', 'client_name', 'start_date', 'start_time', 'end_date', 'end_time', 'status']);
 setupCrud('transactions', ['amount', 'type', 'category', 'description', 'date', 'investor_id', 'client_id', 'car_id']);
 setupCrud('fines', ['client_id', 'car_id', 'amount', 'description', 'date', 'status', 'source']);
 
 initDB().then(() => {
-  app.listen(PORT, '0.0.0.0', () => console.log(`🚀 API on ${PORT}`));
+  app.listen(PORT, '0.0.0.0', () => console.log(`✅ AutoPro Backend running on port ${PORT}`));
 });
