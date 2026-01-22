@@ -101,8 +101,8 @@ const initDB = async () => {
 
     CREATE TABLE IF NOT EXISTS requests (
       id TEXT PRIMARY KEY, 
-      owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
-      car_id UUID REFERENCES cars(id) ON DELETE CASCADE,
+      owner_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+      car_id TEXT REFERENCES cars(id) ON DELETE CASCADE,
       client_id TEXT REFERENCES users(id) ON DELETE CASCADE,
       client_name TEXT NOT NULL,
       start_date DATE NOT NULL,
@@ -130,7 +130,7 @@ const initDB = async () => {
       id TEXT PRIMARY KEY, 
       owner_id TEXT REFERENCES users(id) ON DELETE CASCADE,
       client_id TEXT REFERENCES clients(id) ON DELETE CASCADE,
-      car_id UUID REFERENCES cars(id) ON DELETE CASCADE,
+      car_id TEXT REFERENCES cars(id) ON DELETE CASCADE,
       amount INTEGER NOT NULL,
       description TEXT,
       date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
