@@ -1,255 +1,239 @@
-import express from 'express';
+
+import 'dotenv/config';
+import express, { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import cors from 'cors';
 import { Pool } from 'pg';
 import { randomUUID } from 'crypto';
-import type { Request, Response, NextFunction } from 'express';
 
-// === CONFIGURATION ===
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
-const JWT_SECRET = process.env.JWT_SECRET || 'autopro_dev_secret_fallback_2025_DO_NOT_USE_IN_PROD';
+const JWT_SECRET = process.env.JWT_SECRET || 'autopro_super_secret_2025';
 
-// === ALLOWED ROLES FOR REGISTRATION ===
-const ALLOWED_ROLES = ['CLIENT', 'ADMIN'];
-
-// === POSTGRESQL CONNECTION ===
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
 });
 
-pool.query('SELECT NOW()', (err) => {
-  if (err) {
-    console.error('❌ Failed to connect to PostgreSQL:', err);
-  } else {
-    console.log('✅ Connected to PostgreSQL');
+// === DATABASE INITIALIZATION ===
+const initDB = async () => {
+  const query = `
+    CREATE TABLE IF NOT EXISTS users (
+      id UUID PRIMARY KEY,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      name TEXT NOT NULL,
+      role TEXT NOT NULL,
+      public_brand_name TEXT,
+      public_slug TEXT,
+      subscription_until TIMESTAMP,
+      is_trial BOOLEAN DEFAULT TRUE,
+      active_plan TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS cars (
+      id UUID PRIMARY KEY,
+      owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      brand TEXT NOT NULL,
+      model TEXT NOT NULL,
+      year INTEGER,
+      plate TEXT NOT NULL,
+      status TEXT NOT NULL,
+      price_per_day INTEGER NOT NULL,
+      price_per_hour INTEGER,
+      category TEXT,
+      mileage INTEGER,
+      fuel TEXT,
+      transmission TEXT,
+      images TEXT[],
+      investor_id TEXT,
+      investor_share INTEGER
+    );
+
+    CREATE TABLE IF NOT EXISTS clients (
+      id UUID PRIMARY KEY,
+      owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      name TEXT NOT NULL,
+      phone TEXT NOT NULL,
+      email TEXT,
+      passport TEXT,
+      driver_license TEXT,
+      debt INTEGER DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS rentals (
+      id UUID PRIMARY KEY,
+      owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      car_id UUID REFERENCES cars(id) ON DELETE CASCADE,
+      client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
+      start_date DATE NOT NULL,
+      start_time TEXT,
+      end_date DATE NOT NULL,
+      end_time TEXT,
+      total_amount INTEGER NOT NULL,
+      status TEXT NOT NULL,
+      contract_number TEXT,
+      payment_status TEXT
+    );
+
+    CREATE TABLE IF NOT EXISTS transactions (
+      id UUID PRIMARY KEY,
+      owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      amount INTEGER NOT NULL,
+      type TEXT NOT NULL,
+      category TEXT,
+      description TEXT,
+      date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      investor_id TEXT,
+      client_id UUID,
+      car_id UUID
+    );
+
+    CREATE TABLE IF NOT EXISTS fines (
+      id UUID PRIMARY KEY,
+      owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
+      car_id UUID REFERENCES cars(id) ON DELETE CASCADE,
+      amount INTEGER NOT NULL,
+      description TEXT,
+      date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      status TEXT NOT NULL,
+      source TEXT
+    );
+  `;
+  try {
+    await pool.query(query);
+    console.log('✅ Database tables initialized');
+  } catch (err) {
+    console.error('❌ DB Init Error:', err);
   }
-});
+};
+
+// === HELPERS ===
+const toSnakeCase = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
+const toCamelCase = (str: string) => str.replace(/([-_][a-z])/g, group => group.toUpperCase().replace('-', '').replace('_', ''));
+
+const mapKeys = (obj: any, mapper: (s: string) => string) => {
+  const newObj: any = {};
+  Object.keys(obj).forEach(key => {
+    newObj[mapper(key)] = obj[key];
+  });
+  return newObj;
+};
 
 // === MIDDLEWARE ===
-app.use(cors({
-  origin: [
-    'https://prokatauto95.ru',
-    'http://localhost:3000' // for local development
-  ],
-  credentials: true
-}));
-app.use(express.json({ limit: '50mb' }));
+app.use(cors());
+// Explicitly cast express.json middleware to handle potential versioning type conflicts
+app.use(express.json({ limit: '50mb' }) as any);
 
 interface AuthRequest extends Request {
   user?: { id: string; role: string };
 }
 
-const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
+// Middleware must use the base Request type for compatibility with Express middleware signatures
+const authenticateToken = (req: Request, res: Response, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
-
   if (!token) {
-    return res.status(401).json({ message: 'No token provided' });
+    res.status(401).json({ message: 'No token' });
+    return;
   }
 
   jwt.verify(token, JWT_SECRET, (err, decoded) => {
     if (err) {
-      return res.status(403).json({ message: 'Invalid or expired token' });
+      res.status(403).json({ message: 'Invalid token' });
+      return;
     }
-    req.user = decoded as { id: string; role: string };
+    (req as AuthRequest).user = decoded as any;
     next();
   });
 };
 
 // === AUTH ROUTES ===
-app.post('/api/auth/register', async (req: Request, res: Response) => {
+app.post('/api/auth/register', async (req, res) => {
+  const { email, password, name, role } = req.body;
+  const hashedPassword = await bcrypt.hash(password, 10);
+  const id = randomUUID();
   try {
-    const { email, password, name, role } = req.body;
-
-    if (!email || !password || !name) {
-      return res.status(400).json({ message: 'Email, password and name are required' });
-    }
-
-    if (!ALLOWED_ROLES.includes(role)) {
-      return res.status(400).json({ message: 'Invalid role. Only CLIENT or ADMIN allowed.' });
-    }
-
-    const { rows } = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
-    if (rows.length > 0) {
-      return res.status(409).json({ message: 'User already exists' });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    const userId = randomUUID();
-
     await pool.query(
-      'INSERT INTO users (id, email, password_hash, name, role) VALUES ($1, $2, $3, $4, $5)',
-      [userId, email, hashedPassword, name, role]
+      'INSERT INTO users (id, email, password_hash, name, role, subscription_until) VALUES ($1, $2, $3, $4, $5, $6)',
+      [id, email, hashedPassword, name, role || 'ADMIN', new Date(Date.now() + 3*24*60*60*1000)]
     );
-
-    const token = jwt.sign({ id: userId, role }, JWT_SECRET, { expiresIn: '7d' });
-    res.status(201).json({ user: { id: userId, email, name, role }, token });
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      console.error('Registration error:', err.message);
-    }
-    res.status(500).json({ message: 'Internal server error' });
+    const token = jwt.sign({ id, role }, JWT_SECRET);
+    res.json({ user: { id, email, name, role }, token });
+  } catch (err) {
+    res.status(400).json({ message: 'User already exists' });
   }
 });
 
-app.post('/api/auth/login', async (req: Request, res: Response) => {
-  try {
-    const { email, password } = req.body;
+app.post('/api/auth/login', async (req, res) => {
+  const { email, password } = req.body;
+  const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
+  if (rows.length === 0) return res.status(401).json({ message: 'User not found' });
+  
+  const user = rows[0];
+  const valid = await bcrypt.compare(password, user.password_hash);
+  if (!valid) return res.status(401).json({ message: 'Wrong password' });
 
-    if (!email || !password) {
-      return res.status(400).json({ message: 'Email and password required' });
-    }
-
-    const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
-    if (rows.length === 0) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    const user = rows[0];
-    const isValid = await bcrypt.compare(password, user.password_hash);
-    if (!isValid) {
-      return res.status(401).json({ message: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET, { expiresIn: '7d' });
-    const { password_hash, ...safeUser } = user;
-    res.json({ user: safeUser, token });
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      console.error('Login error:', err.message);
-    }
-    res.status(500).json({ message: 'Internal server error' });
-  }
+  const token = jwt.sign({ id: user.id, role: user.role }, JWT_SECRET);
+  const { password_hash, ...safeUser } = user;
+  res.json({ user: mapKeys(safeUser, toCamelCase), token });
 });
 
-app.get('/api/auth/me', authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const { rows } = await pool.query('SELECT id, email, name, role FROM users WHERE id = $1', [req.user!.id]);
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'User not found' });
-    }
-    res.json(rows[0]);
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      console.error('Me error:', err.message);
-    }
-    res.status(500).json({ message: 'Internal server error' });
-  }
+app.get('/api/auth/me', authenticateToken, async (req: Request, res: Response) => {
+  const authReq = req as AuthRequest;
+  const { rows } = await pool.query('SELECT id, email, name, role, public_brand_name, subscription_until, is_trial FROM users WHERE id = $1', [authReq.user!.id]);
+  res.json(mapKeys(rows[0], toCamelCase));
 });
 
-// === CAR ROUTES ===
-app.get('/api/cars', authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const { rows } = await pool.query('SELECT * FROM cars WHERE owner_id = $1', [req.user!.id]);
-    res.json(rows);
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      console.error('Get cars error:', err.message);
-    }
-    res.status(500).json({ message: 'Failed to fetch cars' });
-  }
-});
+// === CRUD FACTORY ===
+const setupCrud = (resource: string, fields: string[]) => {
+  const table = resource;
 
-app.post('/api/cars', authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const { brand, model, plate } = req.body;
-    if (!brand || !model || !plate) {
-      return res.status(400).json({ message: 'Brand, model and plate are required' });
-    }
+  app.get(`/api/${resource}`, authenticateToken, async (req: Request, res: Response) => {
+    const authReq = req as AuthRequest;
+    const { rows } = await pool.query(`SELECT * FROM ${table} WHERE owner_id = $1`, [authReq.user!.id]);
+    res.json(rows.map(r => mapKeys(r, toCamelCase)));
+  });
 
-    const carId = randomUUID();
-    await pool.query(
-      `INSERT INTO cars (id, owner_id, brand, model, plate, status, price_per_day, fuel, transmission)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
-      [
-        carId,
-        req.user!.id,
-        brand,
-        model,
-        plate,
-        req.body.status || 'AVAILABLE',
-        req.body.price_per_day || 0,
-        req.body.fuel || null,
-        req.body.transmission || null
-      ]
-    );
+  app.post(`/api/${resource}`, authenticateToken, async (req: Request, res: Response) => {
+    const authReq = req as AuthRequest;
+    const id = randomUUID();
+    const data = mapKeys(req.body, toSnakeCase);
+    const columns = ['id', 'owner_id', ...fields];
+    const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
+    const values = [id, authReq.user!.id, ...fields.map(f => data[f])];
 
-    res.status(201).json({ id: carId, ownerId: req.user!.id, ...req.body });
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      console.error('Create car error:', err.message);
-    }
-    res.status(500).json({ message: 'Failed to create car' });
-  }
-});
+    await pool.query(`INSERT INTO ${table} (${columns.join(', ')}) VALUES (${placeholders})`, values);
+    res.status(201).json({ ...req.body, id, ownerId: authReq.user!.id });
+  });
 
-app.put('/api/cars/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { rows } = await pool.query('SELECT id FROM cars WHERE id = $1 AND owner_id = $2', [id, req.user!.id]);
-    if (rows.length === 0) {
-      return res.status(404).json({ message: 'Car not found or access denied' });
-    }
+  app.put(`/api/${resource}/:id`, authenticateToken, async (req: Request, res: Response) => {
+    const authReq = req as AuthRequest;
+    const data = mapKeys(req.body, toSnakeCase);
+    const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
+    const values = [...fields.map(f => data[f]), req.params.id, authReq.user!.id];
 
-    await pool.query(
-      `UPDATE cars 
-       SET brand = $1, model = $2, plate = $3, status = $4, price_per_day = $5, fuel = $6, transmission = $7
-       WHERE id = $8`,
-      [
-        req.body.brand,
-        req.body.model,
-        req.body.plate,
-        req.body.status,
-        req.body.price_per_day,
-        req.body.fuel,
-        req.body.transmission,
-        id
-      ]
-    );
+    await pool.query(`UPDATE ${table} SET ${setClause} WHERE id = $${fields.length + 1} AND owner_id = $${fields.length + 2}`, values);
+    res.json({ ...req.body, id: req.params.id });
+  });
 
-    res.json({ id, ...req.body });
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      console.error('Update car error:', err.message);
-    }
-    res.status(500).json({ message: 'Failed to update car' });
-  }
-});
-
-app.delete('/api/cars/:id', authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const result = await pool.query('DELETE FROM cars WHERE id = $1 AND owner_id = $2', [id, req.user!.id]);
-    if (result.rowCount === 0) {
-      return res.status(404).json({ message: 'Car not found or access denied' });
-    }
+  app.delete(`/api/${resource}/:id`, authenticateToken, async (req: Request, res: Response) => {
+    const authReq = req as AuthRequest;
+    await pool.query(`DELETE FROM ${table} WHERE id = $1 AND owner_id = $2`, [req.params.id, authReq.user!.id]);
     res.status(204).send();
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      console.error('Delete car error:', err.message);
-    }
-    res.status(500).json({ message: 'Failed to delete car' });
-  }
-});
+  });
+};
 
-// === CLIENTS ROUTE ===
-app.get('/api/clients', authenticateToken, async (req: AuthRequest, res: Response) => {
-  try {
-    const { rows } = await pool.query('SELECT * FROM clients WHERE owner_id = $1', [req.user!.id]);
-    res.json(rows);
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      console.error('Get clients error:', err.message);
-    }
-    res.status(500).json({ message: 'Failed to fetch clients' });
-  }
-});
+// Config fields based on types.ts
+setupCrud('cars', ['brand', 'model', 'year', 'plate', 'status', 'price_per_day', 'price_per_hour', 'category', 'mileage', 'fuel', 'transmission', 'images', 'investor_id', 'investor_share']);
+setupCrud('clients', ['name', 'phone', 'email', 'passport', 'driver_license', 'debt']);
+setupCrud('rentals', ['car_id', 'client_id', 'start_date', 'start_time', 'end_date', 'end_time', 'total_amount', 'status', 'contract_number', 'payment_status']);
+setupCrud('transactions', ['amount', 'type', 'category', 'description', 'date', 'investor_id', 'client_id', 'car_id']);
+setupCrud('fines', ['client_id', 'car_id', 'amount', 'description', 'date', 'status', 'source']);
 
-// === START SERVER ===
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`✅ AutoPro Backend running on port ${PORT}`);
-  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
+initDB().then(() => {
+  app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Server on port ${PORT}`));
 });
