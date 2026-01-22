@@ -35,7 +35,7 @@ const initDB = async () => {
 
     CREATE TABLE IF NOT EXISTS cars (
       id TEXT PRIMARY KEY, 
-      owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      owner_id TEXT REFERENCES users(id) ON DELETE CASCADE,
       brand TEXT NOT NULL,
       model TEXT NOT NULL,
       year INTEGER,
@@ -54,7 +54,7 @@ const initDB = async () => {
 
     CREATE TABLE IF NOT EXISTS clients (
       id TEXT PRIMARY KEY, 
-      owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      owner_id TEXT REFERENCES users(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       phone TEXT NOT NULL,
       email TEXT,
@@ -66,7 +66,7 @@ const initDB = async () => {
 
     CREATE TABLE IF NOT EXISTS staff (
       id TEXT PRIMARY KEY, 
-      owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      owner_id TEXT REFERENCES users(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       login TEXT UNIQUE NOT NULL,
       password_hash TEXT NOT NULL,
@@ -76,7 +76,7 @@ const initDB = async () => {
 
     CREATE TABLE IF NOT EXISTS investors (
       id TEXT PRIMARY KEY, 
-      owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      owner_id TEXT REFERENCES users(id) ON DELETE CASCADE,
       name TEXT NOT NULL,
       phone TEXT NOT NULL,
       email TEXT,
@@ -86,9 +86,9 @@ const initDB = async () => {
 
     CREATE TABLE IF NOT EXISTS rentals (
       id TEXT PRIMARY KEY, 
-      owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
-      car_id UUID REFERENCES cars(id) ON DELETE CASCADE,
-      client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
+      owner_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+      car_id TEXT REFERENCES cars(id) ON DELETE CASCADE,
+      client_id TEXT REFERENCES clients(id) ON DELETE CASCADE,
       start_date DATE NOT NULL,
       start_time TEXT,
       end_date DATE NOT NULL,
@@ -103,7 +103,7 @@ const initDB = async () => {
       id TEXT PRIMARY KEY, 
       owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
       car_id UUID REFERENCES cars(id) ON DELETE CASCADE,
-      client_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      client_id TEXT REFERENCES users(id) ON DELETE CASCADE,
       client_name TEXT NOT NULL,
       start_date DATE NOT NULL,
       start_time TEXT,
@@ -115,7 +115,7 @@ const initDB = async () => {
 
     CREATE TABLE IF NOT EXISTS transactions (
       id TEXT PRIMARY KEY, 
-      owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      owner_id TEXT REFERENCES users(id) ON DELETE CASCADE,
       amount INTEGER NOT NULL,
       type TEXT NOT NULL,
       category TEXT,
@@ -128,8 +128,8 @@ const initDB = async () => {
 
     CREATE TABLE IF NOT EXISTS fines (
       id TEXT PRIMARY KEY, 
-      owner_id UUID REFERENCES users(id) ON DELETE CASCADE,
-      client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
+      owner_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+      client_id TEXT REFERENCES clients(id) ON DELETE CASCADE,
       car_id UUID REFERENCES cars(id) ON DELETE CASCADE,
       amount INTEGER NOT NULL,
       description TEXT,
