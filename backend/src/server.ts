@@ -1,10 +1,7 @@
-import { fileURLToPath } from 'url';
-import { dirname, resolve } from 'path';
-import dotenv from 'dotenv';
+import * as dotenv from 'dotenv';
+import * as path from 'path';
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-dotenv.config({ path: resolve(__dirname, '../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
