@@ -47,59 +47,61 @@ const App: React.FC = () => {
   const [fines, setFines] = useState<Fine[]>([]);
 
   const loadData = async () => {
-    const token = localStorage.getItem('autopro_token');
-    if (!token) return;
+  const token = localStorage.getItem('autopro_token');
+  if (!token) return;
 
-    try {
-      const [c, cl, r, t, i, s, f, req] = await Promise.all([
-        BackendAPI.getCars(),
-        BackendAPI.getClients(),
-        BackendAPI.getRentals(),
-        BackendAPI.getTransactions(),
-        BackendAPI.getInvestors(),
-        BackendAPI.getStaff(),
-        BackendAPI.getFines(),
-        BackendAPI.getRequests()
-      ]);
-      
-      setCars(c || []);
-      setClients(cl || []);
-      setRentals(r || []);
-      setTransactions(t || []);
-      setInvestors(i || []);
-      setStaff(s || []);
-      setFines(f || []);
-      setRequests(req || []);
+  try {
+    const [c, cl, r, t, i, s, f, req] = await Promise.all([
+      BackendAPI.getCars(),
+      BackendAPI.getClients(),
+      BackendAPI.getRentals(),
+      BackendAPI.getTransactions(),
+      BackendAPI.getInvestors(),
+      BackendAPI.getStaff(),
+      BackendAPI.getFines(),
+      BackendAPI.getRequests()
+    ]);
 
-      const user = await BackendAPI.getCurrentUser();
-      if (user?.role === UserRole.SUPERADMIN) {
-        const users = await BackendAPI.getAllUsers();
-        setAllUsers(users || []);
-      }
-    } catch (e) {
-      console.error("Failed to load application data", e);
-      throw e;
+    setCars(c || []);
+    setClients(cl || []);
+    setRentals(r || []);
+    setTransactions(t || []);
+    setInvestors(i || []);
+    setStaff(s || []);
+    setFines(f || []);
+    setRequests(req || []);
+
+    // Загружаем всех пользователей ТОЛЬКО для SUPERADMIN
+    const user = await BackendAPI.getCurrentUser();
+    if (user?.role === UserRole.SUPERADMIN) {
+      const users = await BackendAPI.getAllUsers();
+      setAllUsers(users || []);
     }
-  };
+  } catch (e) {
+    console.error("Failed to load application data", e);
+    throw e;
+  }
+};
 
   useEffect(() => {
     const init = async () => {
-      try {
-        const user = await BackendAPI.getCurrentUser();
-        if (user) {
-          setCurrentUser(user);
-          await loadData();
-          if (user.role === UserRole.SUPERADMIN) setCurrentView('SUPERADMIN_PANEL');
-          else if (user.role === UserRole.CLIENT) setCurrentView('CLIENT_CATALOG');
-          else setCurrentView('DASHBOARD');
-        }
-      } catch (e: any) {
-        console.error("Init error", e);
-        setInitError("Не удалось подключиться к серверу. Убедитесь, что API запущен.");
-      } finally {
-        setIsInitializing(false);
-      }
-    };
+  try {
+    const user = await BackendAPI.getCurrentUser();
+    if (user) {
+      setCurrentUser(user);
+      await loadData(); // ← теперь loadData() сам загрузит allUsers для SUPERADMIN
+
+      if (user.role === UserRole.SUPERADMIN) setCurrentView('SUPERADMIN_PANEL');
+      else if (user.role === UserRole.CLIENT) setCurrentView('CLIENT_CATALOG');
+      else setCurrentView('DASHBOARD');
+    }
+  } catch (e: any) {
+    console.error("Init error", e);
+    setInitError("Не удалось подключиться к серверу. Убедитесь, что API запущен.");
+  } finally {
+    setIsInitializing(false);
+  }
+};
     init();
   }, []);
 
