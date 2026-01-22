@@ -1,0 +1,21 @@
+{
+  "name": "AutoPro AI",
+  "short_name": "AutoPro",
+  "description": "Система управления автопрокатом с ИИ аналитикой",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#3b82f6",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3089/3089803.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
