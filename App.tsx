@@ -46,10 +46,7 @@ const App: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [fines, setFines] = useState<Fine[]>([]);
 
-  const loadData = async () => {
-  const token = localStorage.getItem('autopro_token');
-  if (!token) return;
-
+  const loadData = async (currentUser: User) => {
   try {
     const [c, cl, r, t, i, s, f, req] = await Promise.all([
       BackendAPI.getCars(),
@@ -72,8 +69,7 @@ const App: React.FC = () => {
     setRequests(req || []);
 
     // Загружаем всех пользователей ТОЛЬКО для SUPERADMIN
-    const user = await BackendAPI.getCurrentUser();
-    if (user?.role === UserRole.SUPERADMIN) {
+    if (currentUser.role === UserRole.SUPERADMIN) {
       const users = await BackendAPI.getAllUsers();
       setAllUsers(users || []);
     }
@@ -89,7 +85,7 @@ const App: React.FC = () => {
     const user = await BackendAPI.getCurrentUser();
     if (user) {
       setCurrentUser(user);
-      await loadData(); // ← теперь loadData() сам загрузит allUsers для SUPERADMIN
+      await loadData(user); // ← передаём уже полученного пользователя
 
       if (user.role === UserRole.SUPERADMIN) setCurrentView('SUPERADMIN_PANEL');
       else if (user.role === UserRole.CLIENT) setCurrentView('CLIENT_CATALOG');

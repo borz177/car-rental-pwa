@@ -122,8 +122,8 @@ const initDB = async () => {
       description TEXT,
       date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       investor_id TEXT,
-      client_id UUID,
-      car_id UUID
+      client_id TEXT,
+      car_id TEXT
     );
 
     CREATE TABLE IF NOT EXISTS fines (
