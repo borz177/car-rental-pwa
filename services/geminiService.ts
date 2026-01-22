@@ -1,11 +1,18 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { Car, Rental } from "../types.ts";
+import { Car, Rental } from "../types";
 
 export const getFleetInsights = async (cars: Car[], rentals: Rental[]) => {
-  /* Initialize GoogleGenAI inside the function to ensure the latest API key is used as per guidelines */
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  
+  // Safe check for API Key in browser environment
+  const apiKey = typeof process !== 'undefined' ? process.env.API_KEY : (window as any).API_KEY;
+
+  if (!apiKey) {
+    console.warn("Gemini API Key is missing. AI Insights disabled.");
+    return "Для работы ИИ-аналитики необходимо настроить API_KEY в переменных окружения.";
+  }
+
+  const ai = new GoogleGenAI({ apiKey });
+
   const fleetSummary = cars.map(c => `${c.brand} ${c.model} (${c.category}) - ${c.status}, цена: ${c.pricePerDay} руб`).join('; ');
   const recentRev = rentals.reduce((acc, r) => acc + r.totalAmount, 0);
 
@@ -22,14 +29,12 @@ export const getFleetInsights = async (cars: Car[], rentals: Rental[]) => {
       model: "gemini-3-flash-preview",
       contents: prompt,
       config: {
-        /* Move identity and expertise to systemInstruction as per recommendations */
-        systemInstruction: "Ты — эксперт-аналитик по автопрокату в России.",
+        systemInstruction: "Ты — эксперт-аналитик по автопрокату в России. Твоя задача - помогать владельцу бизнеса увеличивать прибыль.",
       },
     });
-    /* Access .text property directly instead of calling a method */
     return response.text;
   } catch (error) {
     console.error("Gemini API Error:", error);
-    return "Не удалось получить аналитику от ИИ. Пожалуйста, попробуйте позже.";
+    return "Не удалось получить аналитику от ИИ. Проверьте соединение или настройки API.";
   }
 };

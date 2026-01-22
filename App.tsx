@@ -1,6 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, Car, Rental, Client, BookingRequest, AppView, UserRole, CarStatus, Transaction, TransactionType, Investor, Staff, Fine, FineStatus } from './types';
-import { INITIAL_CARS } from './constants';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
 import TopNavbar from './components/TopNavbar';
@@ -28,24 +28,15 @@ import BackendAPI from './services/api';
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [initError, setInitError] = useState<string | null>(null);
   const [isGlobalLoading, setIsGlobalLoading] = useState(false);
 
-  const [allUsers, setAllUsers] = useState<User[]>([{
-    id: 'super-01',
-    name: 'Global Admin',
-    email: 'admin@autopro.ai',
-    password: 'admin',
-    role: UserRole.SUPERADMIN,
-    activePlan: 'System'
-  }]);
-
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [authMode, setAuthMode] = useState<'SELECT_ROLE' | 'LOGIN' | 'REGISTER'>('SELECT_ROLE');
   const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [currentView, setCurrentView] = useState<AppView>('DASHBOARD');
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
-  const [publicFleetOwner, setPublicFleetOwner] = useState<User | null>(null);
 
-  // Все состояния теперь пустые — данные загружаются с сервера
   const [cars, setCars] = useState<Car[]>([]);
   const [requests, setRequests] = useState<BookingRequest[]>([]);
   const [rentals, setRentals] = useState<Rental[]>([]);
@@ -55,126 +46,85 @@ const App: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [fines, setFines] = useState<Fine[]>([]);
 
-  // Загрузка данных с сервера
+  const loadData = async () => {
+    const token = localStorage.getItem('autopro_token');
+    if (!token) return;
+
+    try {
+      const [c, cl, r, t, i, s, f, req] = await Promise.all([
+        BackendAPI.getCars(),
+        BackendAPI.getClients(),
+        BackendAPI.getRentals(),
+        BackendAPI.getTransactions(),
+        BackendAPI.getInvestors(),
+        BackendAPI.getStaff(),
+        BackendAPI.getFines(),
+        BackendAPI.getRequests()
+      ]);
+      
+      setCars(c || []);
+      setClients(cl || []);
+      setRentals(r || []);
+      setTransactions(t || []);
+      setInvestors(i || []);
+      setStaff(s || []);
+      setFines(f || []);
+      setRequests(req || []);
+
+      const user = await BackendAPI.getCurrentUser();
+      if (user?.role === UserRole.SUPERADMIN) {
+        const users = await BackendAPI.getAllUsers();
+        setAllUsers(users || []);
+      }
+    } catch (e) {
+      console.error("Failed to load application data", e);
+      throw e;
+    }
+  };
+
   useEffect(() => {
-    const loadData = async () => {
+    const init = async () => {
       try {
         const user = await BackendAPI.getCurrentUser();
-        if (!user) {
-          setIsInitializing(false);
-          return;
+        if (user) {
+          setCurrentUser(user);
+          await loadData();
+          if (user.role === UserRole.SUPERADMIN) setCurrentView('SUPERADMIN_PANEL');
+          else if (user.role === UserRole.CLIENT) setCurrentView('CLIENT_CATALOG');
+          else setCurrentView('DASHBOARD');
         }
-
-        setCurrentUser(user);
-
-        // Загружаем все данные параллельно
-        const [
-          carsData,
-          clientsData,
-          rentalsData,
-          investorsData,
-          staffData,
-          transactionsData,
-          finesData,
-          requestsData
-        ] = await Promise.all([
-          BackendAPI.getCars(),
-          BackendAPI.getClients(),
-          BackendAPI.getRentals(),
-          BackendAPI.getInvestors(),
-          BackendAPI.getStaff(),
-          BackendAPI.getTransactions(),
-          BackendAPI.getFines(),
-          BackendAPI.getRequests()
-        ]);
-
-        setCars(carsData);
-        setClients(clientsData);
-        setRentals(rentalsData);
-        setInvestors(investorsData);
-        setStaff(staffData);
-        setTransactions(transactionsData);
-        setFines(finesData);
-        setRequests(requestsData);
-
-        // Определяем начальный вид
-        const initialView = user.role === UserRole.CLIENT 
-          ? 'CLIENT_CATALOG' 
-          : (user.role === UserRole.SUPERADMIN ? 'SUPERADMIN_PANEL' : 'DASHBOARD');
-        setCurrentView(initialView);
-      } catch (error) {
-        console.error('Failed to load data:', error);
+      } catch (e: any) {
+        console.error("Init error", e);
+        setInitError("Не удалось подключиться к серверу. Убедитесь, что API запущен.");
       } finally {
         setIsInitializing(false);
       }
     };
-
-    loadData();
-
-    // Service Worker
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/service-worker.js').catch(err => console.log('SW registration failed', err));
-      });
-    }
+    init();
   }, []);
 
   const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsGlobalLoading(true);
     const fd = new FormData(e.currentTarget);
-    const email = fd.get('email') as string;
-    const pass = fd.get('password') as string;
-    const name = fd.get('name') as string;
-
     try {
-      if (authMode === 'REGISTER') {
-        const newUser = await BackendAPI.register({
-          email,
-          password: pass,
-          name,
-          role: selectedRole || UserRole.ADMIN
-        });
-        setCurrentUser(newUser);
-      } else {
-        const user = await BackendAPI.login({ email, password: pass });
-        setCurrentUser(user);
-      }
-
-      // После входа/регистрации перезагружаем данные
-      const [
-        carsData,
-        clientsData,
-        rentalsData,
-        investorsData,
-        staffData,
-        transactionsData,
-        finesData,
-        requestsData
-      ] = await Promise.all([
-        BackendAPI.getCars(),
-        BackendAPI.getClients(),
-        BackendAPI.getRentals(),
-        BackendAPI.getInvestors(),
-        BackendAPI.getStaff(),
-        BackendAPI.getTransactions(),
-        BackendAPI.getFines(),
-        BackendAPI.getRequests()
-      ]);
-
-      setCars(carsData);
-      setClients(clientsData);
-      setRentals(rentalsData);
-      setInvestors(investorsData);
-      setStaff(staffData);
-      setTransactions(transactionsData);
-      setFines(finesData);
-      setRequests(requestsData);
-
-      setCurrentView(currentUser?.role === UserRole.CLIENT ? 'CLIENT_CATALOG' : (currentUser?.role === UserRole.SUPERADMIN ? 'SUPERADMIN_PANEL' : 'DASHBOARD'));
-    } catch (error) {
-      alert('Ошибка аутентификации');
-      console.error('Auth error:', error);
+      const user = authMode === 'REGISTER' 
+        ? await BackendAPI.register({ 
+            email: fd.get('email') as string, 
+            password: fd.get('password') as string, 
+            name: fd.get('name') as string, 
+            role: selectedRole || UserRole.ADMIN 
+          })
+        : await BackendAPI.login({ 
+            email: fd.get('email') as string, 
+            password: fd.get('password') as string 
+          });
+      
+      setCurrentUser(user);
+      await loadData();
+      setCurrentView(user.role === UserRole.CLIENT ? 'CLIENT_CATALOG' : (user.role === UserRole.SUPERADMIN ? 'SUPERADMIN_PANEL' : 'DASHBOARD'));
+    } catch (err: any) {
+      alert(err.message);
     } finally {
       setIsGlobalLoading(false);
     }
@@ -185,111 +135,70 @@ const App: React.FC = () => {
     setCurrentUser(null);
     setAuthMode('SELECT_ROLE');
     setCurrentView('DASHBOARD');
-    // Очищаем данные при выходе
-    setCars([]);
-    setClients([]);
-    setRentals([]);
-    setInvestors([]);
-    setStaff([]);
-    setTransactions([]);
-    setFines([]);
-    setRequests([]);
+    setCars([]); setClients([]); setRentals([]); setTransactions([]); setInvestors([]); setStaff([]); setFines([]); setRequests([]);
   };
 
-  const handleUpdateGlobalUser = async (userId: string, updates: Partial<User>) => {
+  const apiAction = (fn: Function) => async (...args: any[]) => {
+    setIsGlobalLoading(true);
     try {
-      await BackendAPI.updateGlobalUser(userId, updates);
-      // Обновляем локальные данные
-      setAllUsers(prev => prev.map(u => u.id === userId ? { ...u, ...updates } : u));
-      if (currentUser?.id === userId) {
-        setCurrentUser(prev => prev ? { ...prev, ...updates } : null);
-      }
-    } catch (error) {
-      console.error('Failed to update user:', error);
-    }
-  };
-
-  const handleDeleteGlobalUser = async (userId: string) => {
-    try {
-      await BackendAPI.deleteGlobalUser(userId);
-      setAllUsers(prev => prev.filter(u => u.id !== userId));
-    } catch (error) {
-      console.error('Failed to delete user:', error);
+      await fn(...args);
+      await loadData();
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setIsGlobalLoading(false);
     }
   };
 
   if (isInitializing) {
     return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-        <p className="mt-6 text-slate-500 font-black uppercase tracking-widest text-[10px]">Загрузка AutoPro AI...</p>
+      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-6"></div>
+        <h1 className="text-white font-black text-xl uppercase tracking-[0.2em]">AutoPro AI</h1>
+        <p className="mt-2 text-slate-500 font-bold uppercase tracking-widest text-[10px]">Загрузка системы...</p>
       </div>
     );
   }
 
-  const activeOwnerId = publicFleetOwner ? publicFleetOwner.id : (currentUser?.id || '');
+  if (initError && !currentUser) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex flex-col items-center justify-center p-6 text-center">
+        <div className="w-20 h-20 bg-rose-100 text-rose-600 rounded-[2rem] flex items-center justify-center text-3xl mb-6">
+          <i className="fas fa-exclamation-triangle"></i>
+        </div>
+        <h2 className="text-2xl font-black text-slate-900 mb-2">Ошибка подключения</h2>
+        <p className="text-slate-500 max-w-xs mb-8 font-medium">{initError}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all"
+        >
+          Попробовать снова
+        </button>
+      </div>
+    );
+  }
 
-  const userCars = cars.filter(c => c.ownerId === activeOwnerId);
-  const userRentals = rentals.filter(r => r.ownerId === activeOwnerId || r.clientId === currentUser?.id);
-  const userClients = clients.filter(c => c.ownerId === activeOwnerId);
-  const userInvestors = investors.filter(i => i.ownerId === activeOwnerId);
-  const userStaff = staff.filter(s => s.ownerId === activeOwnerId);
-  const userTransactions = transactions.filter(t => t.ownerId === activeOwnerId);
-  const userRequests = requests.filter(r => r.ownerId === activeOwnerId || r.clientId === currentUser?.id);
-  const userFines = fines.filter(f => f.ownerId === activeOwnerId);
-
-  const handleAddTransaction = async (tData: Partial<Transaction>, clientId?: string) => {
-    if (!currentUser) return;
-    try {
-      const newTx = await BackendAPI.saveTransaction({
-        ...tData,
-        ownerId: activeOwnerId,
-        amount: tData.amount || 0,
-        type: tData.type || TransactionType.INCOME,
-        category: tData.category || 'Прочее',
-        description: tData.description || '',
-        date: tData.date || new Date().toISOString(),
-        clientId,
-        investorId: tData.investorId,
-        carId: tData.carId
-      });
-      setTransactions(prev => [...prev, newTx]);
-    } catch (error) {
-      console.error('Failed to add transaction:', error);
+  const renderView = () => {
+    switch (currentView) {
+      case 'DASHBOARD': return <Dashboard cars={cars} rentals={rentals} clients={clients} user={currentUser} />;
+      case 'CARS': return <CarList cars={cars} investors={investors} onAdd={apiAction(BackendAPI.saveCar)} onUpdate={apiAction(BackendAPI.saveCar)} onDelete={apiAction(BackendAPI.deleteCar)} currentOwnerId={currentUser?.id || ''} />;
+      case 'CLIENTS': return <ClientList clients={clients} rentals={rentals} transactions={transactions} onAdd={apiAction(BackendAPI.saveClient)} onUpdate={apiAction(BackendAPI.saveClient)} onDelete={apiAction(BackendAPI.deleteClient)} onSelectClient={(id) => { setSelectedEntityId(id); setCurrentView('CLIENT_DETAILS'); }} />;
+      case 'CALENDAR': return <BookingCalendar cars={cars} rentals={rentals} />;
+      case 'REQUESTS': return <BookingRequests requests={requests} cars={cars} onAction={apiAction(BackendAPI.deleteRequest)} />;
+      case 'MANUAL_BOOKING': return <ManualBooking cars={cars} clients={clients} onCreate={apiAction(BackendAPI.saveRental)} onQuickAddClient={async (c) => { const res = await BackendAPI.saveClient(c as Client); return res.id; }} />;
+      case 'CONTRACTS': return <ContractList rentals={rentals} cars={cars} clients={clients} onUpdate={apiAction(BackendAPI.saveRental)} onDelete={apiAction(BackendAPI.deleteRental)} />;
+      case 'AI_ADVISOR': return <AiAdvisor cars={cars} rentals={rentals} />;
+      case 'CASHBOX': return <Cashbox transactions={transactions} clients={clients} rentals={rentals} staff={staff} investors={investors} cars={cars} onAddTransaction={apiAction(BackendAPI.saveTransaction)} />;
+      case 'INVESTORS': return <InvestorList investors={investors} cars={cars} rentals={rentals} transactions={transactions} onAdd={apiAction(BackendAPI.saveInvestor)} onUpdate={apiAction(BackendAPI.saveInvestor)} onDelete={apiAction(BackendAPI.deleteInvestor)} onSelectInvestor={(id) => { setSelectedEntityId(id); setCurrentView('INVESTOR_DETAILS'); }} />;
+      case 'REPORTS': return <Reports transactions={transactions} cars={cars} investors={investors} rentals={rentals} clients={clients} staff={staff} fines={fines} />;
+      case 'STAFF': return <StaffList staff={staff} onAdd={apiAction(BackendAPI.saveStaff)} onUpdate={apiAction(BackendAPI.saveStaff)} onDelete={apiAction(BackendAPI.deleteStaff)} onSelectStaff={(id) => { setSelectedEntityId(id); setCurrentView('STAFF_DETAILS'); }} />;
+      case 'SETTINGS': return <Settings user={currentUser} onUpdate={apiAction((u: any) => BackendAPI.updateGlobalUser(currentUser!.id, u))} onNavigate={setCurrentView} onLogout={handleLogout} />;
+      case 'CLIENT_CATALOG': return <ClientCatalog cars={cars.filter(c => c.status === CarStatus.AVAILABLE)} currentUser={currentUser} onSubmitRequest={apiAction(BackendAPI.saveRequest)} fleetOwner={currentUser} onAuthRequest={() => setAuthMode('LOGIN')} onRegisterClient={apiAction(BackendAPI.register)} onLoginClient={apiAction(BackendAPI.login)} />;
+      default: return <Dashboard cars={cars} rentals={rentals} clients={clients} user={currentUser} />;
     }
   };
 
-  const handleAddCar = async (car: Car) => {
-    setIsGlobalLoading(true);
-    try {
-      const saved = await BackendAPI.saveCar({ ...car, ownerId: activeOwnerId });
-      setCars(prev => [...prev, saved]);
-    } finally {
-      setIsGlobalLoading(false);
-    }
-  };
-
-  const handleUpdateCar = async (car: Car) => {
-    setIsGlobalLoading(true);
-    try {
-      const saved = await BackendAPI.saveCar(car);
-      setCars(prev => prev.map(c => c.id === car.id ? saved : c));
-    } finally {
-      setIsGlobalLoading(false);
-    }
-  };
-
-  const handleDeleteCar = async (id: string) => {
-    setIsGlobalLoading(true);
-    try {
-      await BackendAPI.deleteCar(id);
-      setCars(prev => prev.filter(c => c.id !== id));
-    } finally {
-      setIsGlobalLoading(false);
-    }
-  };
-
-  if (!currentUser && !publicFleetOwner) {
+  if (!currentUser) {
     return (
       <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
         {isGlobalLoading && (
@@ -323,7 +232,7 @@ const App: React.FC = () => {
               {authMode === 'REGISTER' && (
                 <div className="space-y-2">
                   <label className="text-[10px] font-black text-slate-500 uppercase ml-2">Название компании</label>
-                  <input name="name" required className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none focus:border-blue-500" />
+                  <input name="name" required className="w-full p-4 bg-white/5 border border-white/10 rounded-2xl text-white outline-none focus:border-blue-500 placeholder-white/20" placeholder="My Rental Brand" />
                 </div>
               )}
               <div className="space-y-2">
@@ -347,357 +256,6 @@ const App: React.FC = () => {
     );
   }
 
-  const navigateToDetails = (view: AppView, id: string) => {
-    setSelectedEntityId(id);
-    setCurrentView(view);
-  };
-
-  const renderView = () => {
-    switch (currentView) {
-      case 'DASHBOARD': return <Dashboard cars={userCars} rentals={userRentals} clients={userClients} user={currentUser} />;
-      case 'CARS': return <CarList cars={userCars} currentOwnerId={activeOwnerId} investors={userInvestors} onAdd={handleAddCar} onUpdate={handleUpdateCar} onDelete={handleDeleteCar} />;
-      case 'CLIENTS': return <ClientList clients={userClients} rentals={userRentals} transactions={userTransactions} onAdd={c => handleAddClient({ ...c, ownerId: activeOwnerId })} onUpdate={handleUpdateClient} onDelete={handleDeleteClient} onSelectClient={(id) => navigateToDetails('CLIENT_DETAILS', id)} />;
-      case 'CALENDAR': return <BookingCalendar cars={userCars} rentals={userRentals} />;
-      case 'REQUESTS': return <BookingRequests requests={userRequests} cars={userCars} onAction={handleBookingAction} />;
-      case 'MANUAL_BOOKING': return <ManualBooking cars={userCars} clients={userClients} onCreate={handleCreateRental} onQuickAddClient={handleQuickAddClient} />;
-      case 'CONTRACTS': return <ContractList rentals={userRentals} cars={userCars} clients={userClients} onUpdate={handleUpdateRental} onDelete={handleDeleteRental} />;
-      case 'CONTRACTS_ARCHIVE': return <ContractList rentals={userRentals} cars={userCars} clients={userClients} onUpdate={handleUpdateRental} onDelete={handleDeleteRental} isArchive={true} />;
-      case 'INVESTORS': return <InvestorList investors={userInvestors} cars={userCars} rentals={userRentals} transactions={userTransactions} onAdd={i => handleAddInvestor({ ...i, ownerId: activeOwnerId })} onUpdate={handleUpdateInvestor} onDelete={handleDeleteInvestor} onSelectInvestor={(id) => navigateToDetails('INVESTOR_DETAILS', id)} />;
-      case 'CASHBOX': return <Cashbox transactions={userTransactions} clients={userClients} rentals={userRentals} staff={userStaff} investors={userInvestors} cars={userCars} onAddTransaction={handleAddTransaction} />;
-      case 'REPORTS': return <Reports transactions={userTransactions} cars={userCars} investors={userInvestors} rentals={userRentals} clients={userClients} staff={userStaff} fines={userFines} />;
-      case 'STAFF': return <StaffList staff={userStaff} onAdd={s => handleAddStaff({ ...s, ownerId: activeOwnerId })} onUpdate={handleUpdateStaff} onDelete={handleDeleteStaff} onSelectStaff={(id) => navigateToDetails('STAFF_DETAILS', id)} />;
-      case 'SETTINGS': return <Settings user={currentUser} onUpdate={(u) => setCurrentUser(prev => prev ? {...prev, ...u} : null)} onNavigate={setCurrentView} onLogout={handleLogout} />;
-      case 'BRANDING_SETTINGS': return <Settings user={currentUser} currentMode="BRANDING" onUpdate={(u) => setCurrentUser(prev => prev ? {...prev, ...u} : null)} onNavigate={setCurrentView} onLogout={handleLogout} />;
-      case 'TARIFFS': return <Tariffs user={currentUser!} onUpdate={(u) => setCurrentUser(prev => prev ? {...prev, ...u} : null)} onBack={() => setCurrentView('SETTINGS')} />;
-      case 'SUPERADMIN_PANEL': return <SuperadminPanel allUsers={allUsers} onUpdateUser={handleUpdateGlobalUser} onDeleteUser={handleDeleteGlobalUser} />;
-      case 'CLIENT_CATALOG': return (
-        <ClientCatalog
-          cars={userCars.filter(c => c.status === CarStatus.AVAILABLE)}
-          currentUser={currentUser}
-          onSubmitRequest={(req) => handleAddRequest({ ...req, ownerId: activeOwnerId })}
-          fleetOwner={publicFleetOwner || currentUser}
-          onAuthRequest={() => { setAuthMode('LOGIN'); setSelectedRole(UserRole.CLIENT); }}
-          onRegisterClient={(data) => {
-            handleAuthWithClientData(data);
-          }}
-          onLoginClient={(email, pass) => {
-            handleAuthWithClientData({ email, password: pass });
-          }}
-        />
-      );
-      case 'CLIENT_MY_BOOKINGS': return (
-        <div className="space-y-6">
-          <h2 className="text-2xl font-black">Мои бронирования</h2>
-          {userRentals.length === 0 ? <p className="text-slate-400">У вас пока нет активных аренд</p> : (
-            <div className="grid gap-4">
-              {userRentals.map(r => (
-                <div key={r.id} className="p-6 bg-white rounded-3xl border border-slate-100 flex justify-between items-center shadow-sm">
-                  <div>
-                    <div className="font-bold text-lg">{cars.find(c => c.id === r.carId)?.brand} {cars.find(c => c.id === r.carId)?.model}</div>
-                    <div className="text-sm text-slate-400">{r.startDate} - {r.endDate}</div>
-                  </div>
-                  <div className="text-right">
-                    <div className="font-black text-blue-600">{r.totalAmount} ₽</div>
-                    <div className="text-[10px] uppercase font-black">{r.status}</div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      );
-
-      case 'CLIENT_DETAILS': {
-        const client = clients.find(c => c.id === selectedEntityId);
-        return client ? <ClientDetails client={client} rentals={userRentals} transactions={userTransactions} cars={userCars} fines={userFines} onBack={() => setCurrentView('CLIENTS')} onAddFine={handleAddFine} onPayFine={handlePayFine} /> : null;
-      }
-      case 'STAFF_DETAILS': {
-        const member = staff.find(s => s.id === selectedEntityId);
-        return member ? <StaffDetails member={member} onBack={() => setCurrentView('STAFF')} /> : null;
-      }
-      case 'INVESTOR_DETAILS': {
-        const investor = investors.find(i => i.id === selectedEntityId);
-        return investor ? <InvestorDetails investor={investor} cars={userCars} rentals={userRentals} transactions={userTransactions} onBack={() => setCurrentView('INVESTORS')} /> : null;
-      }
-
-      default: return <div className="p-12 text-center text-gray-400 font-black">СКОРО</div>;
-    }
-  };
-
-  // Новые методы для работы с API
-  const handleAddClient = async (client: Client) => {
-    try {
-      const saved = await BackendAPI.saveClient(client);
-      setClients(prev => [...prev, saved]);
-    } catch (error) {
-      console.error('Failed to add client:', error);
-    }
-  };
-
-  const handleUpdateClient = async (client: Client) => {
-    try {
-      const saved = await BackendAPI.saveClient(client);
-      setClients(prev => prev.map(c => c.id === client.id ? saved : c));
-    } catch (error) {
-      console.error('Failed to update client:', error);
-    }
-  };
-
-  const handleDeleteClient = async (id: string) => {
-    try {
-      await BackendAPI.deleteClient(id);
-      setClients(prev => prev.filter(c => c.id !== id));
-    } catch (error) {
-      console.error('Failed to delete client:', error);
-    }
-  };
-
-  const handleAddInvestor = async (investor: Investor) => {
-    try {
-      const saved = await BackendAPI.saveInvestor(investor);
-      setInvestors(prev => [...prev, saved]);
-    } catch (error) {
-      console.error('Failed to add investor:', error);
-    }
-  };
-
-  const handleUpdateInvestor = async (investor: Investor) => {
-    try {
-      const saved = await BackendAPI.saveInvestor(investor);
-      setInvestors(prev => prev.map(i => i.id === investor.id ? saved : i));
-    } catch (error) {
-      console.error('Failed to update investor:', error);
-    }
-  };
-
-  const handleDeleteInvestor = async (id: string) => {
-    try {
-      await BackendAPI.deleteInvestor(id);
-      setInvestors(prev => prev.filter(i => i.id !== id));
-    } catch (error) {
-      console.error('Failed to delete investor:', error);
-    }
-  };
-
-  const handleAddStaff = async (staffMember: Staff) => {
-    try {
-      const saved = await BackendAPI.saveStaff(staffMember);
-      setStaff(prev => [...prev, saved]);
-    } catch (error) {
-      console.error('Failed to add staff:', error);
-    }
-  };
-
-  const handleUpdateStaff = async (staffMember: Staff) => {
-    try {
-      const saved = await BackendAPI.saveStaff(staffMember);
-      setStaff(prev => prev.map(s => s.id === staffMember.id ? saved : s));
-    } catch (error) {
-      console.error('Failed to update staff:', error);
-    }
-  };
-
-  const handleDeleteStaff = async (id: string) => {
-    try {
-      await BackendAPI.deleteStaff(id);
-      setStaff(prev => prev.filter(s => s.id !== id));
-    } catch (error) {
-      console.error('Failed to delete staff:', error);
-    }
-  };
-
-  const handleAddRequest = async (request: BookingRequest) => {
-    try {
-      const saved = await BackendAPI.saveRequest(request);
-      setRequests(prev => [...prev, saved]);
-    } catch (error) {
-      console.error('Failed to add request:', error);
-    }
-  };
-
-  const handleUpdateRental = async (updatedRental: Rental) => {
-    try {
-      const saved = await BackendAPI.saveRental(updatedRental);
-      setRentals(prev => prev.map(r => r.id === updatedRental.id ? saved : r));
-      
-      // Обновляем статус автомобиля
-      if (updatedRental.status === 'COMPLETED') {
-        setCars(prev => prev.map(c => c.id === updatedRental.carId ? { ...c, status: CarStatus.AVAILABLE } : c));
-      } else if (updatedRental.status === 'ACTIVE') {
-        setCars(prev => prev.map(c => c.id === updatedRental.carId ? { ...c, status: CarStatus.RENTED } : c));
-      }
-    } catch (error) {
-      console.error('Failed to update rental:', error);
-    }
-  };
-
-  const handleCreateRental = async (rental: Rental, isDebt: boolean = false) => {
-    try {
-      const newRental = await BackendAPI.saveRental({
-        ...rental,
-        ownerId: activeOwnerId,
-        paymentStatus: isDebt ? 'DEBT' : 'PAID'
-      });
-      setRentals(prev => [...prev, newRental]);
-      setCars(prev => prev.map(c => c.id === rental.carId ? { ...c, status: CarStatus.RENTED } : c));
-      
-      if (!isDebt) {
-        handleAddTransaction({
-          amount: rental.totalAmount,
-          type: TransactionType.INCOME,
-          category: 'Аренда',
-          description: `Аренда по дог. ${rental.contractNumber} (Оплачено)`,
-          carId: rental.carId
-        }, rental.clientId);
-      }
-      
-      setCurrentView('CONTRACTS');
-    } catch (error) {
-      console.error('Failed to create rental:', error);
-    }
-  };
-
-  const handleDeleteRental = async (id: string) => {
-    try {
-      const rental = rentals.find(r => r.id === id);
-      if (rental && rental.status === 'ACTIVE') {
-        setCars(prev => prev.map(c => c.id === rental.carId ? { ...c, status: CarStatus.AVAILABLE } : c));
-      }
-      await BackendAPI.deleteRental(id);
-      setRentals(prev => prev.filter(r => r.id !== id));
-    } catch (error) {
-      console.error('Failed to delete rental:', error);
-    }
-  };
-
-  const handleBookingAction = async (id: string, action: 'APPROVE' | 'REJECT') => {
-    try {
-      const req = requests.find(r => r.id === id);
-      if (!req) return;
-      
-      if (action === 'APPROVE') {
-        const car = cars.find(c => c.id === req.carId);
-        await handleCreateRental({ 
-          id: `rent-${Date.now()}`, 
-          ownerId: activeOwnerId, 
-          carId: req.carId, 
-          clientId: req.clientId, 
-          startDate: req.startDate, 
-          startTime: req.startTime, 
-          endDate: req.endDate, 
-          endTime: req.endTime, 
-          totalAmount: car ? car.pricePerDay : 15000, 
-          status: 'ACTIVE', 
-          contractNumber: `дог-авто-${Math.floor(Math.random() * 9000) + 1000}` 
-        }, false);
-      }
-      
-      await BackendAPI.deleteRequest(id);
-      setRequests(prev => prev.filter(r => r.id !== id));
-    } catch (error) {
-      console.error('Failed to process booking request:', error);
-    }
-  };
-
-  const handleQuickAddClient = async (clientData: Partial<Client>) => {
-    try {
-      const newClient = await BackendAPI.saveClient({
-        ...clientData,
-        id: `c-${Date.now()}`,
-        ownerId: activeOwnerId,
-        debt: 0,
-        createdAt: new Date().toISOString()
-      } as Client);
-      setClients(prev => [...prev, newClient]);
-      return newClient.id;
-    } catch (error) {
-      console.error('Failed to add client:', error);
-      return null;
-    }
-  };
-
-  const handleAddFine = async (fData: Partial<Fine>) => {
-    try {
-      const newFine = await BackendAPI.saveFine({
-        ...fData,
-        id: `fine-${Date.now()}`,
-        ownerId: activeOwnerId,
-        status: FineStatus.UNPAID,
-        date: fData.date || new Date().toISOString()
-      } as Fine);
-      setFines(prev => [...prev, newFine]);
-    } catch (error) {
-      console.error('Failed to add fine:', error);
-    }
-  };
-
-  const handlePayFine = async (fineId: string) => {
-    try {
-      const fine = fines.find(f => f.id === fineId);
-      if (!fine) return;
-      
-      await BackendAPI.payFine(fineId);
-      setFines(prev => prev.map(f => f.id === fineId ? { ...f, status: FineStatus.PAID } : f));
-      
-      handleAddTransaction({
-        amount: fine.amount,
-        type: TransactionType.INCOME,
-        category: 'Штраф',
-        description: `Оплата штрафа: ${fine.description} (${fine.source})`,
-        carId: fine.carId
-      }, fine.clientId);
-    } catch (error) {
-      console.error('Failed to pay fine:', error);
-    }
-  };
-
-  const handleAuthWithClientData = async (data: any) => {
-    try {
-      if (data.password) {
-        const user = await BackendAPI.login({ email: data.email, password: data.password });
-        setCurrentUser(user);
-      } else {
-        const user = await BackendAPI.register({ ...data, role: UserRole.CLIENT });
-        setCurrentUser(user);
-      }
-      
-      // Перезагружаем данные
-      const [
-        carsData,
-        clientsData,
-        rentalsData,
-        investorsData,
-        staffData,
-        transactionsData,
-        finesData,
-        requestsData
-      ] = await Promise.all([
-        BackendAPI.getCars(),
-        BackendAPI.getClients(),
-        BackendAPI.getRentals(),
-        BackendAPI.getInvestors(),
-        BackendAPI.getStaff(),
-        BackendAPI.getTransactions(),
-        BackendAPI.getFines(),
-        BackendAPI.getRequests()
-      ]);
-
-      setCars(carsData);
-      setClients(clientsData);
-      setRentals(rentalsData);
-      setInvestors(investorsData);
-      setStaff(staffData);
-      setTransactions(transactionsData);
-      setFines(finesData);
-      setRequests(requestsData);
-    } catch (error) {
-      alert('Ошибка аутентификации клиента');
-      console.error('Client auth error:', error);
-    }
-  };
-
-  const isClientMode = currentUser?.role === UserRole.CLIENT || !!publicFleetOwner;
-
   return (
     <div className="min-h-screen flex flex-col md:flex-row bg-slate-50">
       {isGlobalLoading && (
@@ -705,14 +263,30 @@ const App: React.FC = () => {
           <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
-      <TopNavbar brandName={(publicFleetOwner?.publicBrandName || currentUser?.publicBrandName) || 'AutoPro AI'} />
-      {!isClientMode && (
-        <Sidebar currentView={currentView} userRole={currentUser?.role!} userName={currentUser?.name || ''} onNavigate={setCurrentView} onLogout={handleLogout} requestCount={userRequests.length} user={currentUser} />
+      <TopNavbar brandName={currentUser?.publicBrandName || 'AutoPro AI'} />
+      {currentUser && currentUser.role !== UserRole.CLIENT && (
+        <Sidebar 
+          currentView={currentView} 
+          userRole={currentUser.role} 
+          userName={currentUser.name} 
+          onNavigate={setCurrentView} 
+          onLogout={handleLogout} 
+          requestCount={requests.length} 
+          user={currentUser} 
+        />
       )}
-      <main className={`flex-1 ${!isClientMode ? 'md:ml-64' : ''} p-6 md:p-10 pt-24 md:pt-10 pb-32 md:pb-10 transition-all duration-300`}>
+      <main className={`flex-1 ${currentUser && currentUser.role !== UserRole.CLIENT ? 'md:ml-64' : ''} p-6 md:p-10 pt-24 md:pt-10 pb-32 md:pb-10 transition-all`}>
         <div className="max-w-7xl mx-auto">{renderView()}</div>
       </main>
-      <BottomNav currentView={currentView} userRole={currentUser?.role || UserRole.CLIENT} onNavigate={setCurrentView} requestCount={userRequests.length} isClientMode={isClientMode} />
+      {currentUser && (
+        <BottomNav 
+          currentView={currentView} 
+          userRole={currentUser.role} 
+          onNavigate={setCurrentView} 
+          requestCount={requests.length} 
+          isClientMode={currentUser.role === UserRole.CLIENT} 
+        />
+      )}
     </div>
   );
 };
