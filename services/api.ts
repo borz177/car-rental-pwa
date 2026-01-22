@@ -1,11 +1,7 @@
+import { Car, User, Rental, Client, Transaction, Investor, Staff, Fine, BookingRequest } from '../types';
 
-import { Car, User, Rental, Client, Transaction, Investor, Staff, Fine } from '../types.ts';
-
-/**
- * Client-side API service for communicating with the real backend.
- */
 class BackendAPI {
-  private static BASE_URL = '/api'; // Assuming proxy or same-origin
+  private static BASE_URL = '/api';
 
   private static getHeaders() {
     const token = localStorage.getItem('autopro_token');
@@ -107,7 +103,206 @@ class BackendAPI {
     return this.handleResponse(response);
   }
 
-  // --- IMAGE COMPRESSION (Frontend only) ---
+  static async saveClient(client: Client): Promise<Client> {
+    const isNew = !client.id;
+    const url = isNew ? `${this.BASE_URL}/clients` : `${this.BASE_URL}/clients/${client.id}`;
+    
+    const response = await fetch(url, {
+      method: isNew ? 'POST' : 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(client)
+    });
+    return this.handleResponse(response);
+  }
+
+  static async deleteClient(id: string): Promise<void> {
+    const response = await fetch(`${this.BASE_URL}/clients/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    });
+    await this.handleResponse(response);
+  }
+
+  // --- RENTALS ---
+  static async getRentals(): Promise<Rental[]> {
+    const response = await fetch(`${this.BASE_URL}/rentals`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse(response);
+  }
+
+  static async saveRental(rental: Rental): Promise<Rental> {
+    const isNew = !rental.id;
+    const url = isNew ? `${this.BASE_URL}/rentals` : `${this.BASE_URL}/rentals/${rental.id}`;
+    
+    const response = await fetch(url, {
+      method: isNew ? 'POST' : 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(rental)
+    });
+    return this.handleResponse(response);
+  }
+
+  static async deleteRental(id: string): Promise<void> {
+    const response = await fetch(`${this.BASE_URL}/rentals/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    });
+    await this.handleResponse(response);
+  }
+
+  // --- TRANSACTIONS ---
+  static async getTransactions(): Promise<Transaction[]> {
+    const response = await fetch(`${this.BASE_URL}/transactions`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse(response);
+  }
+
+  static async saveTransaction(transaction: Transaction): Promise<Transaction> {
+    const response = await fetch(`${this.BASE_URL}/transactions`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(transaction)
+    });
+    return this.handleResponse(response);
+  }
+
+  // --- INVESTORS ---
+  static async getInvestors(): Promise<Investor[]> {
+    const response = await fetch(`${this.BASE_URL}/investors`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse(response);
+  }
+
+  static async saveInvestor(investor: Investor): Promise<Investor> {
+    const isNew = !investor.id;
+    const url = isNew ? `${this.BASE_URL}/investors` : `${this.BASE_URL}/investors/${investor.id}`;
+    
+    const response = await fetch(url, {
+      method: isNew ? 'POST' : 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(investor)
+    });
+    return this.handleResponse(response);
+  }
+
+  static async deleteInvestor(id: string): Promise<void> {
+    const response = await fetch(`${this.BASE_URL}/investors/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    });
+    await this.handleResponse(response);
+  }
+
+  // --- STAFF ---
+  static async getStaff(): Promise<Staff[]> {
+    const response = await fetch(`${this.BASE_URL}/staff`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse(response);
+  }
+
+  static async saveStaff(staff: Staff): Promise<Staff> {
+    const isNew = !staff.id;
+    const url = isNew ? `${this.BASE_URL}/staff` : `${this.BASE_URL}/staff/${staff.id}`;
+    
+    const response = await fetch(url, {
+      method: isNew ? 'POST' : 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(staff)
+    });
+    return this.handleResponse(response);
+  }
+
+  static async deleteStaff(id: string): Promise<void> {
+    const response = await fetch(`${this.BASE_URL}/staff/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    });
+    await this.handleResponse(response);
+  }
+
+  // --- FINES ---
+  static async getFines(): Promise<Fine[]> {
+    const response = await fetch(`${this.BASE_URL}/fines`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse(response);
+  }
+
+  static async saveFine(fine: Fine): Promise<Fine> {
+    const response = await fetch(`${this.BASE_URL}/fines`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(fine)
+    });
+    return this.handleResponse(response);
+  }
+
+  static async payFine(id: string): Promise<Fine> {
+    const response = await fetch(`${this.BASE_URL}/fines/${id}/pay`, {
+      method: 'PATCH',
+      headers: this.getHeaders()
+    });
+    return this.handleResponse(response);
+  }
+
+  // --- REQUESTS ---
+  static async getRequests(): Promise<BookingRequest[]> {
+    const response = await fetch(`${this.BASE_URL}/requests`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse(response);
+  }
+
+  static async saveRequest(request: BookingRequest): Promise<BookingRequest> {
+    const isNew = !request.id;
+    const url = isNew ? `${this.BASE_URL}/requests` : `${this.BASE_URL}/requests/${request.id}`;
+    
+    const response = await fetch(url, {
+      method: isNew ? 'POST' : 'PUT',
+      headers: this.getHeaders(),
+      body: JSON.stringify(request)
+    });
+    return this.handleResponse(response);
+  }
+
+  static async deleteRequest(id: string): Promise<void> {
+    const response = await fetch(`${this.BASE_URL}/requests/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    });
+    await this.handleResponse(response);
+  }
+
+  // --- SUPERADMIN ---
+  static async getAllUsers(): Promise<User[]> {
+    const response = await fetch(`${this.BASE_URL}/admin/users`, {
+      headers: this.getHeaders()
+    });
+    return this.handleResponse(response);
+  }
+
+  static async updateGlobalUser(id: string, updates: Partial<User>): Promise<User> {
+    const response = await fetch(`${this.BASE_URL}/admin/users/${id}`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify(updates)
+    });
+    return this.handleResponse(response);
+  }
+
+  static async deleteGlobalUser(id: string): Promise<void> {
+    const response = await fetch(`${this.BASE_URL}/admin/users/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders()
+    });
+    await this.handleResponse(response);
+  }
+
+  // --- IMAGE COMPRESSION ---
   static compressImage(file: File): Promise<string> {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
