@@ -1,5 +1,5 @@
 import React from 'react';
-import { Staff } from '../backend/src/types.ts';
+import { Staff } from '../types.ts';
 
 interface StaffDetailsProps {
   member: Staff;

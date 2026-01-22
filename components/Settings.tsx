@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { User, AppView, UserRole } from '../backend/src/types.ts';
+import { User, AppView, UserRole } from '../types.ts';
 
 interface SettingsProps {
   user: User | null;

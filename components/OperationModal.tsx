@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Transaction, Rental, TransactionType, Car } from '../backend/src/types.ts';
+import { Transaction, Rental, TransactionType, Car } from '../types.ts';
 
 interface OperationModalProps {
   item: Transaction | Rental | any;

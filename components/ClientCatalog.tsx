@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Car, BookingRequest, User, RequestStatus } from '../backend/src/types.ts';
+import { Car, BookingRequest, User, RequestStatus } from '../types.ts';
 
 interface ClientCatalogProps {
   cars: Car[];

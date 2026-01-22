@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Car, Rental } from '../backend/src/types.ts';
+import { Car, Rental } from '../types.ts';
 import { getFleetInsights } from '../services/geminiService';
 
 interface AiAdvisorProps {

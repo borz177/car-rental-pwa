@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Client, Rental, Transaction, TransactionType } from '../backend/src/types.ts';
+import { Client, Rental, Transaction, TransactionType } from '../types.ts';
 
 interface ClientListProps {
   clients: Client[];

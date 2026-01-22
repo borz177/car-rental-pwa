@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Car, Rental, Client, User } from '../backend/src/types.ts';
+import { Car, Rental, Client, User } from '../types.ts';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie } from 'recharts';
 
 interface DashboardProps {

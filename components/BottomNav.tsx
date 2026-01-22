@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { AppView, UserRole } from '../backend/src/types.ts';
+import { AppView, UserRole } from '../types.ts';
 import { NAVIGATION_ITEMS } from '../constants';
 
 interface BottomNavProps {

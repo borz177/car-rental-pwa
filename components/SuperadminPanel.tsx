@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { User, UserRole } from '../backend/src/types.ts';
+import { User, UserRole } from '../types.ts';
 
 interface SuperadminPanelProps {
   allUsers: User[];

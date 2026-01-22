@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Transaction, TransactionType, Client, Rental, Staff, Investor, Car } from '../backend/src/types.ts';
+import { Transaction, TransactionType, Client, Rental, Staff, Investor, Car } from '../types.ts';
 
 interface CashboxProps {
   transactions: Transaction[];

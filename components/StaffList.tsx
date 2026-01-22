@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Staff, UserRole } from '../backend/src/types.ts';
+import { Staff, UserRole } from '../types.ts';
 
 interface StaffListProps {
   staff: Staff[];

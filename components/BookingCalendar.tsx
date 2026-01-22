@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { Car, Rental, CarStatus } from '../backend/src/types.ts';
+import { Car, Rental, CarStatus } from '../types.ts';
 
 interface BookingCalendarProps {
   cars: Car[];

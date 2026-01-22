@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Car, CarStatus, FuelType, Transmission, Investor } from '../backend/src/types.ts';
+import { Car, CarStatus, FuelType, Transmission, Investor } from '../types.ts';
 import { CAR_CATEGORIES, FUEL_TYPES, TRANSMISSIONS } from '../constants';
 import BackendAPI from '../services/api';
 

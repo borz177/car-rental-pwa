@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { User } from '../backend/src/types.ts';
+import { User } from '../types.ts';
 
 interface TariffsProps {
   user: User;

@@ -1,5 +1,5 @@
 
-import { UserRole, FuelType, Transmission, CarStatus } from './backend/src/types.ts';
+import { UserRole, FuelType, Transmission, CarStatus } from './types.ts';
 
 export const CAR_CATEGORIES = ['Эконом', 'Комфорт', 'Бизнес', 'Внедорожник', 'Спорт', 'Минивэн'];
 export const FUEL_TYPES = Object.values(FuelType);

@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { User, Car, Rental, Client, BookingRequest, AppView, UserRole, CarStatus, Transaction, TransactionType, Investor, Staff, Fine, FineStatus } from './backend/src/types.ts';
+import { User, Car, Rental, Client, BookingRequest, AppView, UserRole, CarStatus, Transaction, TransactionType, Investor, Staff, Fine, FineStatus } from './types.ts';
 import { INITIAL_CARS } from './constants';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';

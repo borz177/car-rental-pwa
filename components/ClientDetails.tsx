@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Client, Rental, Transaction, TransactionType, Car, Fine, FineStatus } from '../backend/src/types.ts';
+import { Client, Rental, Transaction, TransactionType, Car, Fine, FineStatus } from '../types.ts';
 import OperationModal from './OperationModal';
 
 interface ClientDetailsProps {

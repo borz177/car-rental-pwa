@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Car, Client, Rental } from '../backend/src/types.ts';
+import { Car, Client, Rental } from '../types.ts';
 
 interface ManualBookingProps {
   cars: Car[];

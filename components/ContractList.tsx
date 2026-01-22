@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { Rental, Car, Client } from '../backend/src/types.ts';
+import { Rental, Car, Client } from '../types.ts';
 
 interface ContractListProps {
   rentals: Rental[];

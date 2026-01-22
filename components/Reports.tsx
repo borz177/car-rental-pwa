@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Transaction, Car, Investor, TransactionType, Rental, Client, Staff, Fine, FineStatus } from '../backend/src/types.ts';
+import { Transaction, Car, Investor, TransactionType, Rental, Client, Staff, Fine, FineStatus } from '../types.ts';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
 import OperationModal from './OperationModal';
 

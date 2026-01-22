@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Investor, Car, Rental, Transaction, TransactionType } from '../backend/src/types.ts';
+import { Investor, Car, Rental, Transaction, TransactionType } from '../types.ts';
 
 interface InvestorListProps {
   investors: Investor[];

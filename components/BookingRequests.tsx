@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { BookingRequest, RequestStatus, Car } from '../backend/src/types.ts';
+import { BookingRequest, RequestStatus, Car } from '../types.ts';
 
 interface BookingRequestsProps {
   requests: BookingRequest[];

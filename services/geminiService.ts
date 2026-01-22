@@ -1,6 +1,6 @@
 
 import { GoogleGenAI } from "@google/genai";
-import { Car, Rental } from "../backend/src/types.ts";
+import { Car, Rental } from "../types.ts";
 
 export const getFleetInsights = async (cars: Car[], rentals: Rental[]) => {
   /* Initialize GoogleGenAI inside the function to ensure the latest API key is used as per guidelines */

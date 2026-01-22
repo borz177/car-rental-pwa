@@ -1,5 +1,5 @@
 
-import { Car, User, Rental, Client, Transaction, Investor, Staff, Fine } from '../backend/src/types.ts';
+import { Car, User, Rental, Client, Transaction, Investor, Staff, Fine } from '../types.ts';
 
 /**
  * Client-side API service for communicating with the real backend.
