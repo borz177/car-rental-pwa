@@ -46,58 +46,65 @@ const App: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [fines, setFines] = useState<Fine[]>([]);
 
-  const loadData = async (currentUser: User) => {
-  try {
-    const [c, cl, r, t, i, s, f, req] = await Promise.all([
-      BackendAPI.getCars(),
-      BackendAPI.getClients(),
-      BackendAPI.getRentals(),
-      BackendAPI.getTransactions(),
-      BackendAPI.getInvestors(),
-      BackendAPI.getStaff(),
-      BackendAPI.getFines(),
-      BackendAPI.getRequests()
-    ]);
+  const loadData = async () => {
+    const token = localStorage.getItem('autopro_token');
+    if (!token) return;
 
-    setCars(c || []);
-    setClients(cl || []);
-    setRentals(r || []);
-    setTransactions(t || []);
-    setInvestors(i || []);
-    setStaff(s || []);
-    setFines(f || []);
-    setRequests(req || []);
+    try {
+      // Cast the array to any[] to avoid incorrect inference of Iterable<PromiseLike<Car[]>>
+      const promises = [
+        BackendAPI.getCars(),
+        BackendAPI.getClients(),
+        BackendAPI.getRentals(),
+        BackendAPI.getTransactions(),
+        BackendAPI.getInvestors(),
+        BackendAPI.getStaff(),
+        BackendAPI.getFines(),
+        BackendAPI.getRequests()
+      ] as any[];
 
-    // Загружаем всех пользователей ТОЛЬКО для SUPERADMIN
-    if (currentUser.role === UserRole.SUPERADMIN) {
-      const users = await BackendAPI.getAllUsers();
-      setAllUsers(users || []);
+      const results = await Promise.all(promises) as [Car[], Client[], Rental[], Transaction[], Investor[], Staff[], Fine[], BookingRequest[]];
+
+      const [c, cl, r, t, i, s, f, req] = results;
+
+      setCars(c || []);
+      setClients(cl || []);
+      setRentals(r || []);
+      setTransactions(t || []);
+      setInvestors(i || []);
+      setStaff(s || []);
+      setFines(f || []);
+      setRequests(req || []);
+
+      const user = await BackendAPI.getCurrentUser();
+      if (user?.role === UserRole.SUPERADMIN) {
+        const users = await BackendAPI.getAllUsers();
+        setAllUsers(users || []);
+      }
+    } catch (e) {
+      console.error("Failed to load application data", e);
+      throw e;
     }
-  } catch (e) {
-    console.error("Failed to load application data", e);
-    throw e;
-  }
-};
+  };
 
   useEffect(() => {
     const init = async () => {
-  try {
-    const user = await BackendAPI.getCurrentUser();
-    if (user) {
-      setCurrentUser(user);
-      await loadData(user); // ← передаём уже полученного пользователя
-
-      if (user.role === UserRole.SUPERADMIN) setCurrentView('SUPERADMIN_PANEL');
-      else if (user.role === UserRole.CLIENT) setCurrentView('CLIENT_CATALOG');
-      else setCurrentView('DASHBOARD');
-    }
-  } catch (e: any) {
-    console.error("Init error", e);
-    setInitError("Не удалось подключиться к серверу. Убедитесь, что API запущен.");
-  } finally {
-    setIsInitializing(false);
-  }
-};
+      try {
+        const user = await BackendAPI.getCurrentUser();
+        if (user) {
+          setCurrentUser(user);
+          await loadData();
+          if (user.role === UserRole.SUPERADMIN) setCurrentView('SUPERADMIN_PANEL');
+          else if (user.role === UserRole.CLIENT) setCurrentView('CLIENT_CATALOG');
+          else setCurrentView('DASHBOARD');
+        }
+      } catch (e: any) {
+        console.error("Init error", e);
+        setInitError("Не удалось подключиться к серверу. Убедитесь, что API запущен.");
+      } finally {
+        setIsInitializing(false);
+      }
+    };
     init();
   }, []);
 
@@ -106,18 +113,18 @@ const App: React.FC = () => {
     setIsGlobalLoading(true);
     const fd = new FormData(e.currentTarget);
     try {
-      const user = authMode === 'REGISTER' 
-        ? await BackendAPI.register({ 
-            email: fd.get('email') as string, 
-            password: fd.get('password') as string, 
-            name: fd.get('name') as string, 
-            role: selectedRole || UserRole.ADMIN 
+      const user = authMode === 'REGISTER'
+        ? await BackendAPI.register({
+            email: fd.get('email') as string,
+            password: fd.get('password') as string,
+            name: fd.get('name') as string,
+            role: selectedRole || UserRole.ADMIN
           })
-        : await BackendAPI.login({ 
-            email: fd.get('email') as string, 
-            password: fd.get('password') as string 
+        : await BackendAPI.login({
+            email: fd.get('email') as string,
+            password: fd.get('password') as string
           });
-      
+
       setCurrentUser(user);
       await loadData();
       setCurrentView(user.role === UserRole.CLIENT ? 'CLIENT_CATALOG' : (user.role === UserRole.SUPERADMIN ? 'SUPERADMIN_PANEL' : 'DASHBOARD'));
@@ -136,9 +143,10 @@ const App: React.FC = () => {
     setCars([]); setClients([]); setRentals([]); setTransactions([]); setInvestors([]); setStaff([]); setFines([]); setRequests([]);
   };
 
-  const apiAction = (fn: Function) => async (...args: any[]) => {
+  const apiAction = (fn: (...args: any[]) => Promise<any>) => async (...args: any[]) => {
     setIsGlobalLoading(true);
     try {
+      // Use spread operator to pass all arguments (fix for updateGlobalUser)
       await fn(...args);
       await loadData();
     } catch (e: any) {
@@ -166,8 +174,8 @@ const App: React.FC = () => {
         </div>
         <h2 className="text-2xl font-black text-slate-900 mb-2">Ошибка подключения</h2>
         <p className="text-slate-500 max-w-xs mb-8 font-medium">{initError}</p>
-        <button 
-          onClick={() => window.location.reload()} 
+        <button
+          onClick={() => window.location.reload()}
           className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20 hover:bg-blue-700 transition-all"
         >
           Попробовать снова
@@ -182,7 +190,7 @@ const App: React.FC = () => {
       case 'CARS': return <CarList cars={cars} investors={investors} onAdd={apiAction(BackendAPI.saveCar)} onUpdate={apiAction(BackendAPI.saveCar)} onDelete={apiAction(BackendAPI.deleteCar)} currentOwnerId={currentUser?.id || ''} />;
       case 'CLIENTS': return <ClientList clients={clients} rentals={rentals} transactions={transactions} onAdd={apiAction(BackendAPI.saveClient)} onUpdate={apiAction(BackendAPI.saveClient)} onDelete={apiAction(BackendAPI.deleteClient)} onSelectClient={(id) => { setSelectedEntityId(id); setCurrentView('CLIENT_DETAILS'); }} />;
       case 'CALENDAR': return <BookingCalendar cars={cars} rentals={rentals} />;
-      case 'REQUESTS': return <BookingRequests requests={requests} cars={cars} onAction={apiAction(BackendAPI.deleteRequest)} />;
+      case 'REQUESTS': return <BookingRequests requests={requests} cars={cars} onAction={(id) => apiAction(BackendAPI.deleteRequest)(id)} />;
       case 'MANUAL_BOOKING': return <ManualBooking cars={cars} clients={clients} onCreate={apiAction(BackendAPI.saveRental)} onQuickAddClient={async (c) => { const res = await BackendAPI.saveClient(c as Client); return res.id; }} />;
       case 'CONTRACTS': return <ContractList rentals={rentals} cars={cars} clients={clients} onUpdate={apiAction(BackendAPI.saveRental)} onDelete={apiAction(BackendAPI.deleteRental)} />;
       case 'AI_ADVISOR': return <AiAdvisor cars={cars} rentals={rentals} />;
@@ -191,7 +199,21 @@ const App: React.FC = () => {
       case 'REPORTS': return <Reports transactions={transactions} cars={cars} investors={investors} rentals={rentals} clients={clients} staff={staff} fines={fines} />;
       case 'STAFF': return <StaffList staff={staff} onAdd={apiAction(BackendAPI.saveStaff)} onUpdate={apiAction(BackendAPI.saveStaff)} onDelete={apiAction(BackendAPI.deleteStaff)} onSelectStaff={(id) => { setSelectedEntityId(id); setCurrentView('STAFF_DETAILS'); }} />;
       case 'SETTINGS': return <Settings user={currentUser} onUpdate={apiAction((u: any) => BackendAPI.updateGlobalUser(currentUser!.id, u))} onNavigate={setCurrentView} onLogout={handleLogout} />;
-      case 'CLIENT_CATALOG': return <ClientCatalog cars={cars.filter(c => c.status === CarStatus.AVAILABLE)} currentUser={currentUser} onSubmitRequest={apiAction(BackendAPI.saveRequest)} fleetOwner={currentUser} onAuthRequest={() => setAuthMode('LOGIN')} onRegisterClient={apiAction(BackendAPI.register)} onLoginClient={apiAction(BackendAPI.login)} />;
+      case 'CLIENT_CATALOG': return <ClientCatalog cars={cars.filter(c => c.status === CarStatus.AVAILABLE)} currentUser={currentUser} onSubmitRequest={apiAction(BackendAPI.saveRequest)} fleetOwner={currentUser} onAuthRequest={() => setAuthMode('LOGIN')} onRegisterClient={apiAction(BackendAPI.register)} onLoginClient={(email, pass) => apiAction(BackendAPI.login)({email, password: pass})} />;
+      case 'SUPERADMIN_PANEL': return <SuperadminPanel allUsers={allUsers} onUpdateUser={apiAction((id: string, upd: any) => BackendAPI.updateGlobalUser(id, upd))} onDeleteUser={apiAction(BackendAPI.deleteGlobalUser)} />;
+      case 'CLIENT_DETAILS': {
+        const client = clients.find(c => c.id === selectedEntityId);
+        return client ? <ClientDetails client={client} rentals={rentals} transactions={transactions} cars={cars} fines={fines} onBack={() => setCurrentView('CLIENTS')} onAddFine={apiAction(BackendAPI.saveFine)} onPayFine={apiAction(BackendAPI.payFine)} /> : <Dashboard cars={cars} rentals={rentals} clients={clients} user={currentUser} />;
+      }
+      case 'STAFF_DETAILS': {
+        const member = staff.find(s => s.id === selectedEntityId);
+        return member ? <StaffDetails member={member} onBack={() => setCurrentView('STAFF')} /> : <Dashboard cars={cars} rentals={rentals} clients={clients} user={currentUser} />;
+      }
+      case 'INVESTOR_DETAILS': {
+        const investor = investors.find(i => i.id === selectedEntityId);
+        return investor ? <InvestorDetails investor={investor} cars={cars} rentals={rentals} transactions={transactions} onBack={() => setCurrentView('INVESTORS')} /> : <Dashboard cars={cars} rentals={rentals} clients={clients} user={currentUser} />;
+      }
+      case 'TARIFFS': return <Tariffs user={currentUser!} onUpdate={apiAction((u: any) => BackendAPI.updateGlobalUser(currentUser!.id, u))} onBack={() => setCurrentView('SETTINGS')} />;
       default: return <Dashboard cars={cars} rentals={rentals} clients={clients} user={currentUser} />;
     }
   };

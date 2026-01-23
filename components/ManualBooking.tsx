@@ -1,12 +1,12 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Car, Client, Rental } from '../types.ts';
+import { Car, Client, Rental } from '../types';
 
 interface ManualBookingProps {
   cars: Car[];
   clients: Client[];
   onCreate: (rental: Rental, isDebt: boolean) => void;
-  onQuickAddClient: (c: Partial<Client>) => string;
+  onQuickAddClient: (c: Partial<Client>) => Promise<string>;
 }
 
 const ManualBooking: React.FC<ManualBookingProps> = ({ cars, clients, onCreate, onQuickAddClient }) => {
@@ -14,7 +14,7 @@ const ManualBooking: React.FC<ManualBookingProps> = ({ cars, clients, onCreate, 
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [paymentMode, setPaymentMode] = useState<'PAID' | 'DEBT'>('PAID');
-  
+
   const today = new Date().toISOString().split('T')[0];
   const nowTime = new Date().toTimeString().slice(0, 5);
 
@@ -29,7 +29,6 @@ const ManualBooking: React.FC<ManualBookingProps> = ({ cars, clients, onCreate, 
     price: 0
   });
 
-  // Исправленный авторасчет стоимости
   useEffect(() => {
     if (formData.carId && formData.startDate && formData.startTime && formData.endDate && formData.endTime) {
       const car = cars.find(c => c.id === formData.carId);
@@ -37,17 +36,16 @@ const ManualBooking: React.FC<ManualBookingProps> = ({ cars, clients, onCreate, 
 
       const start = new Date(`${formData.startDate}T${formData.startTime}`);
       const end = new Date(`${formData.endDate}T${formData.endTime}`);
-      
+
       const diffMs = end.getTime() - start.getTime();
       if (diffMs > 0) {
         const totalHours = diffMs / (1000 * 60 * 60);
         const days = Math.floor(totalHours / 24);
         const remainingHours = Math.ceil(totalHours % 24);
-        
-        // Используем цену в час, если она есть, иначе 1/24 от суточной
+
         const hourPrice = car.pricePerHour || Math.round(car.pricePerDay / 24);
         const calculatedPrice = (days * car.pricePerDay) + (remainingHours * hourPrice);
-        
+
         setFormData(prev => ({ ...prev, price: Math.round(calculatedPrice) }));
       } else {
         setFormData(prev => ({ ...prev, price: 0 }));
@@ -57,8 +55,8 @@ const ManualBooking: React.FC<ManualBookingProps> = ({ cars, clients, onCreate, 
 
   const filteredClients = useMemo(() => {
     if (!searchQuery) return clients;
-    return clients.filter(c => 
-      c.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    return clients.filter(c =>
+      c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       c.phone.includes(searchQuery)
     );
   }, [clients, searchQuery]);
@@ -76,7 +74,7 @@ const ManualBooking: React.FC<ManualBookingProps> = ({ cars, clients, onCreate, 
 
     const rental: Rental = {
       id: `mrent-${Date.now()}`,
-      ownerId: '', 
+      ownerId: '',
       carId: formData.carId,
       clientId: formData.clientId,
       startDate: formData.startDate,
@@ -88,26 +86,25 @@ const ManualBooking: React.FC<ManualBookingProps> = ({ cars, clients, onCreate, 
       contractNumber: `дог-${Math.floor(Math.random() * 9000) + 1000}`,
       paymentStatus: paymentMode === 'DEBT' ? 'DEBT' : 'PAID'
     };
-    
+
     onCreate(rental, paymentMode === 'DEBT');
-    
-    // Сброс формы
-    setFormData({ 
-      carId: '', 
-      clientId: '', 
-      clientName: '', 
-      startDate: today, 
-      startTime: nowTime, 
-      endDate: today, 
-      endTime: '18:00', 
-      price: 0 
+
+    setFormData({
+      carId: '',
+      clientId: '',
+      clientName: '',
+      startDate: today,
+      startTime: nowTime,
+      endDate: today,
+      endTime: '18:00',
+      price: 0
     });
   };
 
-  const handleQuickAddClient = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleQuickAddClient = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    const newId = onQuickAddClient({
+    const newId = await onQuickAddClient({
       name: fd.get('name') as string,
       phone: fd.get('phone') as string,
       email: fd.get('email') as string,
@@ -122,14 +119,14 @@ const ManualBooking: React.FC<ManualBookingProps> = ({ cars, clients, onCreate, 
     <div className="max-w-4xl mx-auto animate-fadeIn pb-24 md:pb-0">
       <div className="bg-white p-6 md:p-12 rounded-[2.5rem] shadow-xl border border-slate-100">
         <h2 className="text-3xl font-black text-slate-900 mb-8">Оформление аренды</h2>
-        
+
         <form onSubmit={handleSubmit} className="space-y-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
               <div>
                 <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Автомобиль</label>
-                <select 
-                  required 
+                <select
+                  required
                   className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all appearance-none cursor-pointer"
                   value={formData.carId}
                   onChange={e => setFormData({...formData, carId: e.target.value})}
@@ -145,7 +142,7 @@ const ManualBooking: React.FC<ManualBookingProps> = ({ cars, clients, onCreate, 
 
               <div>
                 <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Клиент</label>
-                <div 
+                <div
                   onClick={() => setShowClientSearch(true)}
                   className="w-full p-4 bg-slate-50 rounded-2xl font-bold border-2 border-transparent cursor-pointer flex justify-between items-center hover:bg-slate-100 transition-all"
                 >
@@ -155,11 +152,11 @@ const ManualBooking: React.FC<ManualBookingProps> = ({ cars, clients, onCreate, 
                   <i className="fas fa-search text-slate-300"></i>
                 </div>
               </div>
-              
+
               <div>
                 <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Способ оплаты</label>
                 <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl">
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setPaymentMode('PAID')}
                     className={`py-3 rounded-xl font-black text-sm transition-all flex items-center justify-center space-x-2 ${paymentMode === 'PAID' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}
@@ -167,7 +164,7 @@ const ManualBooking: React.FC<ManualBookingProps> = ({ cars, clients, onCreate, 
                     <i className="fas fa-money-bill-wave"></i>
                     <span>Оплачено</span>
                   </button>
-                  <button 
+                  <button
                     type="button"
                     onClick={() => setPaymentMode('DEBT')}
                     className={`py-3 rounded-xl font-black text-sm transition-all flex items-center justify-center space-x-2 ${paymentMode === 'DEBT' ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-400'}`}
@@ -182,21 +179,21 @@ const ManualBooking: React.FC<ManualBookingProps> = ({ cars, clients, onCreate, 
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 text-xs font-black text-slate-400 uppercase tracking-widest">Начало аренды</div>
-                <input 
+                <input
                   type="date" required className="p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500"
                   value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})}
                 />
-                <input 
+                <input
                   type="time" required className="p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500"
                   value={formData.startTime} onChange={e => setFormData({...formData, startTime: e.target.value})}
                 />
 
                 <div className="col-span-2 text-xs font-black text-slate-400 uppercase tracking-widest mt-2">Конец аренды</div>
-                <input 
+                <input
                   type="date" required className="p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500"
                   value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})}
                 />
-                <input 
+                <input
                   type="time" required className="p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500"
                   value={formData.endTime} onChange={e => setFormData({...formData, endTime: e.target.value})}
                 />
@@ -205,7 +202,7 @@ const ManualBooking: React.FC<ManualBookingProps> = ({ cars, clients, onCreate, 
               <div>
                 <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Итоговая сумма (₽)</label>
                 <div className="relative">
-                  <input 
+                  <input
                     type="number" required
                     className="w-full p-4 bg-blue-50 rounded-2xl font-black text-2xl text-blue-600 outline-none border-2 border-blue-100"
                     value={formData.price}
@@ -218,7 +215,7 @@ const ManualBooking: React.FC<ManualBookingProps> = ({ cars, clients, onCreate, 
           </div>
 
           <div className="pt-6">
-            <button 
+            <button
               type="submit"
               className="w-full py-5 bg-blue-600 text-white rounded-3xl font-black text-xl hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all active:scale-[0.98] flex items-center justify-center space-x-3"
             >
@@ -229,7 +226,6 @@ const ManualBooking: React.FC<ManualBookingProps> = ({ cars, clients, onCreate, 
         </form>
       </div>
 
-      {/* Модалки ... */}
       {showClientSearch && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
           <div className="bg-white rounded-[2.5rem] w-full max-w-lg p-8 shadow-2xl flex flex-col max-h-[80vh]">
