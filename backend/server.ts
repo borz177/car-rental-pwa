@@ -1,11 +1,13 @@
+
 import 'dotenv/config';
-import express, { Request, Response, NextFunction } from 'express';
+import express, { NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import cors from 'cors';
-import { Pool } from 'pg';
+import pg from 'pg';
 import { randomUUID } from 'crypto';
 
+const { Pool } = pg;
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'autopro_super_secret_2025';
@@ -145,7 +147,7 @@ const initDB = async () => {
   }
 };
 
-// Utilities for Case Mapping
+// Utilities
 const toSnakeCase = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
 const toCamelCase = (str: string) => str.replace(/([-_][a-z])/g, group => group.toUpperCase().replace('-', '').replace('_', ''));
 
@@ -158,32 +160,26 @@ const mapKeys = (obj: any, mapper: (s: string) => string) => {
   return newObj;
 };
 
-// Middleware
-app.use(cors());
-// Fix: Added 'as any' to bypass type check for JSON middleware
+// Middleware setup
+app.use(cors() as any);
 app.use(express.json({ limit: '50mb' }) as any);
 
-interface AuthRequest extends Request {
-  user?: { id: string; role: string };
-}
-
-// Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
+// Authentication Middleware - Using 'any' to avoid ReadableStream inheritance issues
 const authenticateToken = (req: any, res: any, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) return res.status(401).json({ message: 'Authorization token required' });
 
-  jwt.verify(token, JWT_SECRET, (err, decoded) => {
+  jwt.verify(token, JWT_SECRET, (err: any, decoded: any) => {
     if (err) return res.status(403).json({ message: 'Invalid or expired token' });
-    req.user = decoded as any;
+    req.user = decoded;
     next();
   });
 };
 
 // --- AUTH ROUTES ---
 
-// Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
-app.post('/api/auth/register', async (req: any, res: any) => {
+app.post('/api/auth/register', (async (req: any, res: any) => {
   const { email, password, name, role } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
   const id = randomUUID();
@@ -197,10 +193,9 @@ app.post('/api/auth/register', async (req: any, res: any) => {
   } catch (err: any) {
     res.status(400).json({ message: err.message.includes('unique') ? 'User already exists' : 'Registration failed' });
   }
-});
+}) as any);
 
-// Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
-app.post('/api/auth/login', async (req: any, res: any) => {
+app.post('/api/auth/login', (async (req: any, res: any) => {
   const { email, password } = req.body;
   try {
     const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
@@ -216,58 +211,53 @@ app.post('/api/auth/login', async (req: any, res: any) => {
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
-});
+}) as any);
 
-// Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
-app.get('/api/auth/me', authenticateToken as any, async (req: any, res: any) => {
+app.get('/api/auth/me', authenticateToken, (async (req: any, res: any) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [req.user!.id]);
+    const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
     if (rows.length === 0) return res.status(404).json({ message: 'User not found' });
     const { password_hash, ...safeUser } = rows[0];
     res.json(mapKeys(safeUser, toCamelCase));
   } catch (err: any) {
     res.status(500).json({ message: err.message });
   }
-});
+}) as any);
 
 // --- CRUD HELPER ---
 
 const setupCrud = (resource: string, fields: string[]) => {
   const snakeFields = fields.map(toSnakeCase);
 
-  // Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
-  app.get(`/api/${resource}`, authenticateToken as any, async (req: any, res: any) => {
+  app.get(`/api/${resource}`, authenticateToken, (async (req: any, res: any) => {
     try {
-      // Logic for isolation: Admin sees theirs, Client sees theirs
       const query = `SELECT * FROM ${resource} WHERE owner_id = $1 OR client_id = $1`;
-      const { rows } = await pool.query(query, [req.user!.id]);
+      const { rows } = await pool.query(query, [req.user.id]);
       res.json(rows.map(r => mapKeys(r, toCamelCase)));
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
-  });
+  }) as any);
 
-  // Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
-  app.post(`/api/${resource}`, authenticateToken as any, async (req: any, res: any) => {
+  app.post(`/api/${resource}`, authenticateToken, (async (req: any, res: any) => {
     const id = randomUUID();
     const data = req.body;
     const columns = ['id', 'owner_id', ...snakeFields];
-    const values = [id, req.user!.id, ...fields.map(f => data[f])];
+    const values = [id, req.user.id, ...fields.map(f => data[f])];
     const placeholders = columns.map((_, i) => `$${i + 1}`).join(', ');
 
     try {
       await pool.query(`INSERT INTO ${resource} (${columns.join(', ')}) VALUES (${placeholders})`, values);
-      res.status(201).json({ ...data, id, ownerId: req.user!.id });
+      res.status(201).json({ ...data, id, ownerId: req.user.id });
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
-  });
+  }) as any);
 
-  // Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
-  app.put(`/api/${resource}/:id`, authenticateToken as any, async (req: any, res: any) => {
+  app.put(`/api/${resource}/:id`, authenticateToken, (async (req: any, res: any) => {
     const data = req.body;
     const setClause = snakeFields.map((f, i) => `${f} = $${i + 1}`).join(', ');
-    const values = [...fields.map(f => data[f]), req.params.id, req.user!.id];
+    const values = [...fields.map(f => data[f]), req.params.id, req.user.id];
 
     try {
       const result = await pool.query(
@@ -279,21 +269,20 @@ const setupCrud = (resource: string, fields: string[]) => {
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
-  });
+  }) as any);
 
-  // Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
-  app.delete(`/api/${resource}/:id`, authenticateToken as any, async (req: any, res: any) => {
+  app.delete(`/api/${resource}/:id`, authenticateToken, (async (req: any, res: any) => {
     try {
       const result = await pool.query(
         `DELETE FROM ${resource} WHERE id = $1 AND owner_id = $2`,
-        [req.params.id, req.user!.id]
+        [req.params.id, req.user.id]
       );
       if (result.rowCount === 0) return res.status(404).json({ message: 'Not found or access denied' });
       res.status(204).send();
     } catch (err: any) {
       res.status(500).json({ message: err.message });
     }
-  });
+  }) as any);
 };
 
 // --- ENTITY ROUTES ---
@@ -309,17 +298,15 @@ setupCrud('fines', ['clientId', 'carId', 'amount', 'description', 'date', 'statu
 
 // --- ADMIN / SUPERADMIN ROUTES ---
 
-// Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
-app.get('/api/admin/users', authenticateToken as any, async (req: any, res: any) => {
-  if (req.user!.role !== 'SUPERADMIN') return res.status(403).send();
+app.get('/api/admin/users', authenticateToken, (async (req: any, res: any) => {
+  if (req.user.role !== 'SUPERADMIN') return res.status(403).send();
   const { rows } = await pool.query('SELECT id, email, name, role, subscription_until, is_trial, active_plan FROM users');
   res.json(rows.map(r => mapKeys(r, toCamelCase)));
-});
+}) as any);
 
 // Start Server
 initDB().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 AutoPro Backend running on port ${PORT}`);
-    console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   });
 });
