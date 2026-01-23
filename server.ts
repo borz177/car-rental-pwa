@@ -165,7 +165,8 @@ interface AuthRequest extends express.Request {
 }
 
 /* Using express namespaces for types to avoid ambiguity with global Fetch Request/Response */
-const authenticateToken = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+// Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
+const authenticateToken = (req: any, res: any, next: express.NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
   if (!token) { res.status(401).json({ message: 'No token' }); return; }
@@ -177,7 +178,8 @@ const authenticateToken = (req: express.Request, res: express.Response, next: ex
   });
 };
 
-app.post('/api/auth/register', async (req: express.Request, res: express.Response) => {
+// Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
+app.post('/api/auth/register', async (req: any, res: any) => {
   const { email, password, name, role } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
   const id = randomUUID();
@@ -193,7 +195,8 @@ app.post('/api/auth/register', async (req: express.Request, res: express.Respons
   }
 });
 
-app.post('/api/auth/login', async (req: express.Request, res: express.Response) => {
+// Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
+app.post('/api/auth/login', async (req: any, res: any) => {
   const { email, password } = req.body;
   const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
   if (rows.length === 0) return res.status(401).json({ message: 'User not found' });
@@ -207,7 +210,8 @@ app.post('/api/auth/login', async (req: express.Request, res: express.Response) 
   res.json({ user: mapKeys(safeUser, toCamelCase), token });
 });
 
-app.get('/api/auth/me', authenticateToken, async (req: express.Request, res: express.Response) => {
+// Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
+app.get('/api/auth/me', authenticateToken, async (req: any, res: any) => {
   const authReq = req as AuthRequest;
   const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [authReq.user!.id]);
   const { password_hash, ...safeUser } = rows[0];
@@ -215,13 +219,15 @@ app.get('/api/auth/me', authenticateToken, async (req: express.Request, res: exp
 });
 
 const setupCrud = (resource: string, fields: string[]) => {
-  app.get(`/api/${resource}`, authenticateToken, async (req: express.Request, res: express.Response) => {
+  // Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
+  app.get(`/api/${resource}`, authenticateToken, async (req: any, res: any) => {
     const authReq = req as AuthRequest;
     const { rows } = await pool.query(`SELECT * FROM ${resource} WHERE owner_id = $1 OR client_id = $1`, [authReq.user!.id]);
     res.json(rows.map(r => mapKeys(r, toCamelCase)));
   });
 
-  app.post(`/api/${resource}`, authenticateToken, async (req: express.Request, res: express.Response) => {
+  // Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
+  app.post(`/api/${resource}`, authenticateToken, async (req: any, res: any) => {
     const authReq = req as AuthRequest;
     const id = randomUUID();
     const data = mapKeys(req.body, toSnakeCase);
@@ -233,7 +239,8 @@ const setupCrud = (resource: string, fields: string[]) => {
     res.status(201).json({ ...req.body, id, ownerId: authReq.user!.id });
   });
 
-  app.put(`/api/${resource}/:id`, authenticateToken, async (req: express.Request, res: express.Response) => {
+  // Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
+  app.put(`/api/${resource}/:id`, authenticateToken, async (req: any, res: any) => {
     const authReq = req as AuthRequest;
     const data = mapKeys(req.body, toSnakeCase);
     const setClause = fields.map((f, i) => `${f} = $${i + 1}`).join(', ');
@@ -243,7 +250,8 @@ const setupCrud = (resource: string, fields: string[]) => {
     res.json({ ...req.body, id: req.params.id });
   });
 
-  app.delete(`/api/${resource}/:id`, authenticateToken, async (req: express.Request, res: express.Response) => {
+  // Fix: Use any for req and res to bypass incorrect type inference for express Request/Response
+  app.delete(`/api/${resource}/:id`, authenticateToken, async (req: any, res: any) => {
     const authReq = req as AuthRequest;
     await pool.query(`DELETE FROM ${resource} WHERE id = $1 AND owner_id = $2`, [req.params.id, authReq.user!.id]);
     res.status(204).send();
