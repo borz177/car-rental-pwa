@@ -1,3 +1,4 @@
+
 import { Car, User, Rental, Client, Transaction, Investor, Staff, Fine, BookingRequest } from '../types';
 
 class BackendAPI {
@@ -11,13 +12,20 @@ class BackendAPI {
     };
   }
 
+  private static isNewId(id?: string): boolean {
+    if (!id) return true;
+    // UUID v4 regex check. If it's not a valid UUID, we treat it as a new/temp record.
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    return !uuidRegex.test(id);
+  }
+
   private static async handleResponse(response: Response) {
     if (response.status === 401) {
-      this.logout();
+      BackendAPI.logout();
       window.location.reload();
       throw new Error('Сессия истекла. Пожалуйста, войдите снова.');
     }
-    
+
     const data = await response.json();
     if (!response.ok) {
       throw new Error(data.message || 'Ошибка сервера');
@@ -27,13 +35,13 @@ class BackendAPI {
 
   // --- AUTHENTICATION ---
   static async login(credentials: Partial<User>): Promise<User> {
-    const response = await fetch(`${this.BASE_URL}/auth/login`, {
+    const response = await fetch(`${BackendAPI.BASE_URL}/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(credentials)
     });
-    
-    const data = await this.handleResponse(response);
+
+    const data = await BackendAPI.handleResponse(response);
     if (data.token) {
       localStorage.setItem('autopro_token', data.token);
     }
@@ -41,12 +49,12 @@ class BackendAPI {
   }
 
   static async register(userData: Partial<User>): Promise<User> {
-    const response = await fetch(`${this.BASE_URL}/auth/register`, {
+    const response = await fetch(`${BackendAPI.BASE_URL}/auth/register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(userData)
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async getCurrentUser(): Promise<User | null> {
@@ -54,10 +62,10 @@ class BackendAPI {
     if (!token) return null;
 
     try {
-      const response = await fetch(`${this.BASE_URL}/auth/me`, {
-        headers: this.getHeaders()
+      const response = await fetch(`${BackendAPI.BASE_URL}/auth/me`, {
+        headers: BackendAPI.getHeaders()
       });
-      return await this.handleResponse(response);
+      return await BackendAPI.handleResponse(response);
     } catch (e) {
       return null;
     }
@@ -69,237 +77,237 @@ class BackendAPI {
 
   // --- CARS ---
   static async getCars(): Promise<Car[]> {
-    const response = await fetch(`${this.BASE_URL}/cars`, {
-      headers: this.getHeaders()
+    const response = await fetch(`${BackendAPI.BASE_URL}/cars`, {
+      headers: BackendAPI.getHeaders()
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async saveCar(car: Car): Promise<Car> {
-    const isNew = !car.id || car.id.startsWith('temp-');
-    const url = isNew ? `${this.BASE_URL}/cars` : `${this.BASE_URL}/cars/${car.id}`;
-    
+    const isNew = BackendAPI.isNewId(car.id);
+    const url = isNew ? `${BackendAPI.BASE_URL}/cars` : `${BackendAPI.BASE_URL}/cars/${car.id}`;
+
     const response = await fetch(url, {
       method: isNew ? 'POST' : 'PUT',
-      headers: this.getHeaders(),
+      headers: BackendAPI.getHeaders(),
       body: JSON.stringify(car)
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async deleteCar(id: string): Promise<void> {
-    const response = await fetch(`${this.BASE_URL}/cars/${id}`, {
+    const response = await fetch(`${BackendAPI.BASE_URL}/cars/${id}`, {
       method: 'DELETE',
-      headers: this.getHeaders()
+      headers: BackendAPI.getHeaders()
     });
-    await this.handleResponse(response);
+    await BackendAPI.handleResponse(response);
   }
 
   // --- CLIENTS ---
   static async getClients(): Promise<Client[]> {
-    const response = await fetch(`${this.BASE_URL}/clients`, {
-      headers: this.getHeaders()
+    const response = await fetch(`${BackendAPI.BASE_URL}/clients`, {
+      headers: BackendAPI.getHeaders()
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async saveClient(client: Client): Promise<Client> {
-    const isNew = !client.id;
-    const url = isNew ? `${this.BASE_URL}/clients` : `${this.BASE_URL}/clients/${client.id}`;
-    
+    const isNew = BackendAPI.isNewId(client.id);
+    const url = isNew ? `${BackendAPI.BASE_URL}/clients` : `${BackendAPI.BASE_URL}/clients/${client.id}`;
+
     const response = await fetch(url, {
       method: isNew ? 'POST' : 'PUT',
-      headers: this.getHeaders(),
+      headers: BackendAPI.getHeaders(),
       body: JSON.stringify(client)
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async deleteClient(id: string): Promise<void> {
-    const response = await fetch(`${this.BASE_URL}/clients/${id}`, {
+    const response = await fetch(`${BackendAPI.BASE_URL}/clients/${id}`, {
       method: 'DELETE',
-      headers: this.getHeaders()
+      headers: BackendAPI.getHeaders()
     });
-    await this.handleResponse(response);
+    await BackendAPI.handleResponse(response);
   }
 
   // --- RENTALS ---
   static async getRentals(): Promise<Rental[]> {
-    const response = await fetch(`${this.BASE_URL}/rentals`, {
-      headers: this.getHeaders()
+    const response = await fetch(`${BackendAPI.BASE_URL}/rentals`, {
+      headers: BackendAPI.getHeaders()
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async saveRental(rental: Rental): Promise<Rental> {
-    const isNew = !rental.id;
-    const url = isNew ? `${this.BASE_URL}/rentals` : `${this.BASE_URL}/rentals/${rental.id}`;
-    
+    const isNew = BackendAPI.isNewId(rental.id);
+    const url = isNew ? `${BackendAPI.BASE_URL}/rentals` : `${BackendAPI.BASE_URL}/rentals/${rental.id}`;
+
     const response = await fetch(url, {
       method: isNew ? 'POST' : 'PUT',
-      headers: this.getHeaders(),
+      headers: BackendAPI.getHeaders(),
       body: JSON.stringify(rental)
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async deleteRental(id: string): Promise<void> {
-    const response = await fetch(`${this.BASE_URL}/rentals/${id}`, {
+    const response = await fetch(`${BackendAPI.BASE_URL}/rentals/${id}`, {
       method: 'DELETE',
-      headers: this.getHeaders()
+      headers: BackendAPI.getHeaders()
     });
-    await this.handleResponse(response);
+    await BackendAPI.handleResponse(response);
   }
 
   // --- TRANSACTIONS ---
   static async getTransactions(): Promise<Transaction[]> {
-    const response = await fetch(`${this.BASE_URL}/transactions`, {
-      headers: this.getHeaders()
+    const response = await fetch(`${BackendAPI.BASE_URL}/transactions`, {
+      headers: BackendAPI.getHeaders()
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async saveTransaction(transaction: Transaction): Promise<Transaction> {
-    const response = await fetch(`${this.BASE_URL}/transactions`, {
+    const response = await fetch(`${BackendAPI.BASE_URL}/transactions`, {
       method: 'POST',
-      headers: this.getHeaders(),
+      headers: BackendAPI.getHeaders(),
       body: JSON.stringify(transaction)
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   // --- INVESTORS ---
   static async getInvestors(): Promise<Investor[]> {
-    const response = await fetch(`${this.BASE_URL}/investors`, {
-      headers: this.getHeaders()
+    const response = await fetch(`${BackendAPI.BASE_URL}/investors`, {
+      headers: BackendAPI.getHeaders()
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async saveInvestor(investor: Investor): Promise<Investor> {
-    const isNew = !investor.id;
-    const url = isNew ? `${this.BASE_URL}/investors` : `${this.BASE_URL}/investors/${investor.id}`;
-    
+    const isNew = BackendAPI.isNewId(investor.id);
+    const url = isNew ? `${BackendAPI.BASE_URL}/investors` : `${BackendAPI.BASE_URL}/investors/${investor.id}`;
+
     const response = await fetch(url, {
       method: isNew ? 'POST' : 'PUT',
-      headers: this.getHeaders(),
+      headers: BackendAPI.getHeaders(),
       body: JSON.stringify(investor)
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async deleteInvestor(id: string): Promise<void> {
-    const response = await fetch(`${this.BASE_URL}/investors/${id}`, {
+    const response = await fetch(`${BackendAPI.BASE_URL}/investors/${id}`, {
       method: 'DELETE',
-      headers: this.getHeaders()
+      headers: BackendAPI.getHeaders()
     });
-    await this.handleResponse(response);
+    await BackendAPI.handleResponse(response);
   }
 
   // --- STAFF ---
   static async getStaff(): Promise<Staff[]> {
-    const response = await fetch(`${this.BASE_URL}/staff`, {
-      headers: this.getHeaders()
+    const response = await fetch(`${BackendAPI.BASE_URL}/staff`, {
+      headers: BackendAPI.getHeaders()
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async saveStaff(staff: Staff): Promise<Staff> {
-    const isNew = !staff.id;
-    const url = isNew ? `${this.BASE_URL}/staff` : `${this.BASE_URL}/staff/${staff.id}`;
-    
+    const isNew = BackendAPI.isNewId(staff.id);
+    const url = isNew ? `${BackendAPI.BASE_URL}/staff` : `${BackendAPI.BASE_URL}/staff/${staff.id}`;
+
     const response = await fetch(url, {
       method: isNew ? 'POST' : 'PUT',
-      headers: this.getHeaders(),
+      headers: BackendAPI.getHeaders(),
       body: JSON.stringify(staff)
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async deleteStaff(id: string): Promise<void> {
-    const response = await fetch(`${this.BASE_URL}/staff/${id}`, {
+    const response = await fetch(`${BackendAPI.BASE_URL}/staff/${id}`, {
       method: 'DELETE',
-      headers: this.getHeaders()
+      headers: BackendAPI.getHeaders()
     });
-    await this.handleResponse(response);
+    await BackendAPI.handleResponse(response);
   }
 
   // --- FINES ---
   static async getFines(): Promise<Fine[]> {
-    const response = await fetch(`${this.BASE_URL}/fines`, {
-      headers: this.getHeaders()
+    const response = await fetch(`${BackendAPI.BASE_URL}/fines`, {
+      headers: BackendAPI.getHeaders()
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async saveFine(fine: Fine): Promise<Fine> {
-    const response = await fetch(`${this.BASE_URL}/fines`, {
+    const response = await fetch(`${BackendAPI.BASE_URL}/fines`, {
       method: 'POST',
-      headers: this.getHeaders(),
+      headers: BackendAPI.getHeaders(),
       body: JSON.stringify(fine)
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async payFine(id: string): Promise<Fine> {
-    const response = await fetch(`${this.BASE_URL}/fines/${id}/pay`, {
+    const response = await fetch(`${BackendAPI.BASE_URL}/fines/${id}/pay`, {
       method: 'PATCH',
-      headers: this.getHeaders()
+      headers: BackendAPI.getHeaders()
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   // --- REQUESTS ---
   static async getRequests(): Promise<BookingRequest[]> {
-    const response = await fetch(`${this.BASE_URL}/requests`, {
-      headers: this.getHeaders()
+    const response = await fetch(`${BackendAPI.BASE_URL}/requests`, {
+      headers: BackendAPI.getHeaders()
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async saveRequest(request: BookingRequest): Promise<BookingRequest> {
-    const isNew = !request.id;
-    const url = isNew ? `${this.BASE_URL}/requests` : `${this.BASE_URL}/requests/${request.id}`;
+    const isNew = BackendAPI.isNewId(request.id);
+    const url = isNew ? `${BackendAPI.BASE_URL}/requests` : `${BackendAPI.BASE_URL}/requests/${request.id}`;
     
     const response = await fetch(url, {
       method: isNew ? 'POST' : 'PUT',
-      headers: this.getHeaders(),
+      headers: BackendAPI.getHeaders(),
       body: JSON.stringify(request)
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async deleteRequest(id: string): Promise<void> {
-    const response = await fetch(`${this.BASE_URL}/requests/${id}`, {
+    const response = await fetch(`${BackendAPI.BASE_URL}/requests/${id}`, {
       method: 'DELETE',
-      headers: this.getHeaders()
+      headers: BackendAPI.getHeaders()
     });
-    await this.handleResponse(response);
+    await BackendAPI.handleResponse(response);
   }
 
   // --- SUPERADMIN ---
   static async getAllUsers(): Promise<User[]> {
-    const response = await fetch(`${this.BASE_URL}/admin/users`, {
-      headers: this.getHeaders()
+    const response = await fetch(`${BackendAPI.BASE_URL}/admin/users`, {
+      headers: BackendAPI.getHeaders()
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async updateGlobalUser(id: string, updates: Partial<User>): Promise<User> {
-    const response = await fetch(`${this.BASE_URL}/admin/users/${id}`, {
+    const response = await fetch(`${BackendAPI.BASE_URL}/admin/users/${id}`, {
       method: 'PATCH',
-      headers: this.getHeaders(),
+      headers: BackendAPI.getHeaders(),
       body: JSON.stringify(updates)
     });
-    return this.handleResponse(response);
+    return BackendAPI.handleResponse(response);
   }
 
   static async deleteGlobalUser(id: string): Promise<void> {
-    const response = await fetch(`${this.BASE_URL}/admin/users/${id}`, {
+    const response = await fetch(`${BackendAPI.BASE_URL}/admin/users/${id}`, {
       method: 'DELETE',
-      headers: this.getHeaders()
+      headers: BackendAPI.getHeaders()
     });
-    await this.handleResponse(response);
+    await BackendAPI.handleResponse(response);
   }
 
   // --- IMAGE COMPRESSION ---

@@ -7,20 +7,21 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#0f172a">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/3089/3089803.png">
     <title>AutoPro AI - Car Rental</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="manifest" href="metadata.json">
     <style>
       @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-      body { 
-        font-family: 'Inter', sans-serif; 
+      body {
+        font-family: 'Inter', sans-serif;
         -webkit-tap-highlight-color: transparent;
       }
       ::-webkit-scrollbar { width: 6px; }
       ::-webkit-scrollbar-track { background: #f1f1f1; }
       ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-      
+
       .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
       .pt-safe { padding-top: env(safe-area-inset-top); }
 
@@ -40,20 +41,20 @@
     "recharts": "https://esm.sh/recharts@2.15.0",
     "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
     "react/": "https://esm.sh/react@^19.2.3/",
-    "dotenv": "https://esm.sh/dotenv@^17.2.3",
-    "path": "https://esm.sh/path@^0.12.7",
+    "dotenv/": "https://esm.sh/dotenv@^17.2.3/",
     "express": "https://esm.sh/express@^5.2.1",
     "jsonwebtoken": "https://esm.sh/jsonwebtoken@^9.0.3",
     "bcrypt": "https://esm.sh/bcrypt@^6.0.0",
     "cors": "https://esm.sh/cors@^2.8.6",
     "pg": "https://esm.sh/pg@^8.17.2",
-    "crypto": "https://esm.sh/crypto@^1.0.1",
-    "dotenv/": "https://esm.sh/dotenv@^17.2.3/"
+    "crypto": "https://esm.sh/crypto@^1.0.1"
   }
 }
 </script>
 </head>
 <body class="bg-gray-50 text-gray-900 overflow-x-hidden selection:bg-blue-100">
     <div id="root"></div>
+<script type="module" src="/index.tsx"></script>
 </body>
 </html>
+

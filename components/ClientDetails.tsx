@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Client, Rental, Transaction, TransactionType, Car, Fine, FineStatus } from '../types.ts';
+import { Client, Rental, Transaction, TransactionType, Car, Fine, FineStatus } from '../types';
 import OperationModal from './OperationModal';
 
 interface ClientDetailsProps {
@@ -25,20 +25,33 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, rentals, transact
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   const clientFines = fines.filter(f => f.clientId === client.id);
+
+  // Broaden car selection for fines: first show cars they rented, then others
   const clientRentals = rentals.filter(r => r.clientId === client.id);
-  const relatedCars = cars.filter(c => clientRentals.some(r => r.carId === c.id));
+  const rentedCarIds = new Set(clientRentals.map(r => r.carId));
+  const relatedCars = cars.filter(c => rentedCarIds.has(c.id));
+  const otherCars = cars.filter(c => !rentedCarIds.has(c.id));
 
   const handleAddFine = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-    onAddFine({
+
+    const fineData: Partial<Fine> = {
       clientId: client.id,
       carId: fd.get('carId') as string,
       amount: Number(fd.get('amount')),
       description: fd.get('description') as string,
       source: fd.get('source') as string,
-      date: new Date().toISOString()
-    });
+      date: new Date().toISOString(),
+      status: FineStatus.UNPAID // Critical fix: added mandatory status
+    };
+
+    if (!fineData.carId) {
+      alert('Пожалуйста, выберите автомобиль');
+      return;
+    }
+
+    onAddFine(fineData);
     setShowFineModal(false);
   };
 
@@ -106,6 +119,9 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, rentals, transact
                   </div>
                 </div>
               ))}
+              {history.length === 0 && (
+                <div className="p-20 text-center text-slate-300 italic font-medium">История операций пуста</div>
+              )}
             </div>
           )}
 
@@ -113,7 +129,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, rentals, transact
             <div className="space-y-6">
               <div className="flex justify-between items-center">
                 <h3 className="text-xl font-black text-slate-900 uppercase">Штрафы клиента</h3>
-                <button 
+                <button
                   onClick={() => setShowFineModal(true)}
                   className="bg-rose-600 text-white px-6 py-2 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-rose-700 shadow-lg shadow-rose-200"
                 >
@@ -141,7 +157,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, rentals, transact
                         <div className={`text-[8px] font-black uppercase ${fine.status === FineStatus.PAID ? 'text-emerald-500' : 'text-rose-500'}`}>{fine.status}</div>
                       </div>
                       {fine.status === FineStatus.UNPAID && (
-                        <button 
+                        <button
                           onClick={() => onPayFine(fine.id)}
                           className="w-10 h-10 bg-emerald-500 text-white rounded-xl shadow-lg shadow-emerald-200 flex items-center justify-center active:scale-90 transition-all"
                         >
@@ -166,10 +182,15 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, rentals, transact
             <h2 className="text-2xl font-black text-slate-900 mb-8 uppercase tracking-tight">Новый штраф</h2>
             <div className="space-y-4 mb-10">
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Автомобиль (из истории клиента)</label>
-                <select name="carId" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold border-none outline-none focus:ring-2 focus:ring-rose-500 appearance-none">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Автомобиль</label>
+                <select name="carId" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold border-none outline-none focus:ring-2 focus:ring-rose-500 appearance-none text-slate-900">
                   <option value="">-- Выберите авто --</option>
-                  {relatedCars.map(c => <option key={c.id} value={c.id}>{c.brand} {c.model} ({c.plate})</option>)}
+                  {relatedCars.length > 0 && <optgroup label="Из истории аренды">
+                    {relatedCars.map(c => <option key={c.id} value={c.id}>{c.brand} {c.model} ({c.plate})</option>)}
+                  </optgroup>}
+                  <optgroup label="Весь автопарк">
+                    {otherCars.map(c => <option key={c.id} value={c.id}>{c.brand} {c.model} ({c.plate})</option>)}
+                  </optgroup>
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-4">

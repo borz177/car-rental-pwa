@@ -140,14 +140,16 @@ const initDB = async () => {
     );
   `;
   try {
+    await pool.connect();
+    console.log('📡 Connected to PostgreSQL');
     await pool.query(query);
-    console.log('✅ Database tables initialized');
-  } catch (err) {
-    console.error('❌ DB Init Error:', err);
+    console.log('✅ Database tables checked/initialized');
+  } catch (err: any) {
+    console.error('❌ Database Initialization Error:', err);
+    process.exit(1);
   }
 };
 
-// Utilities
 const toSnakeCase = (str: string) => str.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`);
 const toCamelCase = (str: string) => str.replace(/([-_][a-z])/g, group => group.toUpperCase().replace('-', '').replace('_', ''));
 
@@ -160,11 +162,9 @@ const mapKeys = (obj: any, mapper: (s: string) => string) => {
   return newObj;
 };
 
-// Middleware setup
 app.use(cors() as any);
 app.use(express.json({ limit: '50mb' }) as any);
 
-// Authentication Middleware - Using 'any' to avoid ReadableStream inheritance issues
 const authenticateToken = (req: any, res: any, next: NextFunction) => {
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
@@ -231,10 +231,16 @@ const setupCrud = (resource: string, fields: string[]) => {
 
   app.get(`/api/${resource}`, authenticateToken, (async (req: any, res: any) => {
     try {
-      const query = `SELECT * FROM ${resource} WHERE owner_id = $1 OR client_id = $1`;
+      // FIX: Only query client_id if the column exists in that table
+      const hasClientId = ['rentals', 'requests', 'fines', 'transactions'].includes(resource);
+      const query = hasClientId
+        ? `SELECT * FROM ${resource} WHERE owner_id = $1 OR client_id = $1`
+        : `SELECT * FROM ${resource} WHERE owner_id = $1`;
+
       const { rows } = await pool.query(query, [req.user.id]);
       res.json(rows.map(r => mapKeys(r, toCamelCase)));
     } catch (err: any) {
+      console.error(`Error fetching ${resource}:`, err.message);
       res.status(500).json({ message: err.message });
     }
   }) as any);
@@ -286,7 +292,6 @@ const setupCrud = (resource: string, fields: string[]) => {
 };
 
 // --- ENTITY ROUTES ---
-
 setupCrud('cars', ['brand', 'model', 'year', 'plate', 'status', 'pricePerDay', 'pricePerHour', 'category', 'mileage', 'fuel', 'transmission', 'images', 'investorId', 'investorShare']);
 setupCrud('clients', ['name', 'phone', 'email', 'passport', 'driverLicense', 'debt']);
 setupCrud('staff', ['name', 'login', 'passwordHash', 'role']);
@@ -304,9 +309,19 @@ app.get('/api/admin/users', authenticateToken, (async (req: any, res: any) => {
   res.json(rows.map(r => mapKeys(r, toCamelCase)));
 }) as any);
 
+app.patch('/api/admin/users/:id', authenticateToken, (async (req: any, res: any) => {
+  if (req.user.role !== 'SUPERADMIN') return res.status(403).send();
+  const { subscriptionUntil, activePlan, isTrial } = req.body;
+  const { rows } = await pool.query(
+    'UPDATE users SET subscription_until = $1, active_plan = $2, is_trial = $3 WHERE id = $4 RETURNING id, email, name, role, subscription_until, is_trial, active_plan',
+    [subscriptionUntil, activePlan, isTrial, req.params.id]
+  );
+  res.json(mapKeys(rows[0], toCamelCase));
+}) as any);
+
 // Start Server
 initDB().then(() => {
   app.listen(PORT, '0.0.0.0', () => {
-    console.log(`🚀 AutoPro Backend running on port ${PORT}`);
+    console.log(`🚀 AutoPro Backend is live on port ${PORT}`);
   });
 });

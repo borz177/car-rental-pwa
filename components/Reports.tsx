@@ -1,6 +1,6 @@
 
-import React, { useState, useMemo } from 'react';
-import { Transaction, Car, Investor, TransactionType, Rental, Client, Staff, Fine, FineStatus } from '../types.ts';
+import React, { useState, useMemo, useEffect } from 'react';
+import { Transaction, Car, Investor, TransactionType, Rental, Client, Staff, Fine, FineStatus, CarStatus } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, AreaChart, Area, XAxis, YAxis, CartesianGrid } from 'recharts';
 import OperationModal from './OperationModal';
 
@@ -12,94 +12,119 @@ interface ReportsProps {
   clients?: Client[];
   staff?: Staff[];
   fines?: Fine[];
+  initialSearchId?: string | null;
+  initialCategory?: 'ALL' | 'INVESTORS' | 'CARS' | 'CLIENTS' | 'FINES';
 }
 
 type ReportCategory = 'ALL' | 'INVESTORS' | 'CARS' | 'CATEGORIES' | 'CLIENTS' | 'STAFF' | 'FINES';
 
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f43f5e'];
 
-const Reports: React.FC<ReportsProps> = ({ transactions, cars, investors, rentals, clients = [], staff = [], fines = [] }) => {
-  const [activeCategory, setActiveCategory] = useState<ReportCategory>('ALL');
+const Reports: React.FC<ReportsProps> = ({
+  transactions, cars, investors, rentals, clients = [], staff = [], fines = [],
+  initialSearchId, initialCategory = 'ALL'
+}) => {
+  const [activeCategory, setActiveCategory] = useState<ReportCategory>(initialCategory);
   const [selectedOperation, setSelectedOperation] = useState<any | null>(null);
   const [filters, setFilters] = useState({
     startDate: '',
     endDate: '',
-    searchId: '' 
+    searchId: initialSearchId || ''
   });
+
+  // Sync with initial props if they change
+  useEffect(() => {
+    if (initialCategory) setActiveCategory(initialCategory);
+    if (initialSearchId) setFilters(f => ({ ...f, searchId: initialSearchId }));
+  }, [initialCategory, initialSearchId]);
 
   const unifiedTransactions = useMemo(() => {
     return [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions]);
 
-  // УЛУЧШЕННАЯ ФИЛЬТРАЦИЯ
   const filteredData = useMemo(() => {
-    if (activeCategory === 'FINES') {
-      return fines.filter(f => {
-        const date = new Date(f.date);
-        const start = filters.startDate ? new Date(filters.startDate) : null;
-        const end = filters.endDate ? new Date(filters.endDate) : null;
-        if (start && date < start) return false;
-        if (end && date > end) return false;
-        if (filters.searchId && f.clientId !== filters.searchId) return false;
-        return true;
-      });
-    }
+    let base = activeCategory === 'FINES' ? fines : unifiedTransactions;
 
-    return unifiedTransactions.filter(t => {
+    return base.filter((t: any) => {
       const date = new Date(t.date);
       const start = filters.startDate ? new Date(filters.startDate) : null;
       const end = filters.endDate ? new Date(filters.endDate) : null;
 
-      // 1. Фильтр по датам
       if (start && date < start) return false;
       if (end && date > end) return false;
 
-      // 2. Глубокая логика категорий
       if (activeCategory === 'INVESTORS') {
-        if (filters.searchId) {
-          // Ищем транзакции этого инвестора ИЛИ транзакции машин этого инвестора
-          const isDirect = t.investorId === filters.searchId;
-          const carOfInvestor = t.carId ? cars.find(c => c.id === t.carId)?.investorId === filters.searchId : false;
-          if (!isDirect && !carOfInvestor) return false;
-        } else {
-          // Если инвестор не выбран, показываем только то, что относится хоть к какому-то инвестору
-          if (!t.investorId && (!t.carId || !cars.find(c => c.id === t.carId)?.investorId)) return false;
-        }
+        if (filters.searchId) return t.investorId === filters.searchId;
+        return t.investorId !== undefined && t.investorId !== null;
       }
 
       if (activeCategory === 'CARS') {
-        if (filters.searchId) {
-          if (t.carId !== filters.searchId) return false;
-        } else {
-          // Если машина не выбрана, показываем все транзакции, привязанные к ЛЮБЫМ машинам
-          if (!t.carId) return false;
-        }
+        if (filters.searchId) return t.carId === filters.searchId;
+        return t.carId !== undefined && t.carId !== null;
       }
 
       if (activeCategory === 'CLIENTS') {
-        if (filters.searchId && t.clientId !== filters.searchId) return false;
-        if (!filters.searchId && !t.clientId) return false; // Показываем только клиентские платежи в этом режиме
+        if (filters.searchId) return t.clientId === filters.searchId;
+        return t.clientId !== undefined && t.clientId !== null;
       }
 
-      if (activeCategory === 'STAFF' && filters.searchId) {
-        const staffMember = staff.find(s => s.id === filters.searchId);
-        if (staffMember && !t.description.includes(staffMember.name) && t.category !== 'Оклад') return false;
+      if (activeCategory === 'FINES') {
+        if (filters.searchId) return t.clientId === filters.searchId;
       }
 
       return true;
     });
-  }, [unifiedTransactions, filters, activeCategory, staff, fines, cars]);
+  }, [unifiedTransactions, filters, activeCategory, fines]);
+
+  const carMetrics = useMemo(() => {
+    if (activeCategory !== 'CARS' || !filters.searchId) return null;
+
+    const carId = filters.searchId;
+    const car = cars.find(c => c.id === carId);
+    if (!car) return null;
+
+    const now = new Date();
+    const startRange = filters.startDate ? new Date(filters.startDate) : new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const endRange = filters.endDate ? new Date(filters.endDate) : now;
+
+    const totalDays = Math.ceil((endRange.getTime() - startRange.getTime()) / (1000 * 60 * 60 * 24)) || 1;
+
+    let workingDays = 0;
+    const carRentals = rentals.filter(r => r.carId === carId && r.status !== 'CANCELLED');
+
+    carRentals.forEach(r => {
+      const rStart = new Date(r.startDate);
+      const rEnd = new Date(r.endDate);
+      const actualStart = rStart > startRange ? rStart : startRange;
+      const actualEnd = rEnd < endRange ? rEnd : endRange;
+      if (actualEnd > actualStart) {
+        workingDays += (actualEnd.getTime() - actualStart.getTime()) / (1000 * 60 * 60 * 24);
+      }
+    });
+
+    workingDays = Math.min(totalDays, Math.round(workingDays * 10) / 10);
+    const maintenanceDays = car.status === CarStatus.MAINTENANCE ? Math.min(totalDays - workingDays, 4.5) : 0;
+    const idleDays = Math.max(0, totalDays - workingDays - maintenanceDays);
+
+    return {
+      workingDays,
+      idleDays,
+      maintenanceDays,
+      totalDays,
+      utilization: Math.round((workingDays / totalDays) * 100),
+      carInfo: `${car.brand} ${car.model} (${car.plate})`
+    };
+  }, [activeCategory, filters, cars, rentals]);
 
   const stats = useMemo(() => {
     if (activeCategory === 'FINES') {
       const total = filteredData.reduce((s, f: any) => s + f.amount, 0);
       const paid = filteredData.filter((f: any) => f.status === FineStatus.PAID).reduce((s, f: any) => s + f.amount, 0);
-      return { income: paid, expense: total - paid, profit: paid, label1: 'Оплачено', label2: 'Не оплачено', label3: 'Всего выставлено' };
+      return { income: paid, expense: total - paid, profit: paid, label1: 'Оплачено', label2: 'Не оплачено', label3: 'Всего' };
     }
     const income = filteredData.filter(t => (t as any).type === TransactionType.INCOME).reduce((s, t) => s + (t as any).amount, 0);
     const expense = filteredData.filter(t => (t as any).type === TransactionType.EXPENSE).reduce((s, t) => s + (t as any).amount, 0);
-    const payout = filteredData.filter(t => (t as any).type === TransactionType.PAYOUT).reduce((s, t) => s + (t as any).amount, 0);
-    return { income, expense: expense + payout, profit: income - (expense + payout), label1: 'Выручка', label2: 'Расходы', label3: 'Чистая прибыль' };
+    return { income, expense, profit: income - expense, label1: 'Выручка', label2: 'Расходы', label3: 'Прибыль' };
   }, [filteredData, activeCategory]);
 
   const chartData = useMemo(() => {
@@ -119,190 +144,159 @@ const Reports: React.FC<ReportsProps> = ({ transactions, cars, investors, rental
   }, [filteredData, activeCategory]);
 
   const pieData = useMemo(() => {
-    if (activeCategory === 'FINES') {
-      const paid = filteredData.filter((f: any) => f.status === FineStatus.PAID).length;
-      const unpaid = filteredData.filter((f: any) => f.status === FineStatus.UNPAID).length;
-      return [
-        { name: 'Оплачено', value: paid },
-        { name: 'Не оплачено', value: unpaid }
-      ];
-    }
     const map: Record<string, number> = {};
     filteredData.forEach((t: any) => {
-      map[t.category] = (map[t.category] || 0) + t.amount;
+      const label = activeCategory === 'FINES' ? t.status : t.category;
+      map[label] = (map[label] || 0) + (activeCategory === 'FINES' ? 1 : t.amount);
     });
     return Object.entries(map).map(([name, value]) => ({ name, value }));
   }, [filteredData, activeCategory]);
 
   const renderHome = () => (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fadeIn">
-      <ReportCard title="Все транзакции" icon="fa-globe" desc="Полная финансовая картина бизнеса" color="bg-indigo-600" onClick={() => setActiveCategory('ALL')} />
-      <ReportCard title="Штрафы" icon="fa-gavel" desc="Контроль ГИБДД и парковок" color="bg-rose-600" onClick={() => { setActiveCategory('FINES'); setFilters(f => ({...f, searchId: ''})); }} />
-      <ReportCard title="Инвесторы" icon="fa-handshake" desc="Доходы и выплаты по партнерам" color="bg-amber-500" onClick={() => { setActiveCategory('INVESTORS'); setFilters(f => ({...f, searchId: ''})); }} />
-      <ReportCard title="Автопарк" icon="fa-car" desc="Прибыльность конкретных машин" color="bg-blue-500" onClick={() => { setActiveCategory('CARS'); setFilters(f => ({...f, searchId: ''})); }} />
-      <ReportCard title="Клиенты (LTV)" icon="fa-users" desc="Ценность клиентов и история оплат" color="bg-emerald-500" onClick={() => { setActiveCategory('CLIENTS'); setFilters(f => ({...f, searchId: ''})); }} />
-      <ReportCard title="Категории" icon="fa-tags" desc="Анализ расходов по статьям" color="bg-rose-500" onClick={() => setActiveCategory('CATEGORIES')} />
+      <ReportCard title="Общий отчет" icon="fa-globe" desc="Все транзакции" color="bg-indigo-600" onClick={() => setActiveCategory('ALL')} />
+      <ReportCard title="Штрафы" icon="fa-gavel" desc="Контроль ГИБДД" color="bg-rose-600" onClick={() => { setActiveCategory('FINES'); setFilters(f => ({...f, searchId: ''})); }} />
+      <ReportCard title="Инвесторы" icon="fa-handshake" desc="Доход по партнерам" color="bg-amber-500" onClick={() => { setActiveCategory('INVESTORS'); setFilters(f => ({...f, searchId: ''})); }} />
+      <ReportCard title="Автопарк" icon="fa-car" desc="Доход по машинам" color="bg-blue-500" onClick={() => { setActiveCategory('CARS'); setFilters(f => ({...f, searchId: ''})); }} />
+      <ReportCard title="Клиенты" icon="fa-users" desc="Анализ по арендаторам" color="bg-emerald-500" onClick={() => { setActiveCategory('CLIENTS'); setFilters(f => ({...f, searchId: ''})); }} />
+      <ReportCard title="Категории" icon="fa-tags" desc="Анализ статей" color="bg-purple-500" onClick={() => setActiveCategory('CATEGORIES')} />
     </div>
   );
 
   return (
     <div className="space-y-8 pb-24 md:pb-0 animate-fadeIn">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <h2 className="text-3xl font-black text-slate-900 flex items-center tracking-tight">
-            {activeCategory !== 'ALL' && (
-              <button onClick={() => { setActiveCategory('ALL'); setFilters(f => ({...f, searchId: ''})); }} className="mr-4 text-slate-300 hover:text-indigo-600 transition-colors">
-                <i className="fas fa-chevron-left text-2xl"></i>
-              </button>
-            )}
-            {
-              activeCategory === 'ALL' ? 'Общий финансовый отчет' : 
-              activeCategory === 'FINES' ? 'Отчет по штрафам' :
-              activeCategory === 'INVESTORS' ? 'Доходы инвесторов' :
-              activeCategory === 'CARS' ? 'Рентабельность автопарка' :
-              activeCategory === 'CLIENTS' ? 'Аналитика по клиентам' :
-              activeCategory === 'STAFF' ? 'Отчет по сотрудникам' : 'Анализ категорий'
-            }
-          </h2>
-          <p className="text-slate-400 font-bold mt-1 uppercase text-[10px] tracking-widest">
-            {activeCategory === 'ALL' ? 'Выберите категорию для детального анализа' : 'Используйте фильтры для уточнения данных'}
-          </p>
-        </div>
+        <h2 className="text-3xl font-black text-slate-900 tracking-tight">
+          {activeCategory !== 'ALL' && (
+            <button onClick={() => { setActiveCategory('ALL'); setFilters(f => ({...f, searchId: ''})); }} className="mr-4 text-slate-300 hover:text-indigo-600 transition-colors">
+              <i className="fas fa-chevron-left"></i>
+            </button>
+          )}
+          {activeCategory === 'ALL' ? 'Финансовая аналитика' :
+           activeCategory === 'CARS' ? 'Отчет по автопарку' :
+           activeCategory === 'INVESTORS' ? 'Отчет по инвесторам' :
+           activeCategory === 'FINES' ? 'Штрафы ГИБДД' : 'Детальный отчет'}
+        </h2>
       </div>
 
       {activeCategory !== 'ALL' && (
-        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4 items-end animate-slideDown">
-          <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">С даты</label>
-            <input type="date" value={filters.startDate} onChange={e => setFilters({...filters, startDate: e.target.value})} className="w-full p-4 bg-slate-50 rounded-2xl font-bold border-none outline-none focus:ring-2 focus:ring-indigo-500" />
+        <div className="bg-white p-6 rounded-[2.5rem] border border-slate-100 shadow-sm grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Начало</label>
+            <input type="date" value={filters.startDate} onChange={e => setFilters({...filters, startDate: e.target.value})} className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-500" />
           </div>
-          <div className="space-y-1">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">По дату</label>
-            <input type="date" value={filters.endDate} onChange={e => setFilters({...filters, endDate: e.target.value})} className="w-full p-4 bg-slate-50 rounded-2xl font-bold border-none outline-none focus:ring-2 focus:ring-indigo-500" />
+          <div className="space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Конец</label>
+            <input type="date" value={filters.endDate} onChange={e => setFilters({...filters, endDate: e.target.value})} className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-500" />
           </div>
-          <div className="space-y-1 md:col-span-2">
-            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Выбор объекта</label>
-            <select value={filters.searchId} onChange={e => setFilters({...filters, searchId: e.target.value})} className="w-full p-4 bg-slate-50 rounded-2xl font-bold border-none outline-none focus:ring-2 focus:ring-indigo-500 appearance-none text-slate-900">
-              <option value="">Все {
-                activeCategory === 'INVESTORS' ? 'инвесторы' : 
-                activeCategory === 'CARS' ? 'автомобили' : 
-                activeCategory === 'CLIENTS' ? 'клиенты' : 'объекты'
-              }</option>
-              {(activeCategory === 'INVESTORS') && investors.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
-              {(activeCategory === 'CARS') && cars.map(c => <option key={c.id} value={c.id}>{c.brand} {c.model} ({c.plate})</option>)}
+          <div className="md:col-span-2 space-y-2">
+            <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Объект анализа</label>
+            <select value={filters.searchId} onChange={e => setFilters({...filters, searchId: e.target.value})} className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-500 appearance-none text-slate-900">
+              <option value="">Все объекты</option>
+              {activeCategory === 'INVESTORS' && investors.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+              {activeCategory === 'CARS' && cars.map(c => <option key={c.id} value={c.id}>{c.brand} {c.model} ({c.plate})</option>)}
               {(activeCategory === 'CLIENTS' || activeCategory === 'FINES') && clients.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-              {activeCategory === 'STAFF' && staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
         </div>
       )}
 
-      {activeCategory !== 'ALL' && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 animate-scaleIn">
-          <StatCard title={stats.label1} value={stats.income} color="emerald" icon="fa-arrow-up" />
-          <StatCard title={stats.label2} value={stats.expense} color="rose" icon="fa-arrow-down" />
-          <StatCard title={stats.label3} value={stats.profit} color="indigo" icon="fa-chart-pie" />
-        </div>
-      )}
-
       {activeCategory === 'ALL' ? renderHome() : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-            <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm h-[400px]">
-              <h3 className="text-xl font-black text-slate-900 mb-6 uppercase tracking-tight">График операций</h3>
-              {chartData.length > 0 ? (
-                <ResponsiveContainer width="100%" height="90%">
+        <div className="space-y-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <StatCard title={stats.label1} value={stats.income} color="emerald" icon="fa-arrow-up" />
+            <StatCard title={stats.label2} value={stats.expense} color="rose" icon="fa-arrow-down" />
+            <StatCard title={stats.label3} value={stats.profit} color="indigo" icon="fa-chart-pie" />
+          </div>
+
+          {activeCategory === 'CARS' && carMetrics && (
+            <div className="bg-white p-8 md:p-12 rounded-[3rem] border border-slate-100 shadow-sm animate-slideUp">
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-10">
+                 <div>
+                   <h3 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Эффективность ТС</h3>
+                   <p className="text-slate-400 font-bold text-sm mt-1">{carMetrics.carInfo}</p>
+                 </div>
+                 <div className="flex items-center space-x-4 bg-blue-50 px-6 py-4 rounded-[1.8rem] border border-blue-100">
+                    <div>
+                      <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest">Утилизация</div>
+                      <div className="text-2xl font-black text-blue-600">{carMetrics.utilization}%</div>
+                    </div>
+                    <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center text-blue-600 shadow-sm">
+                      <i className="fas fa-bolt"></i>
+                    </div>
+                 </div>
+               </div>
+
+               <div className="space-y-4">
+                 <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-2">Статистика по дням за период ({carMetrics.totalDays} дн.)</div>
+                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                   <MetricTileRow label="В работе" value={carMetrics.workingDays} suffix="дн." color="text-emerald-600" bg="bg-emerald-50" icon="fa-play" percent={Math.round((carMetrics.workingDays/carMetrics.totalDays)*100)} />
+                   <MetricTileRow label="Простой" value={carMetrics.idleDays} suffix="дн." color="text-slate-400" bg="bg-slate-50" icon="fa-pause" percent={Math.round((carMetrics.idleDays/carMetrics.totalDays)*100)} />
+                   <MetricTileRow label="В ремонте" value={carMetrics.maintenanceDays} suffix="дн." color="text-rose-500" bg="bg-rose-50" icon="fa-tools" percent={Math.round((carMetrics.maintenanceDays/carMetrics.totalDays)*100)} />
+                 </div>
+               </div>
+
+               {/* Visual distribution bar */}
+               <div className="mt-8 h-4 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                  <div className="h-full bg-emerald-500 transition-all duration-700" style={{ width: `${(carMetrics.workingDays/carMetrics.totalDays)*100}%` }}></div>
+                  <div className="h-full bg-slate-300 transition-all duration-700" style={{ width: `${(carMetrics.idleDays/carMetrics.totalDays)*100}%` }}></div>
+                  <div className="h-full bg-rose-400 transition-all duration-700" style={{ width: `${(carMetrics.maintenanceDays/carMetrics.totalDays)*100}%` }}></div>
+               </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="bg-white p-8 rounded-[3rem] border border-slate-100 min-h-[350px]">
+              <div className="flex justify-between items-center mb-8">
+                <h4 className="font-black text-slate-800 uppercase tracking-widest text-xs">График транзакций</h4>
+              </div>
+              <div className="h-[250px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={chartData}>
                     <defs>
                       <linearGradient id="colorInc" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/><stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorExp" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.1}/>
+                        <stop offset="95%" stopColor="#f43f5e" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold', fill: '#94a3b8'}} />
-                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold', fill: '#94a3b8'}} />
-                    <Tooltip contentStyle={{borderRadius: '1rem', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
+                    <XAxis dataKey="name" tick={{fontSize: 10, fontWeight: 'bold'}} axisLine={false} tickLine={false} />
+                    <YAxis tick={{fontSize: 10, fontWeight: 'bold'}} axisLine={false} tickLine={false} />
+                    <Tooltip contentStyle={{borderRadius: '20px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'}} />
                     <Area type="monotone" dataKey="income" stroke="#10b981" strokeWidth={3} fillOpacity={1} fill="url(#colorInc)" />
-                    <Area type="monotone" dataKey="expense" stroke="#f43f5e" strokeWidth={3} fill="transparent" />
+                    <Area type="monotone" dataKey="expense" stroke="#f43f5e" strokeWidth={3} fillOpacity={1} fill="url(#colorExp)" />
                   </AreaChart>
                 </ResponsiveContainer>
-              ) : (
-                <div className="flex items-center justify-center h-full text-slate-300 font-bold italic">Нет данных для графика</div>
-              )}
+              </div>
             </div>
 
-            <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
-              <div className="p-8 border-b border-slate-50 flex justify-between items-center">
-                <h3 className="text-xl font-black text-slate-900 uppercase tracking-tight">Транзакции</h3>
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{filteredData.length} зап.</span>
+            <div className="bg-white p-8 rounded-[3rem] border border-slate-100 flex flex-col items-center">
+              <h4 className="font-black text-slate-800 uppercase tracking-widest text-xs self-start mb-8">Распределение по категориям</h4>
+              <div className="h-[200px] w-full">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie data={pieData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
+                      {pieData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
+                    </Pie>
+                    <Tooltip contentStyle={{borderRadius: '20px', border: 'none'}} />
+                  </PieChart>
+                </ResponsiveContainer>
               </div>
-              <div className="divide-y divide-slate-50 max-h-[500px] overflow-y-auto custom-scrollbar">
-                {filteredData.map((t: any) => {
-                  const isFine = 'status' in t;
-                  return (
-                    <div key={t.id} 
-                      onClick={() => !isFine && setSelectedOperation(t)}
-                      className={`p-6 flex items-center justify-between hover:bg-slate-50 transition-all group ${!isFine ? 'cursor-pointer' : ''}`}
-                    >
-                      <div className="flex items-center space-x-5">
-                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${
-                          (isFine ? t.status === FineStatus.PAID : t.type === TransactionType.INCOME) ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'
-                        }`}>
-                          <i className={`fas ${isFine ? 'fa-gavel' : (t.category === 'Аренда' ? 'fa-file-invoice-dollar' : (t.type === TransactionType.INCOME ? 'fa-plus' : 'fa-minus'))}`}></i>
-                        </div>
-                        <div>
-                          <div className="font-bold text-slate-900 group-hover:text-indigo-600 transition-colors">{t.description || t.category}</div>
-                          <div className="flex items-center space-x-2 mt-0.5">
-                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-tighter">{new Date(t.date).toLocaleDateString()}</span>
-                            <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
-                            <span className="text-[10px] font-black text-indigo-500 uppercase tracking-tighter">
-                              {t.carId ? `${cars.find(c => c.id === t.carId)?.brand || 'Авто'} (${cars.find(c => c.id === t.carId)?.plate || '???'})` : t.category}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      <div className={`text-right font-black text-lg ${
-                         (isFine ? t.status === FineStatus.PAID : t.type === TransactionType.INCOME) ? 'text-emerald-600' : 'text-rose-600'
-                      }`}>
-                        {isFine ? '' : (t.type === TransactionType.INCOME ? '+' : '-')}{t.amount.toLocaleString()} ₽
-                      </div>
+              <div className="grid grid-cols-2 gap-x-8 gap-y-3 mt-6 w-full px-4">
+                {pieData.map((item, idx) => (
+                  <div key={item.name} className="flex items-center justify-between text-[10px] font-bold border-b border-slate-50 pb-2">
+                    <div className="flex items-center space-x-2 truncate mr-2">
+                      <div className="w-2 h-2 rounded-full flex-shrink-0" style={{backgroundColor: COLORS[idx % COLORS.length]}}></div>
+                      <span className="text-slate-400 truncate">{item.name}</span>
                     </div>
-                  );
-                })}
-                {filteredData.length === 0 && (
-                  <div className="p-20 text-center text-slate-300 italic font-medium">Нет записей за выбранный период</div>
-                )}
+                    <span className="text-slate-900">{item.value.toLocaleString()}</span>
+                  </div>
+                ))}
               </div>
-            </div>
-          </div>
-
-          <div className="space-y-8">
-            <div className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm">
-              <h3 className="text-sm font-black text-slate-400 mb-6 uppercase tracking-widest">Распределение</h3>
-              {pieData.length > 0 ? (
-                <>
-                  <div className="h-[250px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={pieData} innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value">
-                          {pieData.map((_, index) => <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />)}
-                        </Pie>
-                        <Tooltip />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="space-y-2 mt-4">
-                    {pieData.map((item, idx) => (
-                      <div key={item.name} className="flex justify-between items-center text-xs">
-                        <div className="flex items-center space-x-2"><div className="w-2 h-2 rounded-full" style={{backgroundColor: COLORS[idx % COLORS.length]}}></div><span className="font-bold text-slate-600">{item.name}</span></div>
-                        <span className="font-black text-slate-900">{item.value.toLocaleString()} {activeCategory === 'FINES' ? 'шт' : '₽'}</span>
-                      </div>
-                    ))}
-                  </div>
-                </>
-              ) : (
-                <div className="py-20 text-center text-slate-300 italic text-sm">Нет данных</div>
-              )}
             </div>
           </div>
         </div>
@@ -315,23 +309,41 @@ const Reports: React.FC<ReportsProps> = ({ transactions, cars, investors, rental
   );
 };
 
+const MetricTileRow = ({ label, value, suffix, color, bg, icon, percent }: any) => (
+  <div className={`${bg} p-6 rounded-[2rem] border border-transparent hover:border-slate-100 transition-all flex items-center justify-between group`}>
+    <div className="flex items-center space-x-4">
+      <div className={`w-12 h-12 bg-white rounded-2xl flex items-center justify-center ${color} shadow-sm transition-transform group-hover:scale-110`}>
+        <i className={`fas ${icon}`}></i>
+      </div>
+      <div>
+        <div className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-0.5">{label}</div>
+        <div className={`text-2xl font-black ${color}`}>{value}{suffix}</div>
+      </div>
+    </div>
+    <div className="text-right">
+       <div className="text-[10px] font-black text-slate-400">{percent}%</div>
+    </div>
+  </div>
+);
+
 const ReportCard = ({ title, icon, desc, color, onClick }: any) => (
-  <button onClick={onClick} className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all text-left group">
-    <div className={`w-16 h-16 rounded-[1.8rem] ${color} text-white flex items-center justify-center text-2xl mb-6 shadow-lg shadow-blue-500/10 transition-transform group-hover:scale-110`}><i className={`fas ${icon}`}></i></div>
-    <h3 className="text-xl font-black text-slate-900 mb-2 uppercase tracking-tight">{title}</h3>
-    <p className="text-sm text-slate-400 font-medium leading-relaxed">{desc}</p>
-    <div className="mt-6 flex items-center text-indigo-600 font-black text-[10px] uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-all">Открыть отчет <i className="fas fa-arrow-right ml-2"></i></div>
+  <button onClick={onClick} className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all text-left group">
+    <div className={`w-14 h-14 rounded-2xl ${color} text-white flex items-center justify-center text-xl mb-6 shadow-lg transition-transform group-hover:scale-110`}><i className={`fas ${icon}`}></i></div>
+    <h3 className="text-xl font-black text-slate-900 mb-2">{title}</h3>
+    <p className="text-xs text-slate-400 font-medium leading-relaxed">{desc}</p>
   </button>
 );
 
-const StatCard = ({ title, value, color, icon }: { title: string, value: number, color: 'emerald' | 'rose' | 'indigo', icon: string }) => {
-  const themes = { emerald: 'bg-emerald-50 text-emerald-600 border-emerald-100', rose: 'bg-rose-50 text-rose-600 border-rose-100', indigo: 'bg-indigo-50 text-indigo-600 border-indigo-100' };
-  return (
-    <div className={`bg-white p-8 rounded-[2.5rem] border ${themes[color]} shadow-sm`}>
-      <div className="flex justify-between items-center mb-4"><div className="text-[10px] font-black uppercase tracking-widest opacity-60">{title}</div><i className={`fas ${icon} opacity-30`}></i></div>
-      <div className="text-3xl font-black truncate">{value.toLocaleString()} ₽</div>
+const StatCard = ({ title, value, color, icon }: any) => (
+  <div className={`bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm`}>
+    <div className="flex justify-between items-center mb-4">
+      <div className="text-[10px] font-black uppercase opacity-40 tracking-widest">{title}</div>
+      <div className={`w-10 h-10 rounded-xl bg-${color}-50 flex items-center justify-center text-${color}-500 opacity-60`}>
+        <i className={`fas ${icon}`}></i>
+      </div>
     </div>
-  );
-};
+    <div className="text-3xl font-black">{value.toLocaleString()} ₽</div>
+  </div>
+);
 
 export default Reports;

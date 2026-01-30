@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Investor, Car, Rental, Transaction, TransactionType } from '../types.ts';
+import { Investor, Car, Rental, Transaction, TransactionType } from '../types';
 
 interface InvestorListProps {
   investors: Investor[];
@@ -22,7 +22,7 @@ const InvestorList: React.FC<InvestorListProps> = ({ investors, cars, rentals, t
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const data: Investor = {
-      id: editingInvestor?.id || `inv-${Date.now()}`,
+      id: editingInvestor?.id || '', // Explicitly empty for new investors
       ownerId: editingInvestor?.ownerId || '',
       name: fd.get('name') as string,
       phone: fd.get('phone') as string,
@@ -30,10 +30,10 @@ const InvestorList: React.FC<InvestorListProps> = ({ investors, cars, rentals, t
       totalInvested: Number(fd.get('invested')) || 0,
       balance: editingInvestor?.balance || 0
     };
-    
+
     if (editingInvestor) onUpdate(data);
     else onAdd(data);
-    
+
     setIsModalOpen(false);
     setEditingInvestor(null);
   };
@@ -49,33 +49,30 @@ const InvestorList: React.FC<InvestorListProps> = ({ investors, cars, rentals, t
     }, 0);
   };
 
-  const calculateTotalPayouts = (investorId: string) => {
-    return transactions
-      .filter(t => t.investorId === investorId && t.type === TransactionType.EXPENSE)
-      .reduce((acc, t) => acc + t.amount, 0);
-  };
-
   return (
     <div className="space-y-8 animate-fadeIn pb-24 md:pb-0">
-      <div className="flex justify-between items-center px-2">
-        <h2 className="text-3xl font-black text-slate-900">Инвесторы</h2>
-        <button 
-          onClick={() => { setEditingInvestor(null); setIsModalOpen(true); }} 
-          className="bg-indigo-600 text-white px-8 py-3 rounded-2xl font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-500/20 transition-all text-sm"
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+        <div>
+          <h2 className="text-3xl font-black text-slate-900">Инвесторы</h2>
+          <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest mt-1">Учет вложений и доходности партнеров</p>
+        </div>
+        <button
+          onClick={() => { setEditingInvestor(null); setIsModalOpen(true); }}
+          className="w-full md:w-auto bg-indigo-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-indigo-700 shadow-xl shadow-indigo-500/20 transition-all flex items-center justify-center space-x-2 active:scale-95"
         >
-          <i className="fas fa-plus mr-2"></i> Новый партнер
+          <i className="fas fa-plus"></i>
+          <span>Новый партнер</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {investors.map(inv => {
           const rentalEarnings = calculateEarnings(inv.id);
-          const totalPayouts = calculateTotalPayouts(inv.id);
           return (
             <div key={inv.id} className="bg-white p-8 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-md transition-all relative group">
               <div className="flex items-start justify-between mb-6">
                 <div className="flex items-center space-x-4">
-                  <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl font-black shadow-inner">
+                  <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl font-black shadow-inner uppercase">
                     {inv.name.charAt(0)}
                   </div>
                   <div>
@@ -85,10 +82,7 @@ const InvestorList: React.FC<InvestorListProps> = ({ investors, cars, rentals, t
                 </div>
 
                 <div className="relative">
-                  <button 
-                    onClick={() => setShowActions(showActions === inv.id ? null : inv.id)}
-                    className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
-                  >
+                  <button onClick={() => setShowActions(showActions === inv.id ? null : inv.id)} className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-slate-900 bg-slate-50 rounded-xl">
                     <i className="fas fa-ellipsis-v"></i>
                   </button>
                   {showActions === inv.id && (
@@ -96,10 +90,10 @@ const InvestorList: React.FC<InvestorListProps> = ({ investors, cars, rentals, t
                       <div className="fixed inset-0 z-40" onClick={() => setShowActions(null)}></div>
                       <div className="absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-2xl border border-slate-50 z-50 overflow-hidden animate-scaleIn">
                         <button onClick={() => { onSelectInvestor(inv.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 border-b border-slate-50">
-                          <i className="fas fa-id-card text-indigo-500"></i> <span>Информация</span>
+                          <i className="fas fa-id-card text-indigo-500"></i> <span>Инфо</span>
                         </button>
                         <button onClick={() => { setEditingInvestor(inv); setIsModalOpen(true); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 border-b border-slate-50">
-                          <i className="fas fa-edit text-amber-500"></i> <span>Редактировать</span>
+                          <i className="fas fa-edit text-amber-500"></i> <span>Изменить</span>
                         </button>
                         <button onClick={() => { if(window.confirm('Удалить инвестора?')) onDelete(inv.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-rose-50 text-rose-500 flex items-center space-x-3">
                           <i className="fas fa-trash-alt"></i> <span>Удалить</span>
@@ -109,31 +103,28 @@ const InvestorList: React.FC<InvestorListProps> = ({ investors, cars, rentals, t
                   )}
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 gap-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
-                    <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Вложено</div>
-                    <div className="font-bold text-slate-900 truncate">{inv.totalInvested.toLocaleString()} ₽</div>
-                  </div>
-                  <div className="bg-rose-50 p-5 rounded-2xl border border-rose-100">
-                    <div className="text-[10px] font-black text-rose-600 uppercase tracking-widest mb-1">Выплаты</div>
-                    <div className="font-bold text-rose-700 truncate">{totalPayouts.toLocaleString()} ₽</div>
-                  </div>
-                </div>
-                <div className="bg-blue-50 p-5 rounded-2xl border border-blue-100 flex justify-between items-center">
-                  <div>
-                    <div className="text-[10px] font-black text-blue-600 uppercase tracking-widest mb-1">Начислено прибыли</div>
-                    <div className="text-xl font-black text-blue-800">{rentalEarnings.toLocaleString()} ₽</div>
-                  </div>
-                  <div className="w-12 h-12 bg-white/50 rounded-xl flex items-center justify-center text-blue-600">
-                    <i className="fas fa-chart-line"></i>
-                  </div>
+                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex justify-between items-center">
+                   <div>
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Доход</div>
+                      <div className="text-xl font-black text-indigo-700">{rentalEarnings.toLocaleString()} ₽</div>
+                   </div>
+                   <div className="text-right">
+                      <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Вложено</div>
+                      <div className="font-bold">{inv.totalInvested.toLocaleString()} ₽</div>
+                   </div>
                 </div>
               </div>
             </div>
           );
         })}
+        {investors.length === 0 && (
+          <div className="col-span-full py-20 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-300">
+            <i className="fas fa-handshake text-4xl mb-4 opacity-20"></i>
+            <p className="font-bold uppercase tracking-widest text-sm">Инвесторы отсутствуют</p>
+          </div>
+        )}
       </div>
 
       {isModalOpen && (

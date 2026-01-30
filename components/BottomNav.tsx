@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { AppView, UserRole } from '../types.ts';
+import { AppView, UserRole } from '../types';
 import { NAVIGATION_ITEMS } from '../constants';
 
 interface BottomNavProps {
@@ -19,10 +19,10 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, userRole, onNavigate
     setShowMenu(false);
   };
 
-  const menuItems = NAVIGATION_ITEMS.filter(item => 
-    item.roles.includes(userRole) && 
+  const menuItems = NAVIGATION_ITEMS.filter(item =>
+    item.roles.includes(userRole) &&
     !['DASHBOARD', 'CARS', 'REQUESTS', 'SETTINGS', 'CONTRACTS', 'CONTRACTS_ARCHIVE', 'AI_ADVISOR'].includes(item.id) &&
-    item.id !== 'CLIENT_CATALOG' && 
+    item.id !== 'CLIENT_CATALOG' &&
     item.id !== 'CLIENT_MY_BOOKINGS'
   );
 
@@ -30,8 +30,8 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, userRole, onNavigate
     <>
       {showMenu && !isClientMode && (
         <div className="md:hidden fixed inset-0 z-[55] flex flex-col justify-end p-4">
-          <div 
-            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fadeIn" 
+          <div
+            className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
             onClick={() => setShowMenu(false)}
           ></div>
           <div className="relative bg-white rounded-[3rem] p-8 shadow-2xl animate-slideUp overflow-hidden transition-all duration-500">
@@ -41,7 +41,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, userRole, onNavigate
                 <i className="fas fa-times"></i>
               </button>
             </div>
-            
+
             <div className="grid grid-cols-3 gap-y-8 gap-x-4">
               <button onClick={() => handleNavigate('CASHBOX')} className="flex flex-col items-center space-y-3">
                 <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg"><i className="fas fa-plus-circle text-xl"></i></div>
@@ -63,12 +63,12 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, userRole, onNavigate
       )}
 
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-200 z-50 px-2 pb-safe shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
-        <div className={`flex justify-between items-center h-16 ${isClientMode ? 'px-8' : ''}`}>
+        <div className={`flex justify-between items-center h-20 pb-2 ${isClientMode ? 'px-8' : ''}`}>
           {!isClientMode ? (
             <>
               <NavItem id="DASHBOARD" icon="fa-chart-pie" label="Дашборд" currentView={currentView} onNavigate={handleNavigate} />
               <NavItem id="CARS" icon="fa-car" label="Автопарк" currentView={currentView} onNavigate={handleNavigate} />
-              <div className="relative -top-4">
+              <div className="relative -top-5">
                 <button onClick={() => setShowMenu(!showMenu)} className="w-14 h-14 rounded-2xl bg-blue-600 text-white shadow-xl shadow-blue-500/40 flex items-center justify-center transform active:scale-90 transition-all duration-300">
                   <i className={`fas ${showMenu ? 'fa-times' : 'fa-plus'} text-xl`}></i>
                 </button>
