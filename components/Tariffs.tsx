@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { User } from '../types.ts';
+import { User } from '../types';
 
 interface TariffsProps {
   user: User;
@@ -9,9 +9,31 @@ interface TariffsProps {
 }
 
 const PLANS = [
-  { id: 'START', name: 'Старт', price: 990, features: ['До 5 автомобилей', 'Базовая аналитика', 'Учет штрафов', 'Договоры онлайн'], color: 'bg-slate-100 text-slate-900' },
-  { id: 'BUSINESS', name: 'Бизнес', price: 1500, features: ['До 20 автомобилей', 'ИИ-Аналитика Gemini', 'Учет инвесторов', 'Расширенные отчеты'], color: 'bg-blue-600 text-white', popular: true },
-  { id: 'PREMIUM', name: 'Премиум', price: 2500, features: ['Безлимит авто', 'Персональный ИИ-ассистент', 'Приоритетная поддержка', 'Брендирование каталога'], color: 'bg-indigo-900 text-white' },
+  {
+    id: 'START',
+    name: 'Старт',
+    price: 990,
+    features: ['До 5 автомобилей', 'Базовый календарь', 'Печать договоров', 'Учет клиентов'],
+    color: 'bg-slate-100 text-slate-900',
+    limit: 5
+  },
+  {
+    id: 'BUSINESS',
+    name: 'Бизнес',
+    price: 1500,
+    features: ['До 20 автомобилей', 'Учет инвесторов и выплат', 'Финансовые отчеты', 'WhatsApp уведомления'],
+    color: 'bg-blue-600 text-white',
+    popular: true,
+    limit: 20
+  },
+  {
+    id: 'PREMIUM',
+    name: 'Премиум',
+    price: 2500,
+    features: ['Безлимит автомобилей', 'Брендирование (White Label)', 'Приоритетная поддержка', 'Экспорт данных в Excel'],
+    color: 'bg-indigo-900 text-white',
+    limit: 9999
+  },
 ];
 
 const Tariffs: React.FC<TariffsProps> = ({ user, onUpdate, onBack }) => {
@@ -34,18 +56,24 @@ const Tariffs: React.FC<TariffsProps> = ({ user, onUpdate, onBack }) => {
   const handlePay = () => {
     if (!selectedPlan) return;
     setIsPaying(true);
-    
+
     // Simulate payment process
     setTimeout(() => {
-      const newExpiry = new Date(user.subscriptionUntil || new Date());
+      // Calculate new date. If currently active, add to existing date. Else add to today.
+      const now = new Date();
+      const currentExpiry = user.subscriptionUntil ? new Date(user.subscriptionUntil) : new Date();
+      // If expired, start from today. If active, extend.
+      const baseDate = currentExpiry > now ? currentExpiry : now;
+
+      const newExpiry = new Date(baseDate);
       newExpiry.setMonth(newExpiry.getMonth() + months);
-      
+
       onUpdate({
         subscriptionUntil: newExpiry.toISOString(),
         isTrial: false,
         activePlan: selectedPlan.name
       });
-      
+
       setIsPaying(false);
       setSelectedPlan(null);
       alert(`Тариф "${selectedPlan.name}" на ${months} мес. успешно оплачен!`);
@@ -64,7 +92,9 @@ const Tariffs: React.FC<TariffsProps> = ({ user, onUpdate, onBack }) => {
         </div>
         <div className="bg-blue-50 px-6 py-4 rounded-3xl border border-blue-100 hidden md:block">
            <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1">Ваша подписка до</div>
-           <div className="text-lg font-black text-blue-700">{user.subscriptionUntil ? new Date(user.subscriptionUntil).toLocaleDateString() : 'Не активна'}</div>
+           <div className={`text-lg font-black ${user.subscriptionUntil && new Date(user.subscriptionUntil) < new Date() ? 'text-rose-600' : 'text-blue-700'}`}>
+             {user.subscriptionUntil ? new Date(user.subscriptionUntil).toLocaleDateString() : 'Не активна'}
+           </div>
         </div>
       </div>
 
@@ -72,8 +102,8 @@ const Tariffs: React.FC<TariffsProps> = ({ user, onUpdate, onBack }) => {
       <div className="flex justify-center">
         <div className="bg-slate-100 p-2 rounded-[2rem] flex items-center space-x-2">
           {[1, 6, 12].map(m => (
-            <button 
-              key={m} 
+            <button
+              key={m}
               onClick={() => setMonths(m)}
               className={`px-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest transition-all ${months === m ? 'bg-white text-blue-600 shadow-xl' : 'text-slate-400 hover:text-slate-600'}`}
             >
@@ -86,26 +116,26 @@ const Tariffs: React.FC<TariffsProps> = ({ user, onUpdate, onBack }) => {
       {/* Plans Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
         {PLANS.map(plan => (
-          <div 
-            key={plan.id} 
+          <div
+            key={plan.id}
             className={`rounded-[3rem] p-10 flex flex-col justify-between border-2 transition-all hover:-translate-y-2 relative overflow-hidden ${
               plan.popular ? 'border-blue-600 shadow-2xl shadow-blue-500/10' : 'border-slate-100 bg-white'
             }`}
           >
             {plan.popular && (
               <div className="absolute top-8 -right-12 bg-blue-600 text-white py-2 px-12 rotate-45 text-[10px] font-black uppercase tracking-widest shadow-lg">
-                Popular
+                Выбор профи
               </div>
             )}
-            
+
             <div>
               <div className="flex justify-between items-center mb-6">
                  <h3 className={`text-2xl font-black ${plan.id === 'BUSINESS' || plan.id === 'PREMIUM' ? 'text-slate-900' : 'text-slate-900'}`}>{plan.name}</h3>
                  <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${plan.color.includes('bg-white') ? 'bg-slate-100' : plan.color}`}>
-                   <i className={`fas ${plan.id === 'START' ? 'fa-seedling' : plan.id === 'BUSINESS' ? 'fa-rocket' : 'fa-crown'}`}></i>
+                   <i className={`fas ${plan.id === 'START' ? 'fa-car' : plan.id === 'BUSINESS' ? 'fa-chart-pie' : 'fa-crown'}`}></i>
                  </div>
               </div>
-              
+
               <div className="flex items-baseline mb-8">
                 <span className="text-5xl font-black tracking-tighter">{calculatePrice(plan.price).toLocaleString()} ₽</span>
                 <span className="text-slate-400 font-bold text-sm ml-2">/ период</span>
@@ -121,13 +151,13 @@ const Tariffs: React.FC<TariffsProps> = ({ user, onUpdate, onBack }) => {
               </div>
             </div>
 
-            <button 
+            <button
               onClick={() => setSelectedPlan(plan)}
               className={`w-full py-5 rounded-3xl font-black uppercase tracking-widest text-xs transition-all ${
                 plan.popular ? 'bg-blue-600 text-white shadow-xl shadow-blue-500/20' : 'bg-slate-900 text-white'
               } hover:scale-105 active:scale-95`}
             >
-              Выбрать план
+              {user.activePlan === plan.name ? 'Продлить тариф' : 'Выбрать план'}
             </button>
           </div>
         ))}

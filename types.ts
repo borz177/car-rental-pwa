@@ -79,21 +79,23 @@ export interface Fine {
   description: string;
   date: string;
   status: FineStatus;
-  source?: string; // ГИБДД, Парковка и т.д.
+  source?: string;
 }
 
 export enum RequestStatus {
-  PENDING = 'Ожидает',
-  APPROVED = 'Одобрено',
-  REJECTED = 'Отклонено'
+  PENDING = 'PENDING',
+  APPROVED = 'APPROVED',
+  REJECTED = 'REJECTED'
 }
 
 export interface BookingRequest {
   id: string;
   ownerId: string;
   carId: string;
-  clientId: string;
+  clientId: string | null;
   clientName: string;
+  clientPhone: string;
+  clientDob: string;
   startDate: string;
   startTime: string;
   endDate: string;
@@ -122,7 +124,7 @@ export interface Client {
   email: string;
   passport: string;
   driverLicense: string;
-  debt?: number; 
+  debt?: number;
   createdAt: string;
 }
 
@@ -145,6 +147,14 @@ export interface Car {
   investorShare?: number;
 }
 
+export interface RentalExtension {
+  endDate: string;
+  endTime: string;
+  amount: number;
+  date: string;
+  paymentStatus?: 'PAID' | 'DEBT';
+}
+
 export interface Rental {
   id: string;
   ownerId: string;
@@ -155,19 +165,24 @@ export interface Rental {
   endDate: string;
   endTime: string;
   totalAmount: number;
+  prepayment?: number;
   status: 'ACTIVE' | 'COMPLETED' | 'CANCELLED';
   contractNumber: string;
   paymentStatus?: 'PAID' | 'DEBT';
+  isReservation: boolean;
+  bookingType: 'DAILY' | 'HOURLY';
+  extensions?: RentalExtension[];
 }
 
-export type AppView = 
-  | 'DASHBOARD' 
-  | 'CARS' 
-  | 'CLIENTS' 
-  | 'CALENDAR' 
+export type AppView =
+  | 'DASHBOARD'
+  | 'CARS'
+  | 'CLIENTS'
+  | 'CALENDAR'
   | 'REQUESTS'
   | 'MANUAL_BOOKING'
   | 'CONTRACTS'
+  | 'BOOKINGS'
   | 'CONTRACTS_ARCHIVE'
   | 'INVESTORS'
   | 'CASHBOX'
@@ -175,7 +190,6 @@ export type AppView =
   | 'STAFF'
   | 'SETTINGS'
   | 'BRANDING_SETTINGS'
-  | 'AI_ADVISOR'
   | 'CLIENT_CATALOG'
   | 'CLIENT_MY_BOOKINGS'
   | 'CLIENT_DETAILS'

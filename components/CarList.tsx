@@ -16,6 +16,7 @@ interface CarListProps {
   onReserve: (carId: string) => void;
   onInfo: (carId: string) => void;
   currentOwnerId: string;
+  planLimit?: number;
 }
 
 const CarCard: React.FC<{
@@ -27,8 +28,9 @@ const CarCard: React.FC<{
   onInfo: () => void,
   activeRental?: Rental,
   clientName?: string,
-  clientPhone?: string
-}> = ({ car, onEdit, onDelete, onIssue, onReserve, onInfo, activeRental, clientName, clientPhone }) => {
+  clientPhone?: string,
+  isLocked?: boolean
+}> = ({ car, onEdit, onDelete, onIssue, onReserve, onInfo, activeRental, clientName, clientPhone, isLocked }) => {
   const [currentImgIdx, setCurrentImgIdx] = useState(0);
   const [showMenu, setShowMenu] = useState(false);
 
@@ -55,10 +57,14 @@ const CarCard: React.FC<{
     if (!activeRental || activeRental.isReservation) return null;
     const end = new Date(`${activeRental.endDate}T${activeRental.endTime}`);
     const now = new Date();
+
     if (now > end) {
       const diffMs = now.getTime() - end.getTime();
-      const hours = Math.floor(diffMs / (1000 * 60 * 60));
+      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
       const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+      if (days > 0) return `${days}д ${hours}ч`;
       return hours > 0 ? `${hours}ч ${mins}м` : `${mins}м`;
     }
     return null;
@@ -69,16 +75,39 @@ const CarCard: React.FC<{
   const openWhatsApp = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!clientPhone) return;
-    const cleanPhone = clientPhone.replace(/\D/g, '');
+
+    let cleanPhone = clientPhone.replace(/\D/g, '');
+    if (cleanPhone.startsWith('8') && cleanPhone.length === 11) {
+      cleanPhone = '7' + cleanPhone.slice(1);
+    }
+
     window.open(`https://wa.me/${cleanPhone}`, '_blank');
   };
 
   return (
-    <div className="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-slate-100 hover:shadow-xl transition-all group relative">
+    <div className={`bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-slate-100 transition-all group relative ${isLocked ? 'opacity-80' : 'hover:shadow-xl'}`}>
+
+      {/* LOCKED OVERLAY */}
+      {isLocked && (
+        <div className="absolute inset-0 z-30 bg-slate-100/50 backdrop-blur-[3px] flex flex-col items-center justify-center text-center p-6">
+           <div className="w-16 h-16 bg-slate-900 text-white rounded-2xl flex items-center justify-center text-2xl mb-3 shadow-2xl">
+             <i className="fas fa-lock"></i>
+           </div>
+           <h3 className="font-black text-slate-900 uppercase text-xs tracking-widest mb-1">Недоступно на тарифе</h3>
+           <p className="text-[10px] text-slate-500 font-bold max-w-[200px] leading-relaxed mb-4">Превышен лимит авто. Обновите тариф для разблокировки.</p>
+           <button
+             onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'TARIFFS' }))}
+             className="px-6 py-3 bg-blue-600 text-white rounded-xl font-black text-[10px] uppercase hover:bg-blue-700 shadow-lg transition-all"
+           >
+             Обновить тариф
+           </button>
+        </div>
+      )}
+
       <div className="h-56 relative overflow-hidden bg-slate-100">
         <img src={car.images[currentImgIdx] || 'https://images.unsplash.com/photo-1494905998402-395d579af36f?q=80&w=400'} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
 
-        {car.images.length > 1 && (
+        {car.images.length > 1 && !isLocked && (
           <>
             <button onClick={prevImg} className="absolute left-3 top-1/2 -translate-y-1/2 w-10 h-10 bg-black/20 backdrop-blur-md rounded-full text-white hover:bg-black/40 transition-all opacity-0 group-hover:opacity-100 flex items-center justify-center z-10">
               <i className="fas fa-chevron-left text-xs"></i>
@@ -97,9 +126,12 @@ const CarCard: React.FC<{
         <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg z-10 text-white ${status.color}`}>
           {status.label}
         </div>
-        {overdue && (
-          <div className="absolute top-4 left-4 px-3 py-1 bg-rose-600 text-white rounded-full text-[9px] font-black uppercase animate-pulse shadow-lg z-10">
-            Просрочка: {overdue}
+
+        {/* Overdue Badge on Image */}
+        {overdue && !isLocked && (
+          <div className="absolute top-4 left-4 px-3 py-1 bg-rose-600 text-white rounded-full text-[9px] font-black uppercase animate-pulse shadow-lg z-10 flex items-center space-x-1">
+            <i className="fas fa-clock"></i>
+            <span>Просрочка: {overdue}</span>
           </div>
         )}
       </div>
@@ -117,16 +149,23 @@ const CarCard: React.FC<{
         </div>
 
         {activeRental && (
-          <div className="mb-4 p-3 bg-slate-50 rounded-2xl border border-slate-100/50">
+          <div className={`mb-4 p-3 rounded-2xl border ${overdue ? 'bg-rose-50 border-rose-100' : 'bg-slate-50 border-slate-100/50'}`}>
             <div className="flex items-center justify-between mb-1">
               <span className="text-[9px] font-black text-slate-400 uppercase">{activeRental.isReservation ? 'Бронь:' : 'Арендатор:'}</span>
               <span className="text-[10px] font-bold text-slate-900 truncate ml-2">{clientName || '...'}</span>
             </div>
-            <div className="flex items-center justify-between">
-              <span className="text-[9px] font-black text-slate-400 uppercase">До:</span>
-              <span className={`text-[10px] font-black ${overdue ? 'text-rose-600' : 'text-blue-600'}`}>
-                {new Date(activeRental.endDate).toLocaleDateString()} {activeRental.endTime}
-              </span>
+            <div className="flex items-center justify-between items-start">
+              <span className="text-[9px] font-black text-slate-400 uppercase mt-0.5">Возврат:</span>
+              <div className="text-right">
+                <span className={`text-[10px] font-black ${overdue ? 'text-rose-600' : 'text-blue-600'}`}>
+                  {new Date(activeRental.endDate).toLocaleDateString()} {activeRental.endTime}
+                </span>
+                {overdue && (
+                  <div className="text-[9px] font-black text-white bg-rose-500 px-2 py-0.5 rounded-md mt-1 shadow-sm">
+                    Опоздание: {overdue}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         )}
@@ -134,29 +173,29 @@ const CarCard: React.FC<{
         <div className="flex items-center gap-2">
           {status.label === 'Свободен' ? (
             <div className="flex-1 flex gap-2">
-              <button onClick={onIssue} className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase transition-all hover:bg-blue-700 shadow-lg">Оформить</button>
-              <button onClick={onReserve} className="flex-1 bg-amber-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase transition-all hover:bg-amber-600 shadow-lg">Бронь</button>
+              <button disabled={isLocked} onClick={onIssue} className="flex-1 bg-blue-600 text-white py-4 rounded-2xl font-black text-[10px] uppercase transition-all hover:bg-blue-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">Оформить</button>
+              <button disabled={isLocked} onClick={onReserve} className="flex-1 bg-amber-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase transition-all hover:bg-amber-600 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">Бронь</button>
             </div>
           ) : (
             <div className="flex-1 flex gap-2">
-              <button onClick={onReserve} className="flex-1 bg-slate-100 text-slate-600 py-4 rounded-2xl font-black text-[10px] uppercase hover:bg-slate-200">Бронь</button>
+              <button disabled={isLocked} onClick={onReserve} className="flex-1 bg-slate-100 text-slate-600 py-4 rounded-2xl font-black text-[10px] uppercase hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">Бронь</button>
               {activeRental && (
-                <button onClick={openWhatsApp} className="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase hover:bg-emerald-600 shadow-lg flex items-center justify-center gap-2">
+                <button disabled={isLocked} onClick={openWhatsApp} className="flex-1 bg-emerald-500 text-white py-4 rounded-2xl font-black text-[10px] uppercase hover:bg-emerald-600 shadow-lg flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
                   <i className="fab fa-whatsapp text-sm"></i>
                   <span>Написать</span>
                 </button>
               )}
             </div>
           )}
-          <button onClick={() => setShowMenu(!showMenu)} className="w-12 h-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-slate-100 border border-slate-100 transition-all">
+          <button disabled={isLocked} onClick={() => setShowMenu(!showMenu)} className="w-12 h-12 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-slate-100 border border-slate-100 transition-all disabled:opacity-50 disabled:cursor-not-allowed">
             <i className="fas fa-ellipsis-v text-xs"></i>
           </button>
-          {showMenu && (
+          {showMenu && !isLocked && (
             <>
               <div className="fixed inset-0 z-20" onClick={() => setShowMenu(false)}></div>
               <div className="absolute bottom-14 right-0 w-44 bg-white rounded-2xl shadow-2xl border border-slate-50 z-30 overflow-hidden py-1">
                 <button onClick={() => { onInfo(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-[10px] font-black uppercase hover:bg-slate-50 flex items-center space-x-3 text-slate-600"><i className="fas fa-info-circle text-blue-500"></i> <span>Инфо</span></button>
-                <button onClick={() => { onEdit(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-[10px] font-black uppercase hover:bg-slate-50 flex items-center space-x-3 text-slate-600"><i className="fas fa-edit text-amber-500"></i> <span>Изменить</span></button>
+                <button onClick={() => { onEdit(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-[10px] font-black uppercase hover:bg-slate-50 flex items-center space-x-3 text-amber-500"><i className="fas fa-edit"></i> <span>Изменить</span></button>
                 <button onClick={() => { onDelete(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-[10px] font-black uppercase hover:bg-rose-50 flex items-center space-x-3 text-rose-500"><i className="fas fa-trash-alt"></i> <span>Удалить</span></button>
               </div>
             </>
@@ -167,10 +206,9 @@ const CarCard: React.FC<{
   );
 };
 
-const CarList: React.FC<CarListProps> = ({ cars, investors, rentals, clients, onAdd, onUpdate, onDelete, onIssue, onReserve, onInfo, currentOwnerId }) => {
+const CarList: React.FC<CarListProps> = ({ cars, investors, rentals, clients, onAdd, onUpdate, onDelete, onIssue, onReserve, onInfo, currentOwnerId, planLimit = 9999 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Car | null>(null);
-  const [viewingInfo, setViewingInfo] = useState<Car | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
   const [tempImages, setTempImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -187,6 +225,9 @@ const CarList: React.FC<CarListProps> = ({ cars, investors, rentals, clients, on
     if (statusFilter === 'RESERVED') return rent && rent.isReservation;
     return true;
   });
+
+  const isOverLimit = cars.length >= planLimit;
+  const limitPercentage = Math.min(100, (cars.length / planLimit) * 100);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -215,30 +256,64 @@ const CarList: React.FC<CarListProps> = ({ cars, investors, rentals, clients, on
 
   return (
     <div className="space-y-6 animate-fadeIn pb-24 md:pb-0">
-      <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
-        <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Автопарк</h2>
-          <div className="flex flex-wrap items-center gap-2 mt-2">
-            {[
-              { id: 'ALL', label: 'Все' },
-              { id: 'AVAILABLE', label: 'Свободны' },
-              { id: 'RENTED', label: 'В аренде' },
-              { id: 'RESERVED', label: 'В брони' },
-              { id: 'MAINTENANCE', label: 'В ремонте' },
-            ].map(f => (
-              <button key={f.id} onClick={() => setStatusFilter(f.id)} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${statusFilter === f.id ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400'}`}>{f.label}</button>
-            ))}
+      <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-6">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+          <div>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Автопарк</h2>
+            <div className="flex flex-wrap items-center gap-2 mt-2">
+              {[
+                { id: 'ALL', label: 'Все' },
+                { id: 'AVAILABLE', label: 'Свободны' },
+                { id: 'RENTED', label: 'В аренде' },
+                { id: 'RESERVED', label: 'В брони' },
+                { id: 'MAINTENANCE', label: 'В ремонте' },
+              ].map(f => (
+                <button key={f.id} onClick={() => setStatusFilter(f.id)} className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all ${statusFilter === f.id ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400'}`}>{f.label}</button>
+              ))}
+            </div>
+          </div>
+
+          <div className="w-full lg:w-auto flex flex-col gap-3">
+             {/* Limit Visualizer */}
+             <div className="flex items-center justify-between gap-4 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100">
+                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Лимит тарифа:</div>
+                <div className={`text-xs font-bold ${isOverLimit ? 'text-rose-600' : 'text-slate-700'}`}>
+                   {cars.length} / {planLimit} авто
+                </div>
+             </div>
+             <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                <div className={`h-full transition-all duration-500 ${isOverLimit ? 'bg-rose-500' : 'bg-blue-500'}`} style={{width: `${limitPercentage}%`}}></div>
+             </div>
+
+             <button
+               onClick={() => {
+                 if (isOverLimit) {
+                   alert('Превышен лимит автомобилей по вашему тарифу. Обновите тариф для добавления новых авто.');
+                   return;
+                 }
+                 setEditing(null); setTempImages([]); setIsModalOpen(true);
+               }}
+               disabled={isOverLimit}
+               className={`w-full lg:w-auto px-8 py-5 rounded-[1.8rem] font-black shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 ${isOverLimit ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none' : 'bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20'}`}
+             >
+               <i className={`fas ${isOverLimit ? 'fa-lock' : 'fa-plus'}`}></i>
+               <span>{isOverLimit ? 'Лимит исчерпан' : 'Добавить авто'}</span>
+             </button>
           </div>
         </div>
-        <button onClick={() => { setEditing(null); setTempImages([]); setIsModalOpen(true); }} className="w-full lg:w-auto bg-blue-600 text-white px-8 py-5 rounded-[1.8rem] font-black hover:bg-blue-700 shadow-xl shadow-blue-500/20 active:scale-95 transition-all">
-          <i className="fas fa-plus mr-2"></i> Добавить авто
-        </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredCars.map(car => {
+        {filteredCars.map((car, index) => {
           const rental = getActiveRental(car.id);
           const client = getClientData(rental?.clientId);
+
+          // Determine locking based on ACTUAL index in the full list, not filtered.
+          // To do this accurately with filters, we need to know the index in the original `cars` array or decide policy.
+          // Policy: Locking is based on insertion order (index in `cars` array).
+          const originalIndex = cars.findIndex(c => c.id === car.id);
+          const isLocked = originalIndex >= planLimit;
+
           return (
             <CarCard
               key={car.id}
@@ -246,11 +321,12 @@ const CarList: React.FC<CarListProps> = ({ cars, investors, rentals, clients, on
               activeRental={rental}
               clientName={client?.name}
               clientPhone={client?.phone}
-              onEdit={() => { setEditing(car); setTempImages(car.images); setIsModalOpen(true); }}
-              onDelete={() => confirm('Удалить?') && onDelete(car.id)}
-              onIssue={() => onIssue(car.id)}
-              onReserve={() => onReserve(car.id)}
-              onInfo={() => onInfo(car.id)}
+              isLocked={isLocked}
+              onEdit={() => { if(!isLocked) { setEditing(car); setTempImages(car.images); setIsModalOpen(true); } }}
+              onDelete={() => !isLocked && confirm('Удалить?') && onDelete(car.id)}
+              onIssue={() => !isLocked && onIssue(car.id)}
+              onReserve={() => !isLocked && onReserve(car.id)}
+              onInfo={() => !isLocked && onInfo(car.id)}
             />
           );
         })}

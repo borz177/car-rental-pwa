@@ -1,343 +1,318 @@
 
-import { Car, User, Rental, Client, Transaction, Investor, Staff, Fine, BookingRequest } from '../types';
+import { User, Car, Rental, Client, BookingRequest, Transaction, Investor, Staff, Fine, UserRole } from '../types';
 
-class BackendAPI {
-  private static BASE_URL = '/api';
+// Helper to simulate image compression
+const compressImage = async (file: File): Promise<string> => {
+    return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result as string);
+    });
+};
 
-  private static getHeaders() {
-    const token = localStorage.getItem('autopro_token');
-    return {
+export default class BackendAPI {
+  static BASE_URL = '/api';
+
+  // Helper to get headers with token
+  static getHeaders() {
+    const headers: HeadersInit = {
       'Content-Type': 'application/json',
-      'Authorization': token ? `Bearer ${token}` : ''
     };
+    const token = localStorage.getItem('token');
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    return headers;
   }
 
-  private static isNewId(id?: string): boolean {
-    if (!id) return true;
-    // UUID v4 regex check. If it's not a valid UUID, we treat it as a new/temp record.
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    return !uuidRegex.test(id);
-  }
-
-  private static async handleResponse(response: Response) {
+  static async handleResponse(response: Response) {
     if (response.status === 401) {
-      BackendAPI.logout();
-      window.location.reload();
-      throw new Error('Сессия истекла. Пожалуйста, войдите снова.');
+      localStorage.removeItem('token');
+      // Optional: window.location.reload() if you want to force logout immediately
+      throw new Error('Unauthorized');
     }
 
-    const data = await response.json();
     if (!response.ok) {
-      throw new Error(data.message || 'Ошибка сервера');
+      const error = await response.json().catch(() => ({ message: response.statusText }));
+      throw new Error(error.message || 'API Error');
     }
-    return data;
+
+    if (response.status === 204) {
+        return null;
+    }
+    return response.json();
   }
 
-  // --- AUTHENTICATION ---
-  static async login(credentials: Partial<User>): Promise<User> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(credentials)
-    });
-
-    const data = await BackendAPI.handleResponse(response);
-    if (data.token) {
-      localStorage.setItem('autopro_token', data.token);
-    }
-    return data.user;
-  }
-
-  static async register(userData: Partial<User>): Promise<User> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/auth/register`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(userData)
-    });
+  // --- PUBLIC ---
+  static async getPublicFleet(slug: string): Promise<{ owner: User, cars: Car[], rentals: Rental[] }> {
+    const response = await fetch(`${BackendAPI.BASE_URL}/public/fleet/${slug}`);
     return BackendAPI.handleResponse(response);
   }
 
-  static async getCurrentUser(): Promise<User | null> {
-    const token = localStorage.getItem('autopro_token');
-    if (!token) return null;
-
-    try {
-      const response = await fetch(`${BackendAPI.BASE_URL}/auth/me`, {
-        headers: BackendAPI.getHeaders()
-      });
-      return await BackendAPI.handleResponse(response);
-    } catch (e) {
-      return null;
-    }
+  static async submitBookingRequest(request: BookingRequest): Promise<void> {
+    const response = await fetch(`${BackendAPI.BASE_URL}/public/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(request)
+    });
+    await BackendAPI.handleResponse(response);
   }
 
-  static logout() {
-    localStorage.removeItem('autopro_token');
+  // --- AUTH ---
+  static async login(creds: any): Promise<User> {
+     const response = await fetch(`${BackendAPI.BASE_URL}/auth/login`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify(creds)
+     });
+     const data = await BackendAPI.handleResponse(response);
+
+     // Save token and return strictly the User object to avoid structure mismatch in App.tsx
+     if (data.token) {
+       localStorage.setItem('token', data.token);
+     }
+     return data.user;
+  }
+
+  static async register(data: any): Promise<User> {
+     const response = await fetch(`${BackendAPI.BASE_URL}/auth/register`, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/json' },
+         body: JSON.stringify(data)
+     });
+     const resData = await BackendAPI.handleResponse(response);
+
+     if (resData.token) {
+        localStorage.setItem('token', resData.token);
+     }
+     return resData.user;
+  }
+
+  static async logout(): Promise<void> {
+      // Clear local token first
+      localStorage.removeItem('token');
+      try {
+        await fetch(`${BackendAPI.BASE_URL}/auth/logout`, { method: 'POST' });
+      } catch (e) {
+        // Ignore network errors on logout
+      }
+      window.location.reload();
+  }
+
+  static async getCurrentUser(): Promise<User | null> {
+      // If no token, don't even try to fetch (avoids 401 console errors on initial load)
+      if (!localStorage.getItem('token')) return null;
+
+      try {
+          const response = await fetch(`${BackendAPI.BASE_URL}/auth/me`, {
+            headers: BackendAPI.getHeaders()
+          });
+          if (response.status === 401) return null;
+          return BackendAPI.handleResponse(response);
+      } catch {
+          return null;
+      }
+  }
+
+  static async getAllUsers(): Promise<User[]> {
+      // FIX: Use /admin/users endpoint matching server.ts
+      const response = await fetch(`${BackendAPI.BASE_URL}/admin/users`, { headers: BackendAPI.getHeaders() });
+      return BackendAPI.handleResponse(response);
+  }
+
+  static async updateGlobalUser(id: string, updates: Partial<User>): Promise<User> {
+      // FIX: Use /admin/users endpoint matching server.ts
+      const response = await fetch(`${BackendAPI.BASE_URL}/admin/users/${id}`, {
+          method: 'PATCH',
+          headers: BackendAPI.getHeaders(),
+          body: JSON.stringify(updates)
+      });
+      return BackendAPI.handleResponse(response);
+  }
+
+  static async deleteGlobalUser(id: string): Promise<void> {
+      // FIX: Use /admin/users endpoint matching server.ts
+      const response = await fetch(`${BackendAPI.BASE_URL}/admin/users/${id}`, {
+        method: 'DELETE',
+        headers: BackendAPI.getHeaders()
+      });
+      await BackendAPI.handleResponse(response);
   }
 
   // --- CARS ---
   static async getCars(): Promise<Car[]> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/cars`, {
-      headers: BackendAPI.getHeaders()
-    });
-    return BackendAPI.handleResponse(response);
+      const response = await fetch(`${BackendAPI.BASE_URL}/cars`, { headers: BackendAPI.getHeaders() });
+      return BackendAPI.handleResponse(response);
   }
-
   static async saveCar(car: Car): Promise<Car> {
-    const isNew = BackendAPI.isNewId(car.id);
-    const url = isNew ? `${BackendAPI.BASE_URL}/cars` : `${BackendAPI.BASE_URL}/cars/${car.id}`;
-
-    const response = await fetch(url, {
-      method: isNew ? 'POST' : 'PUT',
-      headers: BackendAPI.getHeaders(),
-      body: JSON.stringify(car)
-    });
-    return BackendAPI.handleResponse(response);
+      const method = car.id ? 'PUT' : 'POST';
+      const url = car.id ? `${BackendAPI.BASE_URL}/cars/${car.id}` : `${BackendAPI.BASE_URL}/cars`;
+      const response = await fetch(url, {
+          method,
+          headers: BackendAPI.getHeaders(),
+          body: JSON.stringify(car)
+      });
+      return BackendAPI.handleResponse(response);
   }
-
   static async deleteCar(id: string): Promise<void> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/cars/${id}`, {
-      method: 'DELETE',
-      headers: BackendAPI.getHeaders()
-    });
-    await BackendAPI.handleResponse(response);
+      const response = await fetch(`${BackendAPI.BASE_URL}/cars/${id}`, {
+        method: 'DELETE',
+        headers: BackendAPI.getHeaders()
+      });
+      await BackendAPI.handleResponse(response);
   }
 
   // --- CLIENTS ---
   static async getClients(): Promise<Client[]> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/clients`, {
-      headers: BackendAPI.getHeaders()
-    });
-    return BackendAPI.handleResponse(response);
+      const response = await fetch(`${BackendAPI.BASE_URL}/clients`, { headers: BackendAPI.getHeaders() });
+      return BackendAPI.handleResponse(response);
   }
-
   static async saveClient(client: Client): Promise<Client> {
-    const isNew = BackendAPI.isNewId(client.id);
-    const url = isNew ? `${BackendAPI.BASE_URL}/clients` : `${BackendAPI.BASE_URL}/clients/${client.id}`;
-
-    const response = await fetch(url, {
-      method: isNew ? 'POST' : 'PUT',
-      headers: BackendAPI.getHeaders(),
-      body: JSON.stringify(client)
-    });
-    return BackendAPI.handleResponse(response);
+      const method = client.id ? 'PUT' : 'POST';
+      const url = client.id ? `${BackendAPI.BASE_URL}/clients/${client.id}` : `${BackendAPI.BASE_URL}/clients`;
+      const response = await fetch(url, {
+          method,
+          headers: BackendAPI.getHeaders(),
+          body: JSON.stringify(client)
+      });
+      return BackendAPI.handleResponse(response);
   }
-
   static async deleteClient(id: string): Promise<void> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/clients/${id}`, {
-      method: 'DELETE',
-      headers: BackendAPI.getHeaders()
-    });
-    await BackendAPI.handleResponse(response);
+      const response = await fetch(`${BackendAPI.BASE_URL}/clients/${id}`, {
+        method: 'DELETE',
+        headers: BackendAPI.getHeaders()
+      });
+      await BackendAPI.handleResponse(response);
   }
 
   // --- RENTALS ---
   static async getRentals(): Promise<Rental[]> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/rentals`, {
-      headers: BackendAPI.getHeaders()
-    });
-    return BackendAPI.handleResponse(response);
+      const response = await fetch(`${BackendAPI.BASE_URL}/rentals`, { headers: BackendAPI.getHeaders() });
+      return BackendAPI.handleResponse(response);
   }
-
   static async saveRental(rental: Rental): Promise<Rental> {
-    const isNew = BackendAPI.isNewId(rental.id);
-    const url = isNew ? `${BackendAPI.BASE_URL}/rentals` : `${BackendAPI.BASE_URL}/rentals/${rental.id}`;
-
-    const response = await fetch(url, {
-      method: isNew ? 'POST' : 'PUT',
-      headers: BackendAPI.getHeaders(),
-      body: JSON.stringify(rental)
-    });
-    return BackendAPI.handleResponse(response);
+      const method = rental.id ? 'PUT' : 'POST';
+      const url = rental.id ? `${BackendAPI.BASE_URL}/rentals/${rental.id}` : `${BackendAPI.BASE_URL}/rentals`;
+      const response = await fetch(url, {
+          method,
+          headers: BackendAPI.getHeaders(),
+          body: JSON.stringify(rental)
+      });
+      return BackendAPI.handleResponse(response);
   }
-
   static async deleteRental(id: string): Promise<void> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/rentals/${id}`, {
-      method: 'DELETE',
-      headers: BackendAPI.getHeaders()
-    });
-    await BackendAPI.handleResponse(response);
+      const response = await fetch(`${BackendAPI.BASE_URL}/rentals/${id}`, {
+        method: 'DELETE',
+        headers: BackendAPI.getHeaders()
+      });
+      await BackendAPI.handleResponse(response);
   }
 
   // --- TRANSACTIONS ---
   static async getTransactions(): Promise<Transaction[]> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/transactions`, {
-      headers: BackendAPI.getHeaders()
-    });
-    return BackendAPI.handleResponse(response);
+      const response = await fetch(`${BackendAPI.BASE_URL}/transactions`, { headers: BackendAPI.getHeaders() });
+      return BackendAPI.handleResponse(response);
   }
-
-  static async saveTransaction(transaction: Transaction): Promise<Transaction> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/transactions`, {
-      method: 'POST',
-      headers: BackendAPI.getHeaders(),
-      body: JSON.stringify(transaction)
-    });
-    return BackendAPI.handleResponse(response);
+  static async saveTransaction(tx: Partial<Transaction>, clientId?: string): Promise<Transaction> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/transactions`, {
+          method: 'POST',
+          headers: BackendAPI.getHeaders(),
+          body: JSON.stringify({ ...tx, clientId })
+      });
+      return BackendAPI.handleResponse(response);
   }
 
   // --- INVESTORS ---
   static async getInvestors(): Promise<Investor[]> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/investors`, {
-      headers: BackendAPI.getHeaders()
-    });
-    return BackendAPI.handleResponse(response);
+      const response = await fetch(`${BackendAPI.BASE_URL}/investors`, { headers: BackendAPI.getHeaders() });
+      return BackendAPI.handleResponse(response);
   }
-
   static async saveInvestor(investor: Investor): Promise<Investor> {
-    const isNew = BackendAPI.isNewId(investor.id);
-    const url = isNew ? `${BackendAPI.BASE_URL}/investors` : `${BackendAPI.BASE_URL}/investors/${investor.id}`;
-
-    const response = await fetch(url, {
-      method: isNew ? 'POST' : 'PUT',
-      headers: BackendAPI.getHeaders(),
-      body: JSON.stringify(investor)
-    });
-    return BackendAPI.handleResponse(response);
+      const method = investor.id ? 'PUT' : 'POST';
+      const url = investor.id ? `${BackendAPI.BASE_URL}/investors/${investor.id}` : `${BackendAPI.BASE_URL}/investors`;
+      const response = await fetch(url, {
+          method,
+          headers: BackendAPI.getHeaders(),
+          body: JSON.stringify(investor)
+      });
+      return BackendAPI.handleResponse(response);
   }
-
   static async deleteInvestor(id: string): Promise<void> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/investors/${id}`, {
-      method: 'DELETE',
-      headers: BackendAPI.getHeaders()
-    });
-    await BackendAPI.handleResponse(response);
+      const response = await fetch(`${BackendAPI.BASE_URL}/investors/${id}`, {
+        method: 'DELETE',
+        headers: BackendAPI.getHeaders()
+      });
+      await BackendAPI.handleResponse(response);
   }
 
   // --- STAFF ---
   static async getStaff(): Promise<Staff[]> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/staff`, {
-      headers: BackendAPI.getHeaders()
-    });
-    return BackendAPI.handleResponse(response);
+      const response = await fetch(`${BackendAPI.BASE_URL}/staff`, { headers: BackendAPI.getHeaders() });
+      return BackendAPI.handleResponse(response);
   }
-
   static async saveStaff(staff: Staff): Promise<Staff> {
-    const isNew = BackendAPI.isNewId(staff.id);
-    const url = isNew ? `${BackendAPI.BASE_URL}/staff` : `${BackendAPI.BASE_URL}/staff/${staff.id}`;
-
-    const response = await fetch(url, {
-      method: isNew ? 'POST' : 'PUT',
-      headers: BackendAPI.getHeaders(),
-      body: JSON.stringify(staff)
-    });
-    return BackendAPI.handleResponse(response);
+       const method = staff.id && !staff.id.startsWith('staff-') ? 'PUT' : 'POST';
+       const url = method === 'PUT' ? `${BackendAPI.BASE_URL}/staff/${staff.id}` : `${BackendAPI.BASE_URL}/staff`;
+       const response = await fetch(url, {
+           method,
+           headers: BackendAPI.getHeaders(),
+           body: JSON.stringify(staff)
+       });
+       return BackendAPI.handleResponse(response);
   }
-
   static async deleteStaff(id: string): Promise<void> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/staff/${id}`, {
-      method: 'DELETE',
-      headers: BackendAPI.getHeaders()
-    });
-    await BackendAPI.handleResponse(response);
+      const response = await fetch(`${BackendAPI.BASE_URL}/staff/${id}`, {
+        method: 'DELETE',
+        headers: BackendAPI.getHeaders()
+      });
+      await BackendAPI.handleResponse(response);
   }
 
   // --- FINES ---
   static async getFines(): Promise<Fine[]> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/fines`, {
-      headers: BackendAPI.getHeaders()
-    });
-    return BackendAPI.handleResponse(response);
+      const response = await fetch(`${BackendAPI.BASE_URL}/fines`, { headers: BackendAPI.getHeaders() });
+      return BackendAPI.handleResponse(response);
   }
-
-  static async saveFine(fine: Fine): Promise<Fine> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/fines`, {
-      method: 'POST',
-      headers: BackendAPI.getHeaders(),
-      body: JSON.stringify(fine)
-    });
-    return BackendAPI.handleResponse(response);
+  static async saveFine(fine: Partial<Fine>): Promise<Fine> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/fines`, {
+          method: 'POST',
+          headers: BackendAPI.getHeaders(),
+          body: JSON.stringify(fine)
+      });
+      return BackendAPI.handleResponse(response);
   }
-
-  static async payFine(id: string): Promise<Fine> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/fines/${id}/pay`, {
-      method: 'PATCH',
-      headers: BackendAPI.getHeaders()
-    });
-    return BackendAPI.handleResponse(response);
+  static async payFine(id: string): Promise<void> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/fines/${id}/pay`, {
+        method: 'POST',
+        headers: BackendAPI.getHeaders()
+      });
+      await BackendAPI.handleResponse(response);
   }
 
   // --- REQUESTS ---
   static async getRequests(): Promise<BookingRequest[]> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/requests`, {
-      headers: BackendAPI.getHeaders()
-    });
-    return BackendAPI.handleResponse(response);
+      const response = await fetch(`${BackendAPI.BASE_URL}/requests`, { headers: BackendAPI.getHeaders() });
+      return BackendAPI.handleResponse(response);
+  }
+  static async deleteRequest(id: string, action?: 'APPROVE' | 'REJECT'): Promise<void> {
+      if (action) {
+          const response = await fetch(`${BackendAPI.BASE_URL}/requests/${id}/status`, {
+              method: 'PATCH',
+              headers: BackendAPI.getHeaders(),
+              body: JSON.stringify({ status: action === 'APPROVE' ? 'APPROVED' : 'REJECTED' })
+          });
+          await BackendAPI.handleResponse(response);
+      } else {
+          const response = await fetch(`${BackendAPI.BASE_URL}/requests/${id}`, {
+            method: 'DELETE',
+            headers: BackendAPI.getHeaders()
+          });
+          await BackendAPI.handleResponse(response);
+      }
   }
 
-  static async saveRequest(request: BookingRequest): Promise<BookingRequest> {
-    const isNew = BackendAPI.isNewId(request.id);
-    const url = isNew ? `${BackendAPI.BASE_URL}/requests` : `${BackendAPI.BASE_URL}/requests/${request.id}`;
-    
-    const response = await fetch(url, {
-      method: isNew ? 'POST' : 'PUT',
-      headers: BackendAPI.getHeaders(),
-      body: JSON.stringify(request)
-    });
-    return BackendAPI.handleResponse(response);
-  }
-
-  static async deleteRequest(id: string): Promise<void> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/requests/${id}`, {
-      method: 'DELETE',
-      headers: BackendAPI.getHeaders()
-    });
-    await BackendAPI.handleResponse(response);
-  }
-
-  // --- SUPERADMIN ---
-  static async getAllUsers(): Promise<User[]> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/admin/users`, {
-      headers: BackendAPI.getHeaders()
-    });
-    return BackendAPI.handleResponse(response);
-  }
-
-  static async updateGlobalUser(id: string, updates: Partial<User>): Promise<User> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/admin/users/${id}`, {
-      method: 'PATCH',
-      headers: BackendAPI.getHeaders(),
-      body: JSON.stringify(updates)
-    });
-    return BackendAPI.handleResponse(response);
-  }
-
-  static async deleteGlobalUser(id: string): Promise<void> {
-    const response = await fetch(`${BackendAPI.BASE_URL}/admin/users/${id}`, {
-      method: 'DELETE',
-      headers: BackendAPI.getHeaders()
-    });
-    await BackendAPI.handleResponse(response);
-  }
-
-  // --- IMAGE COMPRESSION ---
-  static compressImage(file: File): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = () => reject(new Error('Failed to read file'));
-      reader.readAsDataURL(file);
-      reader.onload = (event) => {
-        const img = new Image();
-        img.src = event.target?.result as string;
-        img.onerror = () => reject(new Error('Failed to load image'));
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const MAX_WIDTH = 1200;
-          let width = img.width;
-          let height = img.height;
-          if (width > MAX_WIDTH) {
-            height *= MAX_WIDTH / width;
-            width = MAX_WIDTH;
-          }
-          canvas.width = width;
-          canvas.height = height;
-          const ctx = canvas.getContext('2d');
-          ctx?.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.8));
-        };
-      };
-    });
+  // --- UTILS ---
+  static async compressImage(file: File): Promise<string> {
+      return compressImage(file);
   }
 }
-
-export default BackendAPI;

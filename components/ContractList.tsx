@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Rental, Car, Client, RentalExtension } from '../types';
 
@@ -50,20 +51,39 @@ const ContractList: React.FC<ContractListProps> = ({
     }).sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
   }, [rentals, viewMode, searchName, searchDate, clients]);
 
+  // Logic for calculating extension price
   useEffect(() => {
     if (extendingRental && extensionData.endDate && extensionData.endTime) {
       const car = getCar(extendingRental.carId);
       if (!car) return;
-      const currentEnd = new Date(`${extendingRental.endDate}T${extendingRental.endTime}`);
-      const newEnd = new Date(`${extensionData.endDate}T${extensionData.endTime}`);
+
+      // CRITICAL FIX: Ensure dates are clean YYYY-MM-DD strings before creating Date objects
+      // extendingRental.endDate might be "2023-10-10T00:00:00.000Z"
+      const currentEndDateStr = extendingRental.endDate.split('T')[0];
+      const newEndDateStr = extensionData.endDate.split('T')[0];
+
+      const currentEnd = new Date(`${currentEndDateStr}T${extendingRental.endTime}`);
+      const newEnd = new Date(`${newEndDateStr}T${extensionData.endTime}`);
+
       const diffMs = newEnd.getTime() - currentEnd.getTime();
+
       if (diffMs > 0) {
         const totalHours = diffMs / (1000 * 60 * 60);
         let addedValue = 0;
-        if (extendingRental.bookingType === 'DAILY') addedValue = Math.ceil(totalHours / 24) * car.pricePerDay;
-        else addedValue = Math.ceil(totalHours) * (car.pricePerHour || Math.round(car.pricePerDay / 24));
-        setExtensionData(prev => ({ ...prev, extraPrice: Math.round(addedValue) }));
-      } else { setExtensionData(prev => ({ ...prev, extraPrice: 0 })); }
+
+        // Add minimal hour logic (e.g. if > 1 hour, charge full)
+        if (extendingRental.bookingType === 'DAILY') {
+          // For daily, we usually calculate by 24h blocks
+          const days = Math.ceil(totalHours / 24);
+          addedValue = days * car.pricePerDay;
+        } else {
+          // For hourly
+          addedValue = Math.ceil(totalHours) * (car.pricePerHour || Math.round(car.pricePerDay / 24));
+        }
+        setExtensionData(prev => ({ ...prev, extraPrice: Math.max(0, Math.round(addedValue)) }));
+      } else {
+        setExtensionData(prev => ({ ...prev, extraPrice: 0 }));
+      }
     }
   }, [extensionData.endDate, extensionData.endTime, extendingRental, cars]);
 
@@ -73,14 +93,15 @@ const ContractList: React.FC<ContractListProps> = ({
     const newExtension: RentalExtension = {
       endDate: extensionData.endDate,
       endTime: extensionData.endTime,
-      amount: extensionData.extraPrice,
-      date: new Date().toISOString()
+      amount: Number(extensionData.extraPrice),
+      date: new Date().toISOString(),
+      paymentStatus: paymentMode
     };
     const updated: Rental = {
       ...extendingRental,
       endDate: extensionData.endDate,
       endTime: extensionData.endTime,
-      totalAmount: (extendingRental.totalAmount || 0) + extensionData.extraPrice,
+      totalAmount: Number(extendingRental.totalAmount || 0) + Number(extensionData.extraPrice),
       paymentStatus: (extendingRental.paymentStatus === 'DEBT' || paymentMode === 'DEBT') ? 'DEBT' : 'PAID',
       extensions: [...(extendingRental.extensions || []), newExtension]
     };
@@ -96,6 +117,14 @@ const ContractList: React.FC<ContractListProps> = ({
     }, 500);
   };
 
+  const openExtensionModal = (rent: Rental) => {
+    setExtendingRental(rent);
+    // Explicitly clean the date format to ensure input[type="date"] accepts it
+    const cleanDate = rent.endDate ? rent.endDate.split('T')[0] : '';
+    setExtensionData({ endDate: cleanDate, endTime: rent.endTime, extraPrice: 0 });
+    setShowActions(null);
+  };
+
   return (
     <div className="space-y-6 pb-24 md:pb-0">
       {/* Print Styles */}
@@ -103,46 +132,37 @@ const ContractList: React.FC<ContractListProps> = ({
         @media print {
           @page {
             size: A4;
-            margin: 0;
+            margin: 10mm;
           }
-          body {
-            background: white !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            -webkit-print-color-adjust: exact !important;
-            color-adjust: exact !important;
-          }
-          /* Скрываем ВСЁ, кроме печатной секции */
-          * {
-            visibility: hidden !important;
+          body * {
+            visibility: hidden;
           }
           #print-section, #print-section * {
-            visibility: visible !important;
+            visibility: visible;
           }
           #print-section {
-            position: absolute !important;
-            left: 0 !important;
-            top: 0 !important;
-            width: 210mm !important; /* A4 width */
-            height: auto !important;
-            margin: 0 !important;
-            padding: 15mm !important; /* A4 margins */
-            font-size: 8.5pt !important;
-            line-height: 1.3 !important;
-            color: black !important;
-            background: white !important;
-            z-index: 999999 !important;
-            box-sizing: border-box !important;
-            page-break-after: avoid !important;
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            font-family: "Times New Roman", Times, serif;
+            font-size: 10pt; /* Smaller font for single page */
+            line-height: 1.2; /* Tighter lines */
+            color: black;
+            background: white;
+            padding: 0 10mm;
           }
-          .h-px {
-            height: 1px !important;
-            margin: 3pt 0 !important;
-            background: black !important;
-          }
-          .border-b {
-            border-bottom: 1pt solid black !important;
-          }
+          .no-print { display: none !important; }
+          .print-header { font-size: 16pt; font-weight: bold; text-transform: uppercase; margin-bottom: 10px; text-align: center; }
+          .print-subheader { font-size: 12pt; font-weight: bold; margin-top: 10px; margin-bottom: 5px; text-transform: uppercase; text-align: center; }
+          .print-bold { font-weight: bold; }
+          .print-underline { border-bottom: 1px solid black; padding-bottom: 1px; display: inline-block; }
+          .print-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
+          .print-list { padding-left: 20px; margin-bottom: 10px; }
+          .print-list li { margin-bottom: 2px; }
+          .print-signatures { margin-top: 40px; }
+          .print-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 9pt; }
+          .print-table th, .print-table td { border: 1px solid black; padding: 4px; text-align: left; }
         }
       `}</style>
 
@@ -159,20 +179,20 @@ const ContractList: React.FC<ContractListProps> = ({
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-2 no-print">
         <div className="relative">
           <i className="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"></i>
-          <input 
-            value={searchName} 
-            onChange={e => setSearchName(e.target.value)} 
-            placeholder="Поиск по ФИО..." 
-            className="w-full pl-12 pr-6 py-4 bg-white border border-slate-100 rounded-2xl font-bold shadow-sm outline-none" 
+          <input
+            value={searchName}
+            onChange={e => setSearchName(e.target.value)}
+            placeholder="Поиск по ФИО..."
+            className="w-full pl-12 pr-6 py-4 bg-white border border-slate-100 rounded-2xl font-bold shadow-sm outline-none"
           />
         </div>
         <div className="relative">
           <i className="fas fa-calendar absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"></i>
-          <input 
-            type="date" 
-            value={searchDate} 
-            onChange={e => setSearchDate(e.target.value)} 
-            className="w-full pl-12 pr-6 py-4 bg-white border border-slate-100 rounded-2xl font-bold shadow-sm outline-none" 
+          <input
+            type="date"
+            value={searchDate}
+            onChange={e => setSearchDate(e.target.value)}
+            className="w-full pl-12 pr-6 py-4 bg-white border border-slate-100 rounded-2xl font-bold shadow-sm outline-none"
           />
         </div>
       </div>
@@ -181,10 +201,17 @@ const ContractList: React.FC<ContractListProps> = ({
         {filteredRentals.map(rent => {
           const car = getCar(rent.carId);
           const client = getClient(rent.clientId);
-          const extensionSum = rent.extensions?.reduce((acc, ext) => acc + (ext.amount || 0), 0) || 0;
+
+          // Безопасный расчет суммы продлений
+          const extensionSum = (rent.extensions || []).reduce((acc, ext) => acc + Number(ext.amount || 0), 0);
+
+          // Для бронирований
+          const prepayment = Number(rent.prepayment || 0);
+          const totalAmount = Number(rent.totalAmount || 0);
+          const remaining = Math.max(0, totalAmount - prepayment);
 
           return (
-            <div key={rent.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm animate-fadeIn group">
+            <div key={rent.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm animate-fadeIn group relative">
               <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-4">
                 <div className="flex items-center space-x-6 w-full md:w-auto">
                   <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl ${rent.isReservation ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>
@@ -205,18 +232,39 @@ const ContractList: React.FC<ContractListProps> = ({
                   <span>{new Date(rent.endDate).toLocaleDateString()}</span>
                 </div>
 
-                <div className="flex items-center space-x-6">
+                <div className="flex items-center space-x-6 w-full md:w-auto justify-between md:justify-end">
                   <div className="text-right">
-                    <div className="text-2xl font-black text-slate-900">{(rent.totalAmount || 0).toLocaleString()} ₽</div>
-                    <div className={`text-[9px] font-black uppercase flex items-center justify-end space-x-1 ${rent.paymentStatus === 'DEBT' ? 'text-rose-500' : 'text-emerald-500'}`}>
-                      <i className={`fas ${rent.paymentStatus === 'DEBT' ? 'fa-clock' : 'fa-check-circle'}`}></i>
-                      <span>{rent.paymentStatus === 'DEBT' ? 'Долг' : 'Оплачено'}</span>
-                    </div>
+                    <div className="text-2xl font-black text-slate-900">{totalAmount.toLocaleString()} ₽</div>
+
+                    {rent.isReservation ? (
+                      <div className="flex flex-col items-end">
+                        <div className="text-[10px] font-bold uppercase text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md mb-1">
+                          Предоплата: {prepayment.toLocaleString()} ₽
+                        </div>
+                        {remaining > 0 && (
+                          <div className="text-[9px] font-black uppercase text-slate-400">
+                            Остаток: {remaining.toLocaleString()} ₽
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-end">
+                        <div className={`text-[9px] font-black uppercase flex items-center space-x-1 ${rent.paymentStatus === 'DEBT' ? 'text-rose-500' : 'text-emerald-500'}`}>
+                          <i className={`fas ${rent.paymentStatus === 'DEBT' ? 'fa-clock' : 'fa-check-circle'}`}></i>
+                          <span>{rent.paymentStatus === 'DEBT' ? 'Долг' : 'Оплачено'}</span>
+                        </div>
+                        {extensionSum > 0 && (
+                          <div className="text-[8px] font-bold text-blue-500 uppercase mt-0.5">
+                            В т.ч. продления: {extensionSum.toLocaleString()} ₽
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="relative">
-                    <button 
-                      onClick={() => setShowActions(showActions === rent.id ? null : rent.id)} 
+                    <button
+                      onClick={() => setShowActions(showActions === rent.id ? null : rent.id)}
                       className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
                     >
                       <i className="fas fa-ellipsis-v"></i>
@@ -225,15 +273,15 @@ const ContractList: React.FC<ContractListProps> = ({
                       <>
                         <div className="fixed inset-0 z-40" onClick={() => setShowActions(null)}></div>
                         <div className="absolute right-0 top-12 w-52 bg-white rounded-3xl shadow-2xl border border-slate-50 z-50 overflow-hidden animate-scaleIn">
-                          <button 
-                            onClick={() => { handlePrint(rent); setShowActions(null); }} 
+                          <button
+                            onClick={() => { handlePrint(rent); setShowActions(null); }}
                             className="w-full px-6 py-4 text-left text-sm font-black hover:bg-slate-50 text-slate-600 flex items-center space-x-3 border-b border-slate-50"
                           >
                             <i className="fas fa-print"></i> <span>Печать договора</span>
                           </button>
                           {rent.isReservation && onIssueFromBooking && (
-                            <button 
-                              onClick={() => { onIssueFromBooking(rent.id); setShowActions(null); }} 
+                            <button
+                              onClick={() => { onIssueFromBooking(rent.id); setShowActions(null); }}
                               className="w-full px-6 py-4 text-left text-sm font-black hover:bg-emerald-50 text-emerald-600 flex items-center space-x-3 border-b border-slate-50"
                             >
                               <i className="fas fa-key"></i> <span>Выдать авто</span>
@@ -241,26 +289,22 @@ const ContractList: React.FC<ContractListProps> = ({
                           )}
                           {!rent.isReservation && rent.status === 'ACTIVE' && (
                             <>
-                              <button 
-                                onClick={() => { 
-                                  setExtendingRental(rent); 
-                                  setExtensionData({ endDate: rent.endDate, endTime: rent.endTime, extraPrice: 0 }); 
-                                  setShowActions(null); 
-                                }} 
+                              <button
+                                onClick={() => openExtensionModal(rent)}
                                 className="w-full px-6 py-4 text-left text-sm font-black hover:bg-emerald-50 text-emerald-600 flex items-center space-x-3 border-b border-slate-50"
                               >
                                 <i className="fas fa-calendar-plus"></i> <span>Продлить</span>
                               </button>
-                              <button 
-                                onClick={() => { onUpdate({...rent, status: 'COMPLETED'}); setShowActions(null); }} 
+                              <button
+                                onClick={() => { onUpdate({...rent, status: 'COMPLETED'}); setShowActions(null); }}
                                 className="w-full px-6 py-4 text-left text-sm font-black hover:bg-blue-50 text-blue-600 flex items-center space-x-3 border-b border-slate-50"
                               >
                                 <i className="fas fa-check-circle"></i> <span>Завершить</span>
                               </button>
                             </>
                           )}
-                          <button 
-                            onClick={() => { if(confirm('Удалить?')) onDelete(rent.id); setShowActions(null); }} 
+                          <button
+                            onClick={() => { if(confirm('Удалить?')) onDelete(rent.id); setShowActions(null); }}
                             className="w-full px-6 py-4 text-left text-sm font-black hover:bg-rose-50 text-rose-500 flex items-center space-x-3"
                           >
                             <i className="fas fa-trash-alt"></i> <span>Удалить</span>
@@ -272,18 +316,30 @@ const ContractList: React.FC<ContractListProps> = ({
                 </div>
               </div>
 
+              {/* Added Issue Button for Reservations */}
+              {rent.isReservation && onIssueFromBooking && (
+                  <button
+                      onClick={() => onIssueFromBooking(rent.id)}
+                      className="w-full mt-2 py-2 px-3 bg-emerald-500 text-white rounded-lg font-medium text-xs uppercase hover:bg-emerald-600 shadow-sm transition-colors flex items-center justify-center gap-1.5"
+                  >
+                    <i className="fas fa-key text-[12px]"></i>
+                    <span>Оформить выдачу</span>
+                  </button>
+              )}
+
               {/* Хронология продлений */}
               {rent.extensions && rent.extensions.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-dashed border-slate-100 space-y-3">
-                  <div className="flex justify-between items-center">
-                    <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Хронология продлений:</div>
+                  <div className="mt-4 pt-4 border-t border-dashed border-slate-100 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Хронология продлений:</div>
                     <div className="text-[10px] font-black text-emerald-600 uppercase">Всего доплат: {extensionSum.toLocaleString()} ₽</div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {rent.extensions.map((ext, idx) => (
-                      <div key={idx} className="bg-emerald-50/50 border border-emerald-100 rounded-xl px-4 py-2 flex items-center gap-3">
-                        <div className="text-[10px] font-black text-emerald-700">+{(ext.amount || 0).toLocaleString()} ₽</div>
+                      <div key={idx} className={`${ext.paymentStatus === 'DEBT' ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50/50 border-emerald-100'} border rounded-xl px-4 py-2 flex items-center gap-3`}>
+                        <div className={`text-[10px] font-black ${ext.paymentStatus === 'DEBT' ? 'text-rose-700' : 'text-emerald-700'}`}>+{(ext.amount || 0).toLocaleString()} ₽</div>
                         <div className="text-[10px] text-slate-400 font-bold">до {new Date(ext.endDate).toLocaleDateString()} {ext.endTime}</div>
+                        {ext.paymentStatus === 'DEBT' && <i className="fas fa-clock text-rose-500 text-[9px]"></i>}
                       </div>
                     ))}
                   </div>
@@ -301,78 +357,123 @@ const ContractList: React.FC<ContractListProps> = ({
 
       {/* Hidden Print Template */}
       {printingRental && (
-        <div id="print-section" className="font-serif">
-          <div className="text-center mb-2 print-header">
-            <h1 className="text-2xl font-black mb-0.5 uppercase tracking-tight">
-              {brandName || 'AutoPro'}
-            </h1>
-            <div className="h-px bg-black w-full mb-1"></div>
-            <p className="text-sm font-bold">Договор № {printingRental.contractNumber} аренды транспортного средства</p>
+        <div id="print-section">
+          <div className="text-center print-header">
+            {brandName || 'AutoPro'}
+          </div>
+          <div className="text-center" style={{fontSize: '11pt', marginBottom: '15px'}}>
+             Договор № {printingRental.contractNumber} аренды транспортного средства
           </div>
 
-          <p className="mb-1 text-[8pt]">Арендодатель на основании Устава с одной стороны и гражданин:</p>
-          <div className="mb-1 flex gap-2 border-b border-black pb-0.5 text-[8.5pt]">
-             <span className="font-bold min-w-[35px]">Ф.И.О.:</span>
-             <span className="flex-1 italic">{getClient(printingRental.clientId)?.name}</span>
-             <span className="font-bold">Тел:</span>
-             <span className="italic">{getClient(printingRental.clientId)?.phone}</span>
+          <p className="mb-2">
+             Арендодатель на основании Устава с одной стороны и гражданин:
+          </p>
+
+          <div className="print-row mb-2">
+             <div><span className="print-bold">Ф.И.О.:</span> <span className="print-underline" style={{minWidth: '250px'}}>{getClient(printingRental.clientId)?.name}</span></div>
+             <div><span className="print-bold">Тел:</span> {getClient(printingRental.clientId)?.phone}</div>
           </div>
 
-          <div className="mb-2 flex border-b border-black pb-0.5 text-[8.5pt]">
-             <span className="font-bold whitespace-nowrap">Место проживания:</span>
-             <span className="italic ml-2 flex-1">_____________________________________________________________</span>
+          <div className="mb-4">
+             <span className="print-bold">Место проживания:</span> <span className="print-underline" style={{width: '70%'}}></span>
           </div>
 
-          <p className="mb-0.5 font-bold text-[8.5pt]">1. ПРЕДМЕТ ДОГОВОРА:</p>
-          <p className="mb-1 ml-3 text-[8pt]">1.1 Арендодатель предоставляет Арендатору во временное пользование автомобиль:</p>
+          <div className="print-subheader">1. ПРЕДМЕТ ДОГОВОРА</div>
+          <p className="mb-2">1.1. Согласно настоящему договору Арендодатель предоставляет арендатору следующий автомобиль:</p>
 
-          <div className="mb-2 grid grid-cols-3 gap-2 border-b border-black pb-0.5 px-3 text-[8pt]">
-             <div><span className="font-bold">Авто:</span> {getCar(printingRental.carId)?.brand} {getCar(printingRental.carId)?.model}</div>
-             <div><span className="font-bold">Цвет:</span> ________</div>
-             <div><span className="font-bold">Гос. номер:</span> {getCar(printingRental.carId)?.plate}</div>
+          <div className="mb-4" style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px'}}>
+             <div><span className="print-bold">Марка/Модель:</span> {getCar(printingRental.carId)?.brand} {getCar(printingRental.carId)?.model}</div>
+             <div><span className="print-bold">Год выпуска:</span> {getCar(printingRental.carId)?.year}</div>
+             <div><span className="print-bold">Гос. номер:</span> {getCar(printingRental.carId)?.plate}</div>
+             <div><span className="print-bold">Цвет:</span> _______________</div>
           </div>
 
-          <p className="mb-0.5 font-bold uppercase text-[8.5pt]">2. Условия проката:</p>
-          <ol className="list-decimal ml-6 mb-2 text-[7.5pt] space-y-0.5">
-             <li>Автомобиль передается в исправном состоянии, чистым, с 10л бензина АИ-95.</li>
-             <li>Арендодатель не несет ответственности за ущерб, причиненный Арендатором третьим лицам.</li>
+          <div className="print-subheader">2. УСЛОВИЯ ПРОКАТА</div>
+          <ol className="print-list" style={{listStyleType: 'decimal'}}>
+             <li>Арендодатель обязуется предоставить автомобиль в полном исправном состоянии.</li>
+             <li>Полная мойка автотранспорта при возврате.</li>
+             <li>Бензин не ниже АИ-95.</li>
+             <li>Арендодатель не несет ответственность за действия арендатора, которыми причинен ущерб третьим лицам.</li>
           </ol>
 
-          <p className="mb-0.5 font-bold uppercase text-[8.5pt]">3. Обязанности Арендатора:</p>
-          <ul className="list-disc ml-6 mb-2 text-[7pt] leading-tight grid grid-cols-1 gap-0.5 print-list">
-             <li>100% ответственность за сохранность ТС.</li>
-             <li>Возврат в чистом виде (мойка) или штраф 1000 р.</li>
-             <li>Замена деталей без уведомления — штраф 15 000 р.</li>
-             <li>Опоздание более 30 мин — 1000 р./час.</li>
+          <div className="print-subheader">3. ОБЯЗАННОСТИ АРЕНДАТОРА</div>
+          <ul className="print-list" style={{listStyleType: 'disc'}}>
+             <li>Арендатор несет 100% ответственность во время проката автомобиля.</li>
+             <li>Мойка автотранспорта при возвращении обязательна или штраф 1 000 рублей.</li>
+             <li>Не известив Арендодателя о поломке — штраф 15 000 р.</li>
+             <li>Опоздание более чем на 30 мин — оплата как за час.</li>
              <li>Передача руля третьим лицам запрещена — штраф до 35 000 р.</li>
-             <li>Штрафы ГИБДД оплачиваются Арендатором в 100% объеме.</li>
-             <li>При ДТП — полная компенсация ущерба + оплата простоя.</li>
-             <li>Курение — 2000 р. Превышение скорости (&gt;150 км/ч) — 2000 р. Пьяное вождение — 50 000 р.</li>
-             <li>Отключение видеорегистратора — 5000 р.</li>
-             <li>Резкий старт/ручник — по 2500 р.</li>
-             <li>Штраф за повреждение каждой кузовной детали — от 30 000 р.</li>
+             <li>Штрафы ГИБДД оплачивает Арендатор в 100% размере.</li>
+             <li>При ДТП — полная компенсация ущерба и простоя автомобиля.</li>
+             <li>За курение в салоне — штраф 2 000 р.</li>
+             <li>Превышение скорости &gt;150 км/ч — штраф 2 000 р.</li>
+             <li>Вождение в нетрезвом виде — штраф 50 000 р.</li>
+             <li>Дергать ручник — штраф 2 000 р.</li>
           </ul>
 
-          <p className="mb-0.5 font-bold uppercase text-[8.5pt]">4. Срок действия договора:</p>
-          <div className="mb-2 space-y-0.5 text-[8.5pt] px-3">
-             <p>с «{new Date(printingRental.startDate).getDate()}» {new Date(printingRental.startDate).toLocaleString('ru-RU', {month: 'long'})} {new Date(printingRental.startDate).getFullYear()} г. {printingRental.startTime}</p>
-             <p>до «{new Date(printingRental.endDate).getDate()}» {new Date(printingRental.endDate).toLocaleString('ru-RU', {month: 'long'})} {new Date(printingRental.endDate).getFullYear()} г. {printingRental.endTime}</p>
+          <div className="print-subheader">4. СРОК ДЕЙСТВИЯ И ОПЛАТА</div>
+          <div className="mb-2" style={{display: 'flex', justifyContent: 'space-between', paddingRight: '20px'}}>
+             <div>
+               <span className="print-bold">Начало аренды:</span><br/>
+               {new Date(printingRental.startDate).toLocaleDateString()} в {printingRental.startTime}
+             </div>
+             <div>
+               <span className="print-bold">Окончание аренды:</span><br/>
+               {new Date(printingRental.endDate).toLocaleDateString()} в {printingRental.endTime}
+             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-10 mt-2 print-signatures">
-             <div className="border-t border-black pt-1">
-                <p className="font-bold text-[7.5pt]">АРЕНДОДАТЕЛЬ:</p>
-                <div className="flex justify-between items-end mt-1.5">
-                   <div className="border-b border-black w-20 h-3"></div>
-                   <div className="text-[7pt]">/Б. И. Масхудович/</div>
-                </div>
+          <div className="mb-4">
+            <span className="print-bold">Общая стоимость:</span> {printingRental.totalAmount.toLocaleString()} ₽<br/>
+            {printingRental.isReservation ? (
+               <>
+                 <span className="print-bold">Внесена предоплата:</span> {printingRental.prepayment ? printingRental.prepayment.toLocaleString() : '0'} ₽<br/>
+                 <span className="print-bold">Остаток к оплате:</span> {(printingRental.totalAmount - (printingRental.prepayment || 0)).toLocaleString()} ₽
+               </>
+            ) : (
+               <><span className="print-bold">Статус оплаты:</span> {printingRental.paymentStatus === 'DEBT' ? 'Имеется задолженность' : 'Оплачено полностью'}</>
+            )}
+          </div>
+
+          {printingRental.extensions && printingRental.extensions.length > 0 && (
+            <>
+              <div className="print-subheader">5. ПРОДЛЕНИЕ АРЕНДЫ (ДОП. СОГЛАШЕНИЯ)</div>
+              <table className="print-table">
+                <thead>
+                  <tr>
+                    <th>Дата продления</th>
+                    <th>Новый срок</th>
+                    <th>Сумма</th>
+                    <th>Статус</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {printingRental.extensions.map((ext, idx) => (
+                    <tr key={idx}>
+                      <td>{new Date(ext.date).toLocaleDateString()}</td>
+                      <td>до {new Date(ext.endDate).toLocaleDateString()} {ext.endTime}</td>
+                      <td>{ext.amount.toLocaleString()} ₽</td>
+                      <td>{ext.paymentStatus === 'DEBT' ? 'В долг' : 'Оплачено'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div style={{textAlign: 'right', fontWeight: 'bold', marginBottom: '10px'}}>
+                Итого продлений: {printingRental.extensions.reduce((acc, e) => acc + (e.amount || 0), 0).toLocaleString()} ₽
+              </div>
+            </>
+          )}
+
+          <div className="print-signatures" style={{display: 'flex', justifyContent: 'space-between', marginTop: '40px'}}>
+             <div style={{width: '40%'}}>
+                <div className="print-bold mb-6">АРЕНДОДАТЕЛЬ:</div>
+                <div style={{borderBottom: '1px solid black', width: '100%', height: '20px'}}></div>
+                <div style={{textAlign: 'center', fontSize: '9pt', marginTop: '5px'}}>/ Подпись /</div>
              </div>
-             <div className="border-t border-black pt-1">
-                <p className="font-bold text-[7.5pt]">АРЕНДАТОР:</p>
-                <div className="flex justify-between items-end mt-1.5">
-                   <div className="border-b border-black w-20 h-3 text-center text-[6pt]">подпись</div>
-                   <div className="text-[7pt] flex-1 text-center border-b border-black">( Фамилия )</div>
-                </div>
+             <div style={{width: '40%'}}>
+                <div className="print-bold mb-6">АРЕНДАТОР:</div>
+                <div style={{borderBottom: '1px solid black', width: '100%', height: '20px'}}></div>
+                <div style={{textAlign: 'center', fontSize: '9pt', marginTop: '5px'}}>/ Подпись /</div>
              </div>
           </div>
         </div>
@@ -385,32 +486,38 @@ const ContractList: React.FC<ContractListProps> = ({
             <h2 className="text-2xl font-black mb-8 uppercase">Продление сделки</h2>
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <input 
-                  type="date" 
-                  value={extensionData.endDate} 
-                  onChange={e => setExtensionData({...extensionData, endDate: e.target.value})} 
-                  required 
-                  className="p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500" 
-                />
-                <input 
-                  type="time" 
-                  value={extensionData.endTime} 
-                  onChange={e => setExtensionData({...extensionData, endTime: e.target.value})} 
-                  required 
-                  className="p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500" 
-                />
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Новая дата</label>
+                  <input
+                    type="date"
+                    value={extensionData.endDate}
+                    onChange={e => setExtensionData({...extensionData, endDate: e.target.value})}
+                    required
+                    className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500"
+                  />
+                </div>
+                <div>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Новое время</label>
+                  <input
+                    type="time"
+                    value={extensionData.endTime}
+                    onChange={e => setExtensionData({...extensionData, endTime: e.target.value})}
+                    required
+                    className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500"
+                  />
+                </div>
               </div>
               <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl">
-                 <button 
-                   type="button" 
-                   onClick={() => setPaymentMode('PAID')} 
+                 <button
+                   type="button"
+                   onClick={() => setPaymentMode('PAID')}
                    className={`py-3 rounded-xl font-black text-xs uppercase ${paymentMode === 'PAID' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}
                  >
                    Оплачено
                  </button>
-                 <button 
-                   type="button" 
-                   onClick={() => setPaymentMode('DEBT')} 
+                 <button
+                   type="button"
+                   onClick={() => setPaymentMode('DEBT')}
                    className={`py-3 rounded-xl font-black text-xs uppercase ${paymentMode === 'DEBT' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-400'}`}
                  >
                    В долг
@@ -419,7 +526,7 @@ const ContractList: React.FC<ContractListProps> = ({
               <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100 flex justify-between items-center">
                  <div>
                    <div className="text-[10px] font-black text-emerald-600 uppercase">Сумма доплаты</div>
-                   <div className="text-2xl font-black">+{extensionData.extraPrice.toLocaleString()} ₽</div>
+                   <div className="text-2xl font-black">+{Number(extensionData.extraPrice).toLocaleString()} ₽</div>
                  </div>
                  <i className="fas fa-plus-circle text-emerald-300 text-2xl"></i>
               </div>

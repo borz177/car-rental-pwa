@@ -36,11 +36,22 @@ const Reports: React.FC<ReportsProps> = ({
   useEffect(() => {
     if (initialCategory) setActiveCategory(initialCategory);
     if (initialSearchId) setFilters(f => ({ ...f, searchId: initialSearchId }));
+    // If ID is cleared (navigation reset), ensure filter is cleared too
+    if (!initialSearchId) setFilters(f => ({ ...f, searchId: '' }));
   }, [initialCategory, initialSearchId]);
 
   const unifiedTransactions = useMemo(() => {
     return [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [transactions]);
+
+  // Performance optimization: Pre-map investor cars
+  const investorCarMap = useMemo(() => {
+    const map: Record<string, string[]> = {};
+    investors.forEach(inv => {
+        map[inv.id] = cars.filter(c => c.investorId === inv.id).map(c => c.id);
+    });
+    return map;
+  }, [cars, investors]);
 
   const filteredData = useMemo(() => {
     let base = activeCategory === 'FINES' ? fines : unifiedTransactions;
@@ -54,8 +65,13 @@ const Reports: React.FC<ReportsProps> = ({
       if (end && date > end) return false;
 
       if (activeCategory === 'INVESTORS') {
-        if (filters.searchId) return t.investorId === filters.searchId;
-        return t.investorId !== undefined && t.investorId !== null;
+        if (filters.searchId) {
+            // Include Direct Payouts (investorId matched) OR Income from cars owned by investor
+            const ownedCarIds = investorCarMap[filters.searchId] || [];
+            return t.investorId === filters.searchId || (t.carId && ownedCarIds.includes(t.carId));
+        }
+        // General Investor View: Has explicit investor ID or is linked to a car with an investor
+        return (t.investorId !== undefined && t.investorId !== null) || (t.carId && cars.find(c => c.id === t.carId)?.investorId);
       }
 
       if (activeCategory === 'CARS') {
@@ -74,7 +90,7 @@ const Reports: React.FC<ReportsProps> = ({
 
       return true;
     });
-  }, [unifiedTransactions, filters, activeCategory, fines]);
+  }, [unifiedTransactions, filters, activeCategory, fines, investorCarMap, cars]);
 
   const carMetrics = useMemo(() => {
     if (activeCategory !== 'CARS' || !filters.searchId) return null;

@@ -1,6 +1,10 @@
 
+import 'process';
 import React, { useState, useEffect } from 'react';
-import { User, Car, Rental, Client, BookingRequest, AppView, UserRole, CarStatus, Transaction, TransactionType, Investor, Staff, Fine, FineStatus } from './types';
+import {
+  User, Car, Rental, Client, BookingRequest, AppView,
+  Transaction, TransactionType, Investor, Staff, Fine, UserRole, RequestStatus
+} from './types';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
 import TopNavbar from './components/TopNavbar';
@@ -8,40 +12,38 @@ import Dashboard from './components/Dashboard';
 import CarList from './components/CarList';
 import ClientList from './components/ClientList';
 import BookingCalendar from './components/BookingCalendar';
-import AiAdvisor from './components/AiAdvisor';
-import ClientCatalog from './components/ClientCatalog';
 import BookingRequests from './components/BookingRequests';
 import Settings from './components/Settings';
 import ManualBooking from './components/ManualBooking';
 import ContractList from './components/ContractList';
-import InvestorList from './components/InvestorList';
 import Cashbox from './components/Cashbox';
 import Reports from './components/Reports';
-import StaffList from './components/StaffList';
 import ClientDetails from './components/ClientDetails';
-import StaffDetails from './components/StaffDetails';
-import InvestorDetails from './components/InvestorDetails';
 import Tariffs from './components/Tariffs';
+import InvestorList from './components/InvestorList';
+import StaffList from './components/StaffList';
+import InvestorDetails from './components/InvestorDetails';
+import StaffDetails from './components/StaffDetails';
 import SuperadminPanel from './components/SuperadminPanel';
+import ClientCatalog from './components/ClientCatalog';
+import SubscriptionExpiredModal from './components/SubscriptionExpiredModal';
 import BackendAPI from './services/api';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [initError, setInitError] = useState<string | null>(null);
   const [isGlobalLoading, setIsGlobalLoading] = useState(false);
-
-  const [allUsers, setAllUsers] = useState<User[]>([]);
-  const [authMode, setAuthMode] = useState<'SELECT_ROLE' | 'LOGIN' | 'REGISTER'>('SELECT_ROLE');
-  const [selectedRole, setSelectedRole] = useState<UserRole | null>(null);
   const [currentView, setCurrentView] = useState<AppView>('DASHBOARD');
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
-  const [preSelectedRentalId, setPreSelectedRentalId] = useState<string | null>(null);
-  const [preIsReservation, setPreIsReservation] = useState(false);
+  const [fleetOwner, setFleetOwner] = useState<User | null>(null);
 
-  // States for cross-component report filtering
-  const [reportFilterId, setReportFilterId] = useState<string | null>(null);
-  const [reportCategory, setReportCategory] = useState<'ALL' | 'INVESTORS' | 'CARS' | 'CLIENTS' | 'FINES'>('ALL');
+  // Auth State
+  const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
+  const [authLoading, setAuthLoading] = useState(false);
+
+  // Access Control State
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeModalContent, setUpgradeModalContent] = useState({ title: '', message: '' });
 
   const [cars, setCars] = useState<Car[]>([]);
   const [requests, setRequests] = useState<BookingRequest[]>([]);
@@ -51,172 +53,608 @@ const App: React.FC = () => {
   const [staff, setStaff] = useState<Staff[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [fines, setFines] = useState<Fine[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
+
+  // --- ACCESS CONTROL HELPERS ---
+
+  const isSubscriptionActive = () => {
+    if (!currentUser) return false;
+    // Admins always active for testing, or check dates
+    if (currentUser.role === UserRole.SUPERADMIN) return true;
+    // Clients don't have subscriptions
+    if (currentUser.role === UserRole.CLIENT) return true;
+
+    if (!currentUser.subscriptionUntil) return false; // No date set
+    return new Date(currentUser.subscriptionUntil) > new Date();
+  };
+
+  const getPlanLimit = () => {
+    if (!currentUser) return 0;
+    const plan = currentUser.activePlan || (currentUser.isTrial ? 'Premium' : 'Start');
+
+    if (plan.toUpperCase().includes('БИЗНЕС') || plan.toUpperCase().includes('BUSINESS')) return 20;
+    if (plan.toUpperCase().includes('ПРЕМИУМ') || plan.toUpperCase().includes('PREMIUM')) return 9999;
+
+    // Default Start
+    return 5;
+  };
+
+  const checkAccess = (action: 'ADD_CAR' | 'CREATE_RENTAL') => {
+    if (!isSubscriptionActive()) {
+      setUpgradeModalContent({
+        title: 'Подписка истекла',
+        message: 'Для создания новых сделок и добавления авто необходимо продлить подписку. Ваши данные доступны только для чтения.'
+      });
+      setShowUpgradeModal(true);
+      return false;
+    }
+
+    if (action === 'ADD_CAR') {
+      const limit = getPlanLimit();
+      if (cars.length >= limit) {
+        setUpgradeModalContent({
+          title: 'Лимит тарифа исчерпан',
+          message: `Ваш тариф позволяет добавить до ${limit} автомобилей. Обновите тариф для расширения автопарка.`
+        });
+        setShowUpgradeModal(true);
+        return false;
+      }
+    }
+
+    return true;
+  };
 
   const loadData = async () => {
-    const token = localStorage.getItem('autopro_token');
-    if (!token) return;
-    const fetchData = async <T,>(promise: Promise<T>, setter: (val: T) => void, label: string) => {
-      try { const data = await promise; setter(data); } catch (e) { console.warn(`Could not load ${label}:`, e); }
-    };
-    await Promise.all([
-      fetchData(BackendAPI.getCars(), setCars, 'cars'),
-      fetchData(BackendAPI.getClients(), setClients, 'clients'),
-      fetchData(BackendAPI.getRentals(), setRentals, 'rentals'),
-      fetchData(BackendAPI.getTransactions(), setTransactions, 'transactions'),
-      fetchData(BackendAPI.getInvestors(), setInvestors, 'investors'),
-      fetchData(BackendAPI.getStaff(), setStaff, 'staff'),
-      fetchData(BackendAPI.getFines(), setFines, 'fines'),
-      fetchData(BackendAPI.getRequests(), setRequests, 'requests')
-    ]);
-    const user = await BackendAPI.getCurrentUser();
-    if (user?.role === UserRole.SUPERADMIN) fetchData(BackendAPI.getAllUsers(), setAllUsers, 'global users');
+    try {
+      const results = await Promise.all([
+        BackendAPI.getCars(),
+        BackendAPI.getClients(),
+        BackendAPI.getRentals(),
+        BackendAPI.getTransactions(),
+        BackendAPI.getInvestors(),
+        BackendAPI.getStaff(),
+        BackendAPI.getFines(),
+        BackendAPI.getRequests()
+      ]);
+
+      const [c, cl, r, t, inv, st, f, req] = results as [
+        Car[], Client[], Rental[], Transaction[], Investor[], Staff[], Fine[], BookingRequest[]
+      ];
+
+      setCars(c);
+      setClients(cl);
+      setRentals(r);
+      setTransactions(t);
+      setInvestors(inv);
+      setStaff(st);
+      setFines(f);
+      setRequests(req);
+
+      // Если зашел суперадмин, подгружаем всех юзеров системы
+      const user = await BackendAPI.getCurrentUser();
+      if (user?.role === UserRole.SUPERADMIN) {
+        const users = await BackendAPI.getAllUsers();
+        setAllUsers(users);
+      }
+    } catch (e) {
+      console.warn("Ошибка загрузки данных:", e);
+    }
   };
 
   useEffect(() => {
     const init = async () => {
       try {
         const user = await BackendAPI.getCurrentUser();
-        if (user) { setCurrentUser(user); await loadData(); if (user.role === UserRole.SUPERADMIN) setCurrentView('SUPERADMIN_PANEL'); else if (user.role === UserRole.CLIENT) setCurrentView('CLIENT_CATALOG'); else setCurrentView('DASHBOARD');
-        } else { setAuthMode('SELECT_ROLE'); }
-      } catch (e: any) { setInitError("Сервер временно недоступен."); } finally { setIsInitializing(false); }
+        // Always try to load public fleet if param is present, regardless of auth status
+        // This ensures clients see the correct cars
+        const urlParams = new URLSearchParams(window.location.search);
+        const fleetSlug = urlParams.get('fleet');
+
+        if (fleetSlug) {
+           try {
+              const publicData = await BackendAPI.getPublicFleet(fleetSlug);
+              setCars(publicData.cars);
+              // Only overwrite rentals if not admin, or merge logic needed
+              // For simplicity, we trust loadData for admins, and publicData for clients/guests
+              if (!user || user.role === UserRole.CLIENT) {
+                 setRentals(publicData.rentals);
+                 setFleetOwner(publicData.owner);
+              }
+           } catch (err) {
+              console.error('Failed to load public fleet', err);
+           }
+        }
+
+        if (user) {
+          setCurrentUser(user);
+          if (user.role !== UserRole.CLIENT) {
+             await loadData();
+          } else {
+             // For clients, we still need their own requests and rentals info (e.g. debt)
+             // getRequests/getRentals returns data filtered by client_id = user.id
+             const reqs = await BackendAPI.getRequests();
+             setRequests(reqs);
+             // Note: Cars are already loaded via getPublicFleet above if slug exists
+          }
+
+          if (user.role === UserRole.CLIENT) {
+            setCurrentView('CLIENT_CATALOG');
+          }
+        } else {
+          // Public guest view
+          if (fleetSlug) {
+             setCurrentView('CLIENT_CATALOG');
+          }
+        }
+      } catch (e) {
+        console.error("Ошибка инициализации:", e);
+      } finally {
+        setIsInitializing(false);
+      }
     };
     init();
   }, []);
 
+  const handleAuthSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setAuthLoading(true);
+    const fd = new FormData(e.currentTarget);
+    const email = fd.get('email') as string;
+    const password = fd.get('password') as string;
+    const name = fd.get('name') as string;
+
+    try {
+      let user;
+      if (authMode === 'LOGIN') {
+        user = await BackendAPI.login({ email, password });
+      } else {
+        user = await BackendAPI.register({ email, password, name, role: UserRole.ADMIN });
+      }
+      setCurrentUser(user);
+      await loadData();
+    } catch (err: any) {
+      alert(err.message || 'Ошибка авторизации');
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
   const handleSaveRental = async (rental: Rental) => {
+    // Check subscription before creating NEW rental (updating existing is fine usually, but for strict mode let's check)
+    if (!rental.id && !checkAccess('CREATE_RENTAL')) return;
+
     setIsGlobalLoading(true);
     try {
-      const saved = await BackendAPI.saveRental(rental);
-      if (rental.paymentStatus === 'PAID' && !rental.isReservation) {
-        await BackendAPI.saveTransaction({
-          id: '',
-          ownerId: '',
-          amount: rental.totalAmount,
-          type: TransactionType.INCOME,
-          category: 'Аренда',
-          description: `Оплата по дог. ${rental.contractNumber}`,
-          date: new Date().toISOString(),
-          clientId: rental.clientId,
-          carId: rental.carId
-        });
+      await BackendAPI.saveRental(rental);
+      if (!rental.isReservation) {
+        if (rental.paymentStatus === 'PAID') {
+          await BackendAPI.saveTransaction({
+            id: '',
+            ownerId: '',
+            amount: rental.totalAmount,
+            type: TransactionType.INCOME,
+            category: 'Аренда',
+            description: `Оплата по дог. ${rental.contractNumber}`,
+            date: new Date().toISOString(),
+            clientId: rental.clientId,
+            carId: rental.carId
+          });
+        }
+        else if (rental.paymentStatus === 'DEBT') {
+          const client = clients.find(c => c.id === rental.clientId);
+          if (client) {
+            await BackendAPI.saveClient({
+              ...client,
+              debt: (client.debt || 0) + rental.totalAmount
+            });
+          }
+        }
       }
       await loadData();
-      setCurrentView('CONTRACTS');
-    } catch (e: any) { alert(e.message); }
-    finally { setIsGlobalLoading(false); }
+      // Убрали автоматический переход, теперь этим управляет ManualBooking через onNavigate
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setIsGlobalLoading(false);
+    }
   };
 
-  const handleAuth = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+  const handleCompleteRental = async (rental: Rental) => {
+    if(!confirm('Вы уверены, что хотите завершить аренду? Статус договора изменится на "Завершен".')) return;
+
     setIsGlobalLoading(true);
-    const fd = new FormData(e.currentTarget);
     try {
-      const user = authMode === 'REGISTER' ? await BackendAPI.register({ email: fd.get('email') as string, password: fd.get('password') as string, name: fd.get('name') as string, role: selectedRole || UserRole.ADMIN }) : await BackendAPI.login({ email: fd.get('email') as string, password: fd.get('password') as string });
-      setCurrentUser(user); await loadData(); if (user.role === UserRole.SUPERADMIN) setCurrentView('SUPERADMIN_PANEL'); else if (user.role === UserRole.CLIENT) setCurrentView('CLIENT_CATALOG'); else setCurrentView('DASHBOARD');
-    } catch (err: any) { alert(err.message); } finally { setIsGlobalLoading(false); }
-  };
-
-  const handleLogout = () => {
-    BackendAPI.logout(); setCurrentUser(null); setAuthMode('SELECT_ROLE'); setCurrentView('DASHBOARD');
-    setCars([]); setClients([]); setRentals([]); setTransactions([]); setInvestors([]); setStaff([]); setFines([]); setRequests([]);
+        await BackendAPI.saveRental({ ...rental, status: 'COMPLETED' });
+        await loadData();
+    } catch (e: any) {
+        alert(e.message);
+    } finally {
+        setIsGlobalLoading(false);
+    }
   };
 
   const apiAction = (fn: (...args: any[]) => Promise<any>) => async (...args: any[]) => {
     setIsGlobalLoading(true);
-    try { await fn(...args); await loadData(); } catch (e: any) { alert(e.message); } finally { setIsGlobalLoading(false); }
+    try {
+      await fn(...args);
+      await loadData();
+    } catch (e: any) {
+      alert(e.message);
+    } finally {
+      setIsGlobalLoading(false);
+    }
   };
 
-  const renderAuth = () => {
-    if (authMode === 'SELECT_ROLE') {
-      return (
-        <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-white animate-fadeIn">
-          <div className="w-20 h-20 bg-blue-600 rounded-[2rem] flex items-center justify-center text-3xl shadow-2xl shadow-blue-500/40 mb-10"><i className="fas fa-car-side"></i></div>
-          <h1 className="text-4xl font-black mb-2 tracking-tighter">AutoPro AI</h1>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full max-w-2xl mt-10">
-            <button onClick={() => { setSelectedRole(UserRole.ADMIN); setAuthMode('LOGIN'); }} className="group bg-white/5 border border-white/10 p-10 rounded-[3rem] text-left hover:bg-blue-600 transition-all shadow-xl">
-              <i className="fas fa-building text-3xl mb-6 text-blue-500 group-hover:text-white"></i>
-              <h3 className="text-xl font-black">Компания</h3>
+  const handleAddCar = async (car: Car) => {
+    if (!car.id && !checkAccess('ADD_CAR')) return; // Only check limit on creation
+    await apiAction(BackendAPI.saveCar)(car);
+  };
+
+  // Public Catalog View Wrapper
+  if (!currentUser && currentView === 'CLIENT_CATALOG') {
+    return (
+      <div className="min-h-screen bg-slate-50 relative overflow-y-auto">
+        <ClientCatalog
+          cars={cars}
+          rentals={rentals}
+          currentUser={null}
+          onSubmitRequest={async (req) => {
+             // Use public endpoint for guest requests
+             await BackendAPI.submitBookingRequest(req);
+             alert('Заявка отправлена!');
+          }}
+          fleetOwner={fleetOwner}
+          onAuthRequest={() => window.location.reload()}
+          onRegisterClient={async (u) => {
+            const user = await BackendAPI.register({...u, role: UserRole.CLIENT});
+            setCurrentUser(user);
+          }}
+          onLoginClient={async (e, p) => {
+            const user = await BackendAPI.login({email: e, password: p});
+            setCurrentUser(user);
+          }}
+        />
+      </div>
+    );
+  }
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
+        <div className="bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl animate-scaleIn">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-3xl shadow-lg mx-auto mb-4">
+              <i className="fas fa-car-side"></i>
+            </div>
+            <h1 className="text-3xl font-black text-slate-900 tracking-tight">AutoPro AI</h1>
+            <p className="text-slate-400 font-bold uppercase text-xs tracking-widest mt-2">Система управления автопарком</p>
+          </div>
+
+          <form onSubmit={handleAuthSubmit} className="space-y-4">
+            {authMode === 'REGISTER' && (
+              <input
+                name="name"
+                placeholder="Название компании / ФИО"
+                required
+                className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+              />
+            )}
+            <input
+              name="email"
+              type="email"
+              placeholder="Email"
+              required
+              className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+            />
+            <input
+              name="password"
+              type="password"
+              placeholder="Пароль"
+              required
+              className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+            />
+
+            <button
+              type="submit"
+              disabled={authLoading}
+              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center space-x-2"
+            >
+              {authLoading && <i className="fas fa-circle-notch animate-spin"></i>}
+              <span>{authMode === 'LOGIN' ? 'Войти' : 'Создать аккаунт'}</span>
             </button>
-            <button onClick={() => { setSelectedRole(UserRole.CLIENT); setAuthMode('LOGIN'); }} className="group bg-white/5 border border-white/10 p-10 rounded-[3rem] text-left hover:bg-emerald-600 transition-all shadow-xl">
-              <i className="fas fa-user text-3xl mb-6 text-emerald-500 group-hover:text-white"></i>
-              <h3 className="text-xl font-black">Клиент</h3>
+          </form>
+
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => setAuthMode(authMode === 'LOGIN' ? 'REGISTER' : 'LOGIN')}
+              className="text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-blue-600 transition-colors"
+            >
+              {authMode === 'LOGIN' ? 'Нет аккаунта? Регистрация' : 'Уже есть аккаунт? Войти'}
             </button>
           </div>
         </div>
-      );
-    }
-    return (
-      <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 animate-fadeIn">
-        <form onSubmit={handleAuth} className="bg-white rounded-[3rem] w-full max-w-md p-10 md:p-14 shadow-2xl">
-          <h2 className="text-3xl font-black text-slate-900 mb-2 tracking-tight">{authMode === 'LOGIN' ? 'Вход' : 'Регистрация'}</h2>
-          <div className="space-y-4 mb-10 mt-10">
-            {authMode === 'REGISTER' && <input name="name" required placeholder="Полное имя" className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none" />}
-            <input name="email" type="email" required placeholder="Email адрес" className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none" />
-            <input name="password" type="password" required placeholder="Пароль" className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none" />
-          </div>
-          <button type="submit" className="w-full py-5 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs hover:bg-blue-600 transition-all shadow-xl active:scale-95">{authMode === 'LOGIN' ? 'Войти' : 'Создать'}</button>
-          <div className="mt-8 flex flex-col gap-4 text-center">
-            <button type="button" onClick={() => setAuthMode(authMode === 'LOGIN' ? 'REGISTER' : 'LOGIN')} className="text-xs font-bold text-blue-600 hover:underline">{authMode === 'LOGIN' ? 'Зарегистрироваться' : 'Уже есть аккаунт?'}</button>
-            <button type="button" onClick={() => setAuthMode('SELECT_ROLE')} className="text-[10px] font-black uppercase text-slate-300 hover:text-slate-500 transition-colors">На главную</button>
-          </div>
-        </form>
       </div>
     );
-  };
+  }
 
-  const renderView = () => {
-    switch (currentView) {
-      case 'DASHBOARD': return <Dashboard cars={cars} rentals={rentals} clients={clients} user={currentUser} />;
-      case 'CARS': return (
-        <CarList
-          cars={cars} investors={investors} rentals={rentals} clients={clients}
-          onAdd={apiAction(BackendAPI.saveCar)} onUpdate={apiAction(BackendAPI.saveCar)} onDelete={apiAction(BackendAPI.deleteCar)}
-          onIssue={(carId) => { setPreSelectedRentalId(null); setSelectedEntityId(carId); setPreIsReservation(false); setCurrentView('MANUAL_BOOKING'); }}
-          onReserve={(carId) => { setPreSelectedRentalId(null); setSelectedEntityId(carId); setPreIsReservation(true); setCurrentView('MANUAL_BOOKING'); }}
-          onInfo={(carId) => { setReportFilterId(carId); setReportCategory('CARS'); setCurrentView('REPORTS'); }}
-          currentOwnerId={currentUser?.id || ''}
-        />
-      );
-      case 'CLIENTS': return <ClientList clients={clients} rentals={rentals} transactions={transactions} onAdd={apiAction(BackendAPI.saveClient)} onUpdate={apiAction(BackendAPI.saveClient)} onDelete={apiAction(BackendAPI.deleteClient)} onSelectClient={(id) => { setSelectedEntityId(id); setCurrentView('CLIENT_DETAILS'); }} />;
-      case 'CALENDAR': return <BookingCalendar cars={cars} rentals={rentals} />;
-      case 'REQUESTS': return <BookingRequests requests={requests} cars={cars} onAction={(id) => apiAction(BackendAPI.deleteRequest)(id)} />;
-      case 'MANUAL_BOOKING': return <ManualBooking cars={cars} clients={clients} rentals={rentals} preSelectedCarId={selectedEntityId || undefined} preIsReservation={preIsReservation} preSelectedRentalId={preSelectedRentalId} onCreate={handleSaveRental} onQuickAddClient={async (c) => { const res = await BackendAPI.saveClient(c as Client); return res.id; }} />;
-      case 'CONTRACTS': return <ContractList rentals={rentals} cars={cars} clients={clients} onUpdate={apiAction(BackendAPI.saveRental)} onDelete={apiAction(BackendAPI.deleteRental)} viewMode="CONTRACTS" brandName={currentUser?.publicBrandName} />;
-      case 'BOOKINGS': return <ContractList rentals={rentals} cars={cars} clients={clients} onUpdate={apiAction(BackendAPI.saveRental)} onDelete={apiAction(BackendAPI.deleteRental)} onIssueFromBooking={(id) => { setPreSelectedRentalId(id); setCurrentView('MANUAL_BOOKING'); }} viewMode="BOOKINGS" brandName={currentUser?.publicBrandName} />;
-      case 'CONTRACTS_ARCHIVE': return <ContractList rentals={rentals} cars={cars} clients={clients} onUpdate={apiAction(BackendAPI.saveRental)} onDelete={apiAction(BackendAPI.deleteRental)} viewMode="ARCHIVE" brandName={currentUser?.publicBrandName} />;
-      case 'AI_ADVISOR': return <AiAdvisor cars={cars} rentals={rentals} />;
-      case 'CASHBOX': return <Cashbox transactions={transactions} clients={clients} rentals={rentals} staff={staff} investors={investors} cars={cars} onAddTransaction={apiAction(BackendAPI.saveTransaction)} />;
-      case 'INVESTORS': return <InvestorList investors={investors} cars={cars} rentals={rentals} transactions={transactions} onAdd={apiAction(BackendAPI.saveInvestor)} onUpdate={apiAction(BackendAPI.saveInvestor)} onDelete={apiAction(BackendAPI.deleteInvestor)} onSelectInvestor={(id) => { setSelectedEntityId(id); setCurrentView('INVESTOR_DETAILS'); }} />;
-      case 'REPORTS': return <Reports transactions={transactions} cars={cars} investors={investors} rentals={rentals} clients={clients} staff={staff} fines={fines} initialSearchId={reportFilterId} initialCategory={reportCategory} />;
-      case 'STAFF': return <StaffList staff={staff} onAdd={apiAction(BackendAPI.saveStaff)} onUpdate={apiAction(BackendAPI.saveStaff)} onDelete={apiAction(BackendAPI.deleteStaff)} onSelectStaff={(id) => { setSelectedEntityId(id); setCurrentView('STAFF_DETAILS'); }} />;
-      case 'SETTINGS': return <Settings user={currentUser} onUpdate={apiAction((u: any) => BackendAPI.updateGlobalUser(currentUser!.id, u))} onNavigate={setCurrentView} onLogout={handleLogout} />;
-      case 'CLIENT_CATALOG': return <ClientCatalog cars={cars.filter(c => c.status === CarStatus.AVAILABLE)} currentUser={currentUser} onSubmitRequest={apiAction(BackendAPI.saveRequest)} fleetOwner={currentUser} onAuthRequest={() => setAuthMode('LOGIN')} onRegisterClient={apiAction(BackendAPI.register)} onLoginClient={(email, pass) => apiAction(BackendAPI.login)({email, password: pass})} />;
-      case 'SUPERADMIN_PANEL': return <SuperadminPanel allUsers={allUsers} onUpdateUser={apiAction((id: string, upd: any) => BackendAPI.updateGlobalUser(id, upd))} onDeleteUser={apiAction(BackendAPI.deleteGlobalUser)} />;
-      case 'CLIENT_DETAILS': { const client = clients.find(c => c.id === selectedEntityId); return client ? <ClientDetails client={client} rentals={rentals} transactions={transactions} cars={cars} fines={fines} onBack={() => setCurrentView('CLIENTS')} onAddFine={apiAction(BackendAPI.saveFine)} onPayFine={apiAction(BackendAPI.payFine)} /> : <Dashboard cars={cars} rentals={rentals} clients={clients} user={currentUser} />; }
-      case 'STAFF_DETAILS': { const member = staff.find(s => s.id === selectedEntityId); return member ? <StaffDetails member={member} onBack={() => setCurrentView('STAFF')} /> : <Dashboard cars={cars} rentals={rentals} clients={clients} user={currentUser} />; }
-      case 'INVESTOR_DETAILS': { const investor = investors.find(i => i.id === selectedEntityId); return investor ? <InvestorDetails investor={investor} cars={cars} rentals={rentals} transactions={transactions} onBack={() => setCurrentView('INVESTORS')} /> : <Dashboard cars={cars} rentals={rentals} clients={clients} user={currentUser} />; }
-      case 'TARIFFS': return <Tariffs user={currentUser!} onUpdate={apiAction((u: any) => BackendAPI.updateGlobalUser(currentUser!.id, u))} onBack={() => setCurrentView('SETTINGS')} />;
-      default: return <Dashboard cars={cars} rentals={rentals} clients={clients} user={currentUser} />;
-    }
-  };
+  const activeRentalsCount = rentals.filter(r => r.status === 'ACTIVE' && !r.isReservation).length;
+  const bookingsCount = rentals.filter(r => r.status === 'ACTIVE' && r.isReservation).length;
+  // Count ONLY pending requests for the badge
+  const pendingRequestsCount = requests.filter(r => r.status === RequestStatus.PENDING).length;
 
-  if (isInitializing) return <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 text-center"><div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mb-6"></div><h1 className="text-white font-black text-xl uppercase tracking-[0.2em] animate-pulse">AutoPro AI</h1></div>;
-  if (!currentUser) return renderAuth();
-  const showSidebar = currentUser.role !== UserRole.CLIENT;
   return (
     <div className="min-h-screen bg-slate-50 relative flex overflow-hidden">
-      {isGlobalLoading && <div className="fixed inset-0 z-[100] bg-white/40 backdrop-blur-[2px] flex items-center justify-center"><div className="w-14 h-14 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div></div>}
-      <TopNavbar brandName={currentUser.publicBrandName || 'AutoPro AI'} />
-      {showSidebar && (
-        <Sidebar
-          currentView={currentView} userRole={currentUser.role} userName={currentUser.name} onNavigate={setCurrentView} onLogout={handleLogout}
-          requestCount={requests.length} rentalCount={rentals.filter(r => !r.isReservation && r.status === 'ACTIVE').length} bookingCount={rentals.filter(r => r.isReservation && r.status === 'ACTIVE').length} user={currentUser}
+      {/* RESTRICTION MODAL (Only shows when action blocked) */}
+      {showUpgradeModal && (
+        <SubscriptionExpiredModal
+          onRenew={() => { setShowUpgradeModal(false); setCurrentView('TARIFFS'); }}
+          onClose={() => setShowUpgradeModal(false)}
+          title={upgradeModalContent.title}
+          message={upgradeModalContent.message}
         />
       )}
-      <main className={`flex-1 overflow-y-auto transition-all duration-300 min-h-screen ${showSidebar ? 'md:ml-64' : ''} p-6 md:p-10 pt-32 md:pt-12 pb-44 md:pb-12`}>
-        <div className="max-w-7xl mx-auto">{renderView()}</div>
+
+      {isGlobalLoading && (
+        <div className="fixed inset-0 z-[100] bg-white/40 backdrop-blur-[2px] flex items-center justify-center">
+          <div className="w-14 h-14 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+
+      <TopNavbar brandName={currentUser.publicBrandName || 'AutoPro AI'} />
+
+      <Sidebar
+        currentView={currentView}
+        userRole={currentUser.role}
+        userName={currentUser.name}
+        onNavigate={(view) => {
+          // Reset selection when navigating from sidebar to prevent sticking to specific reports
+          setSelectedEntityId(null);
+          setCurrentView(view);
+        }}
+        onLogout={() => BackendAPI.logout()}
+        requestCount={pendingRequestsCount}
+        rentalCount={activeRentalsCount}
+        bookingCount={bookingsCount}
+        user={currentUser}
+      />
+
+      <main className="flex-1 overflow-y-auto pt-32 md:pt-12 pb-44 md:pb-12 md:ml-64 p-6">
+        <div className="max-w-7xl mx-auto">
+          {currentView === 'DASHBOARD' &&
+            <Dashboard
+              cars={cars}
+              rentals={rentals}
+              clients={clients}
+              user={currentUser}
+              onCompleteRental={handleCompleteRental}
+            />
+          }
+
+          {currentView === 'CARS' && (
+            <CarList
+              cars={cars}
+              investors={investors}
+              rentals={rentals}
+              clients={clients}
+              onAdd={handleAddCar}
+              onUpdate={apiAction(BackendAPI.saveCar)}
+              onDelete={apiAction(BackendAPI.deleteCar)}
+              onIssue={(id) => { setSelectedEntityId(id); setCurrentView('MANUAL_BOOKING'); }}
+              onReserve={(id) => { setSelectedEntityId(id); setCurrentView('MANUAL_BOOKING'); }}
+              onInfo={(id) => { setSelectedEntityId(id); setCurrentView('REPORTS'); }}
+              currentOwnerId={currentUser.id}
+              planLimit={getPlanLimit()}
+            />
+          )}
+
+          {currentView === 'CLIENTS' && (
+            <ClientList
+              clients={clients}
+              rentals={rentals}
+              transactions={transactions}
+              onAdd={apiAction(BackendAPI.saveClient)}
+              onUpdate={apiAction(BackendAPI.saveClient)}
+              onDelete={apiAction(BackendAPI.deleteClient)}
+              onSelectClient={(id) => { setSelectedEntityId(id); setCurrentView('CLIENT_DETAILS'); }}
+            />
+          )}
+
+          {(currentView === 'CONTRACTS' || currentView === 'BOOKINGS' || currentView === 'CONTRACTS_ARCHIVE') && (
+            <ContractList
+              rentals={rentals}
+              cars={cars}
+              clients={clients}
+              onUpdate={apiAction(BackendAPI.saveRental)}
+              onDelete={apiAction(BackendAPI.deleteRental)}
+              onIssueFromBooking={(id) => { setSelectedEntityId(id); setCurrentView('MANUAL_BOOKING'); }}
+              viewMode={currentView === 'BOOKINGS' ? 'BOOKINGS' : (currentView === 'CONTRACTS_ARCHIVE' ? 'ARCHIVE' : 'CONTRACTS')}
+              brandName={currentUser.publicBrandName}
+            />
+          )}
+
+          {currentView === 'CASHBOX' && (
+            <Cashbox
+              transactions={transactions}
+              clients={clients}
+              rentals={rentals}
+              staff={staff}
+              investors={investors}
+              cars={cars}
+              onAddTransaction={apiAction(BackendAPI.saveTransaction)}
+            />
+          )}
+
+          {currentView === 'REPORTS' && (
+            <Reports
+              transactions={transactions}
+              cars={cars}
+              investors={investors}
+              rentals={rentals}
+              clients={clients}
+              fines={fines}
+              initialSearchId={selectedEntityId}
+              initialCategory={selectedEntityId ? 'CARS' : 'ALL'}
+            />
+          )}
+
+          {currentView === 'INVESTORS' && (
+            <InvestorList
+              investors={investors}
+              cars={cars}
+              rentals={rentals}
+              transactions={transactions}
+              onAdd={apiAction(BackendAPI.saveInvestor)}
+              onUpdate={apiAction(BackendAPI.saveInvestor)}
+              onDelete={apiAction(BackendAPI.deleteInvestor)}
+              onSelectInvestor={(id) => { setSelectedEntityId(id); setCurrentView('INVESTOR_DETAILS'); }}
+            />
+          )}
+
+          {currentView === 'STAFF' && (
+            <StaffList
+              staff={staff}
+              onAdd={apiAction(BackendAPI.saveStaff)}
+              onUpdate={apiAction(BackendAPI.saveStaff)}
+              onDelete={apiAction(BackendAPI.deleteStaff)}
+              onSelectStaff={(id) => { setSelectedEntityId(id); setCurrentView('STAFF_DETAILS'); }}
+            />
+          )}
+
+          {currentView === 'CLIENT_DETAILS' && (
+            <ClientDetails
+              client={clients.find(c => c.id === selectedEntityId)!}
+              rentals={rentals}
+              transactions={transactions}
+              cars={cars}
+              fines={fines}
+              onBack={() => setCurrentView('CLIENTS')}
+              onAddFine={apiAction(BackendAPI.saveFine)}
+              onPayFine={apiAction(BackendAPI.payFine)}
+            />
+          )}
+
+          {currentView === 'INVESTOR_DETAILS' && (
+            <InvestorDetails
+              investor={investors.find(i => i.id === selectedEntityId)!}
+              cars={cars}
+              rentals={rentals}
+              transactions={transactions}
+              onBack={() => setCurrentView('INVESTORS')}
+            />
+          )}
+
+          {currentView === 'STAFF_DETAILS' && (
+            <StaffDetails
+              member={staff.find(s => s.id === selectedEntityId)!}
+              onBack={() => setCurrentView('STAFF')}
+            />
+          )}
+
+          {currentView === 'SUPERADMIN_PANEL' && (
+            <SuperadminPanel
+              allUsers={allUsers}
+              onUpdateUser={apiAction(BackendAPI.updateGlobalUser)}
+              onDeleteUser={apiAction(BackendAPI.deleteGlobalUser)}
+            />
+          )}
+
+          {currentView === 'MANUAL_BOOKING' && (
+            <ManualBooking
+              cars={cars}
+              clients={clients}
+              rentals={rentals}
+              preSelectedRentalId={currentView === 'MANUAL_BOOKING' && rentals.find(r => r.id === selectedEntityId) ? selectedEntityId : null}
+              preSelectedCarId={!rentals.find(r => r.id === selectedEntityId) ? selectedEntityId || undefined : undefined}
+              onCreate={handleSaveRental}
+              onNavigate={setCurrentView}
+              onQuickAddClient={async (c) => {
+                const res = await BackendAPI.saveClient(c as Client);
+                return res.id;
+              }}
+            />
+          )}
+
+          {currentView === 'CALENDAR' && <BookingCalendar cars={cars} rentals={rentals} />}
+
+          {currentView === 'REQUESTS' && (
+            <BookingRequests
+              requests={requests}
+              cars={cars}
+              onAction={apiAction(BackendAPI.deleteRequest)}
+            />
+          )}
+
+          {currentView === 'CLIENT_CATALOG' && (
+             <ClientCatalog
+               cars={cars}
+               rentals={rentals}
+               currentUser={currentUser}
+               onSubmitRequest={async (req) => {
+                  // Use public endpoint here too to ensure ownerId is respected correctly
+                  await BackendAPI.submitBookingRequest(req);
+                  // Refresh requests list
+                  const reqs = await BackendAPI.getRequests();
+                  setRequests(reqs);
+               }}
+               fleetOwner={fleetOwner}
+               onAuthRequest={() => {}}
+               onRegisterClient={async (u) => {
+                 const user = await BackendAPI.register({...u, role: UserRole.CLIENT});
+                 setCurrentUser(user);
+               }}
+               onLoginClient={async (e, p) => {
+                 const user = await BackendAPI.login({email: e, password: p});
+                 setCurrentUser(user);
+               }}
+             />
+          )}
+
+          {/* New View for Client Bookings */}
+          {currentView === 'CLIENT_MY_BOOKINGS' && (
+            <BookingRequests
+              requests={requests}
+              cars={cars}
+              isReadOnly={true}
+            />
+          )}
+
+          {currentView === 'SETTINGS' && (
+            <Settings
+              user={currentUser}
+              onUpdate={apiAction((u) => BackendAPI.updateGlobalUser(currentUser.id, u))}
+              onNavigate={setCurrentView}
+              onLogout={() => BackendAPI.logout()}
+            />
+          )}
+
+          {currentView === 'TARIFFS' && (
+            <Tariffs
+              user={currentUser}
+              onUpdate={apiAction((u) => BackendAPI.updateGlobalUser(currentUser.id, u))}
+              onBack={() => setCurrentView('SETTINGS')}
+            />
+          )}
+        </div>
       </main>
-      <BottomNav currentView={currentView} userRole={currentUser.role} onNavigate={setCurrentView} requestCount={requests.length} isClientMode={currentUser.role === UserRole.CLIENT} />
+
+      <BottomNav
+        currentView={currentView}
+        userRole={currentUser.role}
+        onNavigate={(view) => {
+          setSelectedEntityId(null);
+          setCurrentView(view);
+        }}
+        requestCount={pendingRequestsCount}
+        isClientMode={currentUser.role === UserRole.CLIENT}
+      />
     </div>
   );
 };

@@ -1,10 +1,10 @@
 
-import React, { useState } from 'react';
-import { User, AppView, UserRole } from '../types.ts';
+import React, { useState, useEffect } from 'react';
+import { User, AppView, UserRole } from '../types';
 
 interface SettingsProps {
   user: User | null;
-  onUpdate: (updates: Partial<User>) => void;
+  onUpdate: (updates: Partial<User>) => Promise<void>;
   onNavigate: (view: AppView) => void;
   onLogout: () => void;
   currentMode?: 'MENU' | 'BRANDING';
@@ -14,8 +14,18 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
   const [copied, setCopied] = useState(false);
   const [localMode, setLocalMode] = useState<'MENU' | 'BRANDING'>(currentMode);
   const [contractsExpanded, setContractsExpanded] = useState(false);
-  
-  // Guard clause with fallback to prevent blank screen
+  const [isSaving, setIsSaving] = useState(false);
+
+  const [brandName, setBrandName] = useState(user?.publicBrandName || '');
+  const [slug, setSlug] = useState(user?.publicSlug || '');
+
+  useEffect(() => {
+    if (user) {
+      setBrandName(user.publicBrandName || '');
+      setSlug(user.publicSlug || '');
+    }
+  }, [user]);
+
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center p-20 text-slate-400">
@@ -25,12 +35,24 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
     );
   }
 
-  const publicLink = `${window.location.origin}?fleet=${user.publicSlug || 'autopro'}`;
+  const publicLink = `${window.location.origin}?fleet=${slug || 'autopro'}`;
 
   const copyLink = () => {
     navigator.clipboard.writeText(publicLink);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleSaveBranding = async () => {
+    setIsSaving(true);
+    try {
+      await onUpdate({ publicBrandName: brandName, publicSlug: slug });
+      alert('Настройки бренда сохранены!');
+    } catch (e) {
+      alert('Ошибка при сохранении');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPERADMIN;
@@ -48,8 +70,8 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
   if (localMode === 'BRANDING' && isAdmin) {
     return (
       <div className="max-w-4xl mx-auto space-y-8 animate-fadeIn pb-24 md:pb-0">
-        <button 
-          onClick={() => setLocalMode('MENU')} 
+        <button
+          onClick={() => setLocalMode('MENU')}
           className="flex items-center space-x-2 text-slate-500 font-bold hover:text-blue-600 transition-all mb-4"
         >
           <i className="fas fa-arrow-left"></i>
@@ -57,25 +79,35 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
         </button>
 
         <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-sm border border-slate-100">
-          <h2 className="text-3xl font-black text-slate-900 mb-8">Брендинг компании</h2>
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-3xl font-black text-slate-900">Брендинг компании</h2>
+            <button
+              onClick={handleSaveBranding}
+              disabled={isSaving}
+              className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
+            >
+              {isSaving ? <i className="fas fa-spinner animate-spin"></i> : <i className="fas fa-save"></i>}
+              <span>Сохранить</span>
+            </button>
+          </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-6">
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-2">Название бренда</label>
-                <input 
-                  defaultValue={user.publicBrandName} 
+                <input
+                  value={brandName}
                   placeholder="Напр. MyRentals"
                   className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-2xl font-bold focus:border-blue-500 outline-none transition-all"
-                  onChange={(e) => onUpdate({ publicBrandName: e.target.value })}
+                  onChange={(e) => setBrandName(e.target.value)}
                 />
               </div>
               <div>
                 <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-3 ml-2">ID профиля (URL)</label>
-                <input 
-                  defaultValue={user.publicSlug} 
+                <input
+                  value={slug}
                   placeholder="my-fleet"
                   className="w-full p-5 bg-slate-50 border-2 border-transparent rounded-2xl font-bold focus:border-blue-500 outline-none transition-all"
-                  onChange={(e) => onUpdate({ publicSlug: e.target.value })}
+                  onChange={(e) => setSlug(e.target.value)}
                 />
               </div>
             </div>
@@ -96,7 +128,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
             <p className="text-slate-400 font-medium mb-8 max-w-lg">Ваш персональный URL для бронирования клиентами. Разместите его в соцсетях или отправьте напрямую.</p>
             <div className="bg-white/5 border border-white/10 p-2 rounded-3xl flex flex-col md:flex-row items-center gap-4">
               <div className="flex-1 px-6 py-4 text-xs font-mono truncate opacity-60 w-full md:w-auto text-center md:text-left">{publicLink}</div>
-              <button 
+              <button
                 onClick={copyLink}
                 className={`w-full md:w-auto px-10 py-4 rounded-2xl font-black transition-all ${copied ? 'bg-emerald-500' : 'bg-blue-600 hover:bg-blue-700'} shadow-lg`}
               >
@@ -139,14 +171,14 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
                 )}
               </div>
             </div>
-            
+
             <div className="mt-8 p-6 bg-slate-50 rounded-2xl border border-slate-100">
                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Email аккаунта</div>
                <div className="font-bold text-slate-900 truncate">{user.email}</div>
             </div>
           </div>
-          
-          <button 
+
+          <button
             onClick={onLogout}
             className="w-full mt-8 py-5 bg-rose-50 text-rose-500 rounded-2xl font-black flex items-center justify-center space-x-3 hover:bg-rose-100 transition-all border-2 border-transparent hover:border-rose-200"
           >
@@ -158,13 +190,13 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
         {/* Настройки на десктопе */}
         <div className="space-y-4">
           {menuItems.map(item => {
-            const shouldShow = (item.desktopShow || (typeof window !== 'undefined' && window.innerWidth < 768)) && 
+            const shouldShow = (item.desktopShow || (typeof window !== 'undefined' && window.innerWidth < 768)) &&
                              (!item.adminOnly || isAdmin);
             if (!shouldShow) return null;
 
             return (
               <div key={item.id} className="w-full">
-                <button 
+                <button
                   onClick={() => {
                     if (item.expandable) setContractsExpanded(!contractsExpanded);
                     else if (item.id === 'BRANDING') setLocalMode('BRANDING');
@@ -183,16 +215,23 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
 
                 {item.expandable && contractsExpanded && (
                   <div className="grid grid-cols-2 gap-3 px-2 mb-4 animate-slideDown">
-                    <button 
+                    <button
+                      onClick={() => onNavigate('BOOKINGS')}
+                      className="bg-amber-50 p-5 rounded-2xl border-2 border-amber-100 flex flex-col items-center text-center space-y-2 active:scale-95 transition-all"
+                    >
+                      <i className="fas fa-calendar-alt text-amber-600 text-xl"></i>
+                      <span className="text-[10px] font-black text-amber-800 uppercase tracking-widest">Брони</span>
+                    </button>
+                    <button
                       onClick={() => onNavigate('CONTRACTS')}
                       className="bg-blue-50 p-5 rounded-2xl border-2 border-blue-100 flex flex-col items-center text-center space-y-2 active:scale-95 transition-all"
                     >
                       <i className="fas fa-play-circle text-blue-600 text-xl"></i>
                       <span className="text-[10px] font-black text-blue-800 uppercase tracking-widest">Активные</span>
                     </button>
-                    <button 
+                    <button
                       onClick={() => onNavigate('CONTRACTS_ARCHIVE')}
-                      className="bg-slate-50 p-5 rounded-2xl border-2 border-slate-200 flex flex-col items-center text-center space-y-2 active:scale-95 transition-all"
+                      className="bg-slate-50 p-5 rounded-2xl border-2 border-slate-200 flex flex-col items-center text-center space-y-2 active:scale-95 transition-all col-span-2"
                     >
                       <i className="fas fa-history text-slate-600 text-xl"></i>
                       <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Архив</span>

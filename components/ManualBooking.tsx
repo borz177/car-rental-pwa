@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Car, Client, Rental } from '../types';
+import { Car, Client, Rental, AppView } from '../types';
 
 interface ManualBookingProps {
   cars: Car[];
@@ -9,12 +9,13 @@ interface ManualBookingProps {
   preSelectedCarId?: string;
   preIsReservation?: boolean;
   preSelectedRentalId?: string | null;
-  onCreate: (rental: Rental) => void;
+  onCreate: (rental: Rental) => Promise<void>;
+  onNavigate?: (view: AppView) => void;
   onQuickAddClient: (c: Partial<Client>) => Promise<string>;
 }
 
 const ManualBooking: React.FC<ManualBookingProps> = ({
-  cars, clients, rentals = [], preSelectedCarId, preIsReservation = false, preSelectedRentalId, onCreate, onQuickAddClient
+  cars, clients, rentals = [], preSelectedCarId, preIsReservation = false, preSelectedRentalId, onCreate, onNavigate, onQuickAddClient
 }) => {
   const [showClientSearch, setShowClientSearch] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -23,8 +24,15 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
   const [bookingType, setBookingType] = useState<'DAILY' | 'HOURLY'>('DAILY');
   const [isReservation, setIsReservation] = useState(preIsReservation);
 
-  const today = new Date().toISOString().split('T')[0];
-  const nowTime = new Date().toTimeString().slice(0, 5);
+  // State for success modal
+  const [successData, setSuccessData] = useState<{rental: Rental, car: Car, client: Client} | null>(null);
+
+  // Moscow Date/Time Helpers
+  const getMoscowDateStr = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Moscow' });
+  const getMoscowTimeStr = () => new Date().toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit' });
+
+  const today = getMoscowDateStr();
+  const nowTime = getMoscowTimeStr();
 
   const [formData, setFormData] = useState({
     carId: preSelectedCarId || '',
@@ -34,7 +42,8 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
     startTime: nowTime,
     endDate: today,
     endTime: '18:00',
-    price: 0
+    price: 0,
+    prepayment: 0
   });
 
   useEffect(() => {
@@ -50,7 +59,8 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
           startTime: existing.startTime,
           endDate: existing.endDate,
           endTime: existing.endTime,
-          price: existing.totalAmount
+          price: existing.totalAmount,
+          prepayment: existing.prepayment || 0
         });
         setBookingType(existing.bookingType || 'DAILY');
         setIsReservation(false);
@@ -91,7 +101,7 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
     return clients.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.phone.includes(searchQuery));
   }, [clients, searchQuery]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.carId || !formData.clientId) { alert('Выберите авто и клиента'); return; }
 
@@ -105,16 +115,28 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
       endDate: formData.endDate,
       endTime: formData.endTime,
       totalAmount: formData.price,
+      prepayment: isReservation ? formData.prepayment : 0,
       status: 'ACTIVE',
       contractNumber: `${isReservation ? 'Б' : 'Д'}-${Math.floor(Math.random() * 9000) + 1000}`,
-      paymentStatus: isReservation ? 'PAID' : paymentMode,
+      paymentStatus: isReservation ? (formData.prepayment >= formData.price ? 'PAID' : 'DEBT') : paymentMode,
       isReservation: isReservation,
       bookingType: bookingType,
       extensions: []
     };
 
-    onCreate(rental);
-    setFormData({ carId: '', clientId: '', clientName: '', startDate: today, startTime: nowTime, endDate: today, endTime: '18:00', price: 0 });
+    await onCreate(rental);
+
+    // Prepare data for success modal
+    const car = cars.find(c => c.id === rental.carId);
+    const client = clients.find(c => c.id === rental.clientId);
+    if (car && client) {
+      setSuccessData({ rental, car, client });
+    } else {
+      if (onNavigate) onNavigate('CONTRACTS');
+    }
+
+    // Reset form data in background
+    setFormData({ carId: '', clientId: '', clientName: '', startDate: today, startTime: nowTime, endDate: today, endTime: '18:00', price: 0, prepayment: 0 });
   };
 
   const handleQuickAddClient = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -129,6 +151,46 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
       setShowQuickAdd(false);
     } catch (error) { alert('Ошибка'); }
   };
+
+  const handleWhatsAppShare = () => {
+    if (!successData) return;
+    const { rental, car, client } = successData;
+
+    let phone = client.phone.replace(/\D/g, '');
+    // Если номер начинается с 8 и длина 11 цифр (РФ формат), меняем 8 на 7
+    if (phone.startsWith('8') && phone.length === 11) {
+      phone = '7' + phone.slice(1);
+    }
+
+    const typeText = rental.isReservation ? "Ваша бронь подтверждена" : "Ваш договор аренды оформлен";
+    const emoji = rental.isReservation ? "🗓" : "🚗";
+
+    const message = `${emoji} *Здравствуйте, ${client.name}!*
+    
+${typeText} в компании AutoPro.
+
+🚘 *Автомобиль:* ${car.brand} ${car.model}
+🔢 *Госномер:* ${car.plate}
+
+📅 *Начало:* ${new Date(rental.startDate).toLocaleDateString()} в ${rental.startTime}
+🏁 *Окончание:* ${new Date(rental.endDate).toLocaleDateString()} в ${rental.endTime}
+
+💰 *Сумма:* ${rental.totalAmount.toLocaleString()} ₽
+${rental.prepayment ? `💸 *Предоплата:* ${rental.prepayment.toLocaleString()} ₽` : ''}
+
+📍 Ждем вас по адресу: г. Москва, ул. Примерная, 1.
+📞 Если возникнут вопросы, звоните нам.`;
+
+    const url = `https://wa.me/${phone}?text=${encodeURIComponent(message)}`;
+    window.open(url, '_blank');
+  };
+
+  const handleCloseSuccess = () => {
+    setSuccessData(null);
+    if (onNavigate) onNavigate('CONTRACTS');
+  };
+
+  const remainingToPay = Math.max(0, formData.price - (formData.prepayment || 0));
 
   return (
     <div className="max-w-4xl mx-auto animate-fadeIn pb-24 md:pb-0">
@@ -171,23 +233,33 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
                 </div>
               </div>
 
-              {!isReservation && (
+              {!isReservation ? (
                 <div>
                   <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Оплата</label>
                   <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl">
                     <button type="button" onClick={() => setPaymentMode('PAID')} className={`py-3 rounded-xl font-black text-[10px] uppercase transition-all ${paymentMode === 'PAID' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>Оплачено</button>
                     <button type="button" onClick={() => setPaymentMode('DEBT')} className={`py-3 rounded-xl font-black text-[10px] uppercase transition-all ${paymentMode === 'DEBT' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-400'}`}>Не оплачено</button>
                   </div>
+                  {formData.prepayment > 0 && (
+                     <div className="mt-2 text-xs font-bold text-slate-500 pl-2">
+                        Учтена предоплата: {formData.prepayment.toLocaleString()} ₽. Остаток: {remainingToPay.toLocaleString()} ₽
+                     </div>
+                  )}
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Предоплата (₽)</label>
+                  <input type="number" placeholder="0" className="w-full p-4 bg-amber-50 rounded-2xl font-black text-amber-700 outline-none border-2 border-amber-100" value={formData.prepayment || ''} onChange={e => setFormData({...formData, prepayment: Number(e.target.value)})} />
                 </div>
               )}
             </div>
 
             <div className="space-y-6">
               <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2 text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Начало</div>
+                <div className="col-span-2 text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Начало (МСК)</div>
                 <input type="date" required className="p-4 bg-slate-50 rounded-2xl font-bold" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} />
                 <input type="time" required className="p-4 bg-slate-50 rounded-2xl font-bold" value={formData.startTime} onChange={e => setFormData({...formData, startTime: e.target.value})} />
-                <div className="col-span-2 text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Конец</div>
+                <div className="col-span-2 text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Конец (МСК)</div>
                 <input type="date" required className="p-4 bg-slate-50 rounded-2xl font-bold" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} />
                 <input type="time" required className="p-4 bg-slate-50 rounded-2xl font-bold" value={formData.endTime} onChange={e => setFormData({...formData, endTime: e.target.value})} />
               </div>
@@ -240,6 +312,38 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
               <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold">Добавить</button>
             </div>
           </form>
+        </div>
+      )}
+
+      {/* SUCCESS MODAL with WhatsApp */}
+      {successData && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
+          <div className="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl animate-scaleIn text-center">
+            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-lg">
+              <i className="fas fa-check"></i>
+            </div>
+            <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tight">Успешно!</h2>
+            <p className="text-slate-500 font-medium mb-8">
+              {successData.rental.isReservation ? 'Бронь успешно создана.' : 'Договор аренды оформлен.'}
+            </p>
+
+            <div className="space-y-4">
+              <button
+                onClick={handleWhatsAppShare}
+                className="w-full py-5 bg-[#25D366] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center space-x-3 shadow-xl shadow-emerald-500/20 hover:bg-[#20b858] transition-all"
+              >
+                <i className="fab fa-whatsapp text-lg"></i>
+                <span>Отправить клиенту</span>
+              </button>
+
+              <button
+                onClick={handleCloseSuccess}
+                className="w-full py-5 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all"
+              >
+                Готово
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </div>
