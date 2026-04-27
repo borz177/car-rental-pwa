@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Rental, Car, Client, RentalExtension } from '../types';
 
 interface ContractListProps {
@@ -14,83 +13,83 @@ interface ContractListProps {
   brandName?: string;
 }
 
+type SortOption = 'date-desc' | 'date-asc' | 'amount-desc' | 'name-asc';
+
 const ContractList: React.FC<ContractListProps> = ({
-  rentals,
-  cars,
-  clients,
-  onUpdate,
-  onDelete,
-  onIssueFromBooking,
-  onComplete,
-  viewMode = 'CONTRACTS',
-  brandName
+  rentals, cars, clients, onUpdate, onDelete, onIssueFromBooking, onComplete,
+  viewMode = 'CONTRACTS', brandName
 }) => {
   const [extendingRental, setExtendingRental] = useState<Rental | null>(null);
-  const [showActions, setShowActions] = useState<string | null>(null);
+  const [activeActions, setActiveActions] = useState<string | null>(null);
   const [paymentMode, setPaymentMode] = useState<'PAID' | 'DEBT'>('PAID');
   const [extensionData, setExtensionData] = useState({ endDate: '', endTime: '', extraPrice: 0 });
   const [printingRental, setPrintingRental] = useState<Rental | null>(null);
+  const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
+  const [sortBy, setSortBy] = useState<SortOption>('date-desc');
 
-  const [searchName, setSearchName] = useState('');
-  const [searchDate, setSearchDate] = useState('');
+  const [filters, setFilters] = useState({ name: '', date: '', status: 'all' });
 
   const getCar = (id: string) => cars.find(c => c.id === id);
   const getClient = (id: string) => clients.find(c => c.id === id);
 
   const filteredRentals = useMemo(() => {
-    return rentals.filter(rent => {
-      let isCorrectType = false;
-      if (viewMode === 'BOOKINGS') isCorrectType = rent.isReservation && rent.status === 'ACTIVE';
-      else if (viewMode === 'ARCHIVE') isCorrectType = rent.status === 'COMPLETED' || rent.status === 'CANCELLED';
-      else isCorrectType = !rent.isReservation && rent.status === 'ACTIVE';
-
-      if (!isCorrectType) return false;
+    let result = rentals.filter(rent => {
+      let typeMatch = false;
+      if (viewMode === 'BOOKINGS') typeMatch = rent.isReservation && rent.status === 'ACTIVE';
+      else if (viewMode === 'ARCHIVE') typeMatch = rent.status === 'COMPLETED' || rent.status === 'CANCELLED';
+      else typeMatch = !rent.isReservation && rent.status === 'ACTIVE';
+      if (!typeMatch) return false;
 
       const client = getClient(rent.clientId);
-      const nameMatch = client?.name.toLowerCase().includes(searchName.toLowerCase());
-      const dateMatch = !searchDate || rent.startDate === searchDate || rent.endDate === searchDate;
-      return nameMatch && dateMatch;
-    }).sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-  }, [rentals, viewMode, searchName, searchDate, clients]);
+      const nameMatch = !filters.name || client?.name.toLowerCase().includes(filters.name.toLowerCase());
+      const dateMatch = !filters.date || rent.startDate.startsWith(filters.date) || rent.endDate.startsWith(filters.date);
+      const statusMatch = filters.status === 'all' || rent.paymentStatus === filters.status;
+      return nameMatch && dateMatch && statusMatch;
+    });
 
-  // Logic for calculating extension price
-  useEffect(() => {
-    if (extendingRental && extensionData.endDate && extensionData.endTime) {
-      const car = getCar(extendingRental.carId);
-      if (!car) return;
-
-      const currentEndDateStr = extendingRental.endDate.split('T')[0];
-      const newEndDateStr = extensionData.endDate.split('T')[0];
-
-      const currentEnd = new Date(`${currentEndDateStr}T${extendingRental.endTime}`);
-      const newEnd = new Date(`${newEndDateStr}T${extensionData.endTime}`);
-
-      const diffMs = newEnd.getTime() - currentEnd.getTime();
-
-      if (diffMs > 0) {
-        const totalHours = diffMs / (1000 * 60 * 60);
-        let addedValue = 0;
-
-        if (extendingRental.bookingType === 'DAILY') {
-          const days = Math.ceil(totalHours / 24);
-          addedValue = days * car.pricePerDay;
-        } else {
-          addedValue = Math.ceil(totalHours) * (car.pricePerHour || Math.round(car.pricePerDay / 24));
-        }
-        setExtensionData(prev => ({ ...prev, extraPrice: Math.max(0, Math.round(addedValue)) }));
-      } else {
-        setExtensionData(prev => ({ ...prev, extraPrice: 0 }));
+    // Сортировка
+    result.sort((a, b) => {
+      if (sortBy === 'date-desc') return new Date(b.startDate).getTime() - new Date(a.startDate).getTime();
+      if (sortBy === 'date-asc') return new Date(a.startDate).getTime() - new Date(b.startDate).getTime();
+      if (sortBy === 'amount-desc') return (b.totalAmount || 0) - (a.totalAmount || 0);
+      if (sortBy === 'name-asc') {
+        const nameA = getClient(a.clientId)?.name || '';
+        const nameB = getClient(b.clientId)?.name || '';
+        return nameA.localeCompare(nameB);
       }
-    }
+      return 0;
+    });
+
+    return result;
+  }, [rentals, viewMode, filters, sortBy, clients]);
+
+  // Расчет стоимости продления
+  useEffect(() => {
+    if (!extendingRental || !extensionData.endDate || !extensionData.endTime) return;
+    const car = getCar(extendingRental.carId);
+    if (!car) return;
+
+    const currentEnd = new Date(`${extendingRental.endDate.split('T')[0]}T${extendingRental.endTime}`);
+    const newEnd = new Date(`${extensionData.endDate}T${extensionData.endTime}`);
+    const diffHours = (newEnd.getTime() - currentEnd.getTime()) / (1000 * 60 * 60);
+
+    if (diffHours > 0) {
+      const price = extendingRental.bookingType === 'DAILY'
+        ? Math.ceil(diffHours / 24) * car.pricePerDay
+        : Math.ceil(diffHours) * (car.pricePerHour || Math.round(car.pricePerDay / 24));
+      setExtensionData(prev => ({ ...prev, extraPrice: Math.round(price) }));
+    } else {
+      setExtensionData(prev => ({ ...prev, extraPrice: 0 }));
+    };
   }, [extensionData.endDate, extensionData.endTime, extendingRental, cars]);
 
   const handleExtendSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!extendingRental) return;
-    const newExtension: RentalExtension = {
+    const newExt: RentalExtension = {
       endDate: extensionData.endDate,
       endTime: extensionData.endTime,
-      amount: Number(extensionData.extraPrice),
+      amount: extensionData.extraPrice,
       date: new Date().toISOString(),
       paymentStatus: paymentMode
     };
@@ -98,9 +97,9 @@ const ContractList: React.FC<ContractListProps> = ({
       ...extendingRental,
       endDate: extensionData.endDate,
       endTime: extensionData.endTime,
-      totalAmount: Number(extendingRental.totalAmount || 0) + Number(extensionData.extraPrice),
-      paymentStatus: (extendingRental.paymentStatus === 'DEBT' || paymentMode === 'DEBT') ? 'DEBT' : 'PAID',
-      extensions: [...(extendingRental.extensions || []), newExtension]
+      totalAmount: (extendingRental.totalAmount || 0) + extensionData.extraPrice,
+      paymentStatus: extendingRental.paymentStatus === 'DEBT' || paymentMode === 'DEBT' ? 'DEBT' : 'PAID',
+      extensions: [...(extendingRental.extensions || []), newExt]
     };
     onUpdate(updated);
     setExtendingRental(null);
@@ -108,406 +107,541 @@ const ContractList: React.FC<ContractListProps> = ({
 
   const handlePrint = (rent: Rental) => {
     setPrintingRental(rent);
-    setTimeout(() => {
-      window.print();
-      setPrintingRental(null);
-    }, 500);
+    setTimeout(() => { window.print(); setPrintingRental(null); }, 300);
   };
 
-  const openExtensionModal = (rent: Rental) => {
-    setExtendingRental(rent);
-    const cleanDate = rent.endDate ? rent.endDate.split('T')[0] : '';
-    setExtensionData({ endDate: cleanDate, endTime: rent.endTime, extraPrice: 0 });
-    setShowActions(null);
+  const formatMoney = (n: number) => n.toLocaleString('ru-RU') + ' ₽';
+  const formatDate = (d: string) => new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' });
+
+  // 🎯 Компактная карточка договора (для списка)
+  const ContractCard = ({ rent, compact = false }: { rent: Rental; compact?: boolean }) => {
+    const car = getCar(rent.carId);
+    const client = getClient(rent.clientId);
+    const extensionSum = (rent.extensions || []).reduce((s, e) => s + (e.amount || 0), 0);
+    const remaining = Math.max(0, (rent.totalAmount || 0) - (rent.prepayment || 0));
+
+    return (
+      <div
+        className={`bg-white rounded-2xl border border-slate-100 transition-all ${
+          compact ? 'p-4' : 'p-5'
+        } hover:shadow-md hover:border-slate-200 active:scale-[0.99]`}
+        onClick={() => !compact && setSelectedRental(rent)}
+      >
+        {/* Заголовок карточки */}
+        <div className="flex items-start justify-between gap-3 mb-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+              rent.isReservation ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'
+            }`}>
+              <i className={`fas ${rent.isReservation ? 'fa-calendar-check' : 'fa-file-contract'} text-sm`}></i>
+            </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                <h4 className="font-semibold text-slate-900 truncate">{client?.name}</h4>
+                {rent.isReservation && (
+                  <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-medium rounded-full">Бронь</span>
+                )}
+              </div>
+              <p className="text-sm text-slate-500 truncate">{car?.brand} {car?.model} • {car?.plate}</p>
+            </div>
+          </div>
+          
+          {/* Кнопка действий */}
+          <div className="relative">
+            <button
+              onClick={(e) => { e.stopPropagation(); setActiveActions(activeActions === rent.id ? null : rent.id); }}
+              className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors"
+            >
+              <i className="fas fa-ellipsis-vertical"></i>
+            </button>
+            
+            {/* Меню действий — мобильный стиль (снизу) / десктоп (выпадающее) */}
+            {activeActions === rent.id && (
+              <>
+                <div className="fixed inset-0 z-40 md:absolute md:inset-auto" onClick={() => setActiveActions(null)} />
+                <div className={`fixed bottom-0 left-0 right-0 md:absolute md:bottom-auto md:left-auto md:right-0 md:top-full md:w-56 bg-white rounded-t-3xl md:rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden animate-slideUp md:animate-scaleIn`}>
+                  {/* Заголовок для мобильного меню */}
+                  <div className="md:hidden p-4 border-b border-slate-100 flex items-center justify-between">
+                    <span className="font-semibold text-slate-900">Действия</span>
+                    <button onClick={() => setActiveActions(null)} className="p-2 -mr-2 text-slate-400">
+                      <i className="fas fa-xmark"></i>
+                    </button>
+                  </div>
+                  
+                  <div className="p-2">
+                    <ActionButton icon="fa-print" label="Печать" onClick={() => { handlePrint(rent); setActiveActions(null); }} />
+                    {rent.isReservation && onIssueFromBooking && (
+                      <ActionButton icon="fa-key" label="Выдать авто" onClick={() => { onIssueFromBooking(rent.id); setActiveActions(null); }} highlight="emerald" />
+                    )}
+                    {!rent.isReservation && rent.status === 'ACTIVE' && (
+                      <>
+                        <ActionButton icon="fa-calendar-plus" label="Продлить" onClick={() => { setExtendingRental(rent); setActiveActions(null); }} highlight="amber" />
+                        <ActionButton icon="fa-check-circle" label="Завершить" onClick={() => { onComplete(rent); setActiveActions(null); }} highlight="blue" />
+                      </>
+                    )}
+                    <ActionButton icon="fa-trash" label="Удалить" onClick={() => { if(confirm('Удалить договор?')) { onDelete(rent.id); setActiveActions(null); } }} highlight="rose" danger />
+                  </div>
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+
+        {/* Даты и статус */}
+        <div className="flex items-center justify-between text-sm mb-3">
+          <div className="flex items-center gap-1.5 text-slate-600">
+            <span>{formatDate(rent.startDate)}</span>
+            <i className="fas fa-arrow-right text-[10px] text-slate-300"></i>
+            <span>{formatDate(rent.endDate)}</span>
+          </div>
+          <StatusBadge rent={rent} />
+        </div>
+
+        {/* Сумма */}
+        <div className="flex items-end justify-between">
+          <div>
+            <div className="text-lg font-bold text-slate-900">{formatMoney(rent.totalAmount || 0)}</div>
+            {extensionSum > 0 && <div className="text-[11px] text-blue-600">+{formatMoney(extensionSum)} продления</div>}
+          </div>
+          {rent.isReservation ? (
+            <div className="text-right">
+              <div className="text-[11px] text-slate-400">Предоплата</div>
+              <div className="font-semibold text-amber-600">{formatMoney(rent.prepayment || 0)}</div>
+              {remaining > 0 && <div className="text-[10px] text-slate-400">Остаток: {formatMoney(remaining)}</div>}
+            </div>
+          ) : (
+            <PaymentBadge status={rent.paymentStatus} />
+          )}
+        </div>
+
+        {/* Продления (если есть) */}
+        {rent.extensions && rent.extensions.length > 0 && !compact && (
+          <div className="mt-4 pt-3 border-t border-slate-100">
+            <div className="text-[11px] font-medium text-slate-400 mb-2">Продления:</div>
+            <div className="flex flex-wrap gap-1.5">
+              {rent.extensions.slice(-3).map((ext, i) => (
+                <span key={i} className={`px-2.5 py-1 rounded-lg text-[10px] font-medium ${
+                  ext.paymentStatus === 'DEBT' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
+                }`}>
+                  {formatDate(ext.endDate)} • +{formatMoney(ext.amount || 0)}
+                </span>
+              ))}
+              {rent.extensions.length > 3 && (
+                <span className="px-2 py-1 text-[10px] text-slate-400">+{rent.extensions.length - 3} ещё</span>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // 🎯 Детальный вид договора (при тапе на мобильном)
+  const RentalDetail = ({ rent }: { rent: Rental }) => {
+    const car = getCar(rent.carId);
+    const client = getClient(rent.clientId);
+    
+    return (
+      <div className="fixed inset-0 z-50 bg-white overflow-y-auto animate-slideUp">
+        {/* Хедер */}
+        <div className="sticky top-0 bg-white/80 backdrop-blur-sm border-b border-slate-100 px-4 py-3 flex items-center justify-between">
+          <button onClick={() => setSelectedRental(null)} className="p-2 -ml-2 text-slate-400 hover:text-slate-600">
+            <i className="fas fa-arrow-left"></i>
+          </button>
+          <h2 className="font-semibold text-slate-900">{rent.contractNumber}</h2>
+          <button onClick={() => handlePrint(rent)} className="p-2 text-slate-400 hover:text-slate-600">
+            <i className="fas fa-print"></i>
+          </button>
+        </div>
+
+        {/* Контент */}
+        <div className="p-4 space-y-4">
+          {/* Клиент + авто */}
+          <div className="bg-slate-50 rounded-2xl p-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600">
+                <i className="fas fa-user"></i>
+              </div>
+              <div>
+                <div className="font-semibold text-slate-900">{client?.name}</div>
+                <div className="text-sm text-slate-500">{client?.phone}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 text-sm">
+              <InfoRow label="Авто" value={`${car?.brand} ${car?.model}`} />
+              <InfoRow label="Номер" value={car?.plate} />
+              <InfoRow label="Начало" value={`${formatDate(rent.startDate)} ${rent.startTime}`} />
+              <InfoRow label="Окончание" value={`${formatDate(rent.endDate)} ${rent.endTime}`} />
+            </div>
+          </div>
+
+          {/* Финансы */}
+          <div className="bg-white border border-slate-100 rounded-2xl p-4">
+            <h4 className="font-semibold text-slate-900 mb-3">Оплата</h4>
+            <div className="space-y-2 text-sm">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Сумма договора</span>
+                <span className="font-semibold">{formatMoney(rent.totalAmount || 0)}</span>
+              </div>
+              {rent.prepayment && rent.prepayment > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Предоплата</span>
+                  <span className="text-amber-600">-{formatMoney(rent.prepayment)}</span>
+                </div>
+              )}
+              <div className="flex justify-between pt-2 border-t border-slate-100">
+                <span className="font-medium">К оплате</span>
+                <span className="font-bold text-slate-900">{formatMoney(Math.max(0, (rent.totalAmount||0) - (rent.prepayment||0)))}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Продления */}
+          {rent.extensions && rent.extensions.length > 0 && (
+            <div className="bg-white border border-slate-100 rounded-2xl p-4">
+              <h4 className="font-semibold text-slate-900 mb-3">История продлений</h4>
+              <div className="space-y-2">
+                {rent.extensions.map((ext, i) => (
+                  <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl">
+                    <div>
+                      <div className="text-sm font-medium text-slate-900">{formatDate(ext.endDate)} {ext.endTime}</div>
+                      <div className="text-xs text-slate-400">{new Date(ext.date).toLocaleDateString()}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold">{formatMoney(ext.amount || 0)}</div>
+                      <span className={`text-[10px] px-2 py-0.5 rounded-full ${
+                        ext.paymentStatus === 'DEBT' ? 'bg-rose-100 text-rose-600' : 'bg-emerald-100 text-emerald-600'
+                      }`}>
+                        {ext.paymentStatus === 'DEBT' ? 'Долг' : 'Оплачено'}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Кнопки действий */}
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            {!rent.isReservation && rent.status === 'ACTIVE' && (
+              <>
+                <button onClick={() => setExtendingRental(rent)} className="py-3 bg-amber-100 text-amber-700 rounded-xl font-medium">
+                  <i className="fas fa-calendar-plus mr-1"></i> Продлить
+                </button>
+                <button onClick={() => onComplete(rent)} className="py-3 bg-blue-100 text-blue-700 rounded-xl font-medium">
+                  <i className="fas fa-check-circle mr-1"></i> Завершить
+                </button>
+              </>
+            )}
+            <button onClick={() => handlePrint(rent)} className="py-3 bg-slate-100 text-slate-700 rounded-xl font-medium col-span-2">
+              <i className="fas fa-print mr-1"></i> Печать договора
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // 🎯 Фильтры (адаптивные)
+  const renderFilters = () => (
+    <div className="space-y-3 mb-4">
+      {/* Поиск по имени — горизонтальный скролл на мобильных */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 scrollbar-hide">
+        <div className="relative flex-1 min-w-[200px]">
+          <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
+          <input
+            value={filters.name}
+            onChange={e => setFilters(f => ({ ...f, name: e.target.value }))}
+            placeholder="Поиск по имени..."
+            className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-slate-300 focus:ring-2 focus:ring-slate-100"
+            style={{ minHeight: '44px' }}
+          />
+        </div>
+        <input
+          type="date"
+          value={filters.date}
+          onChange={e => setFilters(f => ({ ...f, date: e.target.value }))}
+          className="px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-slate-300"
+          style={{ minHeight: '44px' }}
+        />
+      </div>
+      
+      {/* Сортировка и статус — в одну строку */}
+      <div className="flex gap-2">
+        <select
+          value={sortBy}
+          onChange={e => setSortBy(e.target.value as SortOption)}
+          className="flex-1 px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-slate-300"
+          style={{ minHeight: '44px' }}
+        >
+          <option value="date-desc">Сначала новые</option>
+          <option value="date-asc">Сначала старые</option>
+          <option value="amount-desc">По сумме</option>
+          <option value="name-asc">По имени</option>
+        </select>
+        {!viewMode.includes('BOOK') && (
+          <select
+            value={filters.status}
+            onChange={e => setFilters(f => ({ ...f, status: e.target.value }))}
+            className="px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-slate-300"
+            style={{ minHeight: '44px' }}
+          >
+            <option value="all">Все оплаты</option>
+            <option value="PAID">Оплачено</option>
+            <option value="DEBT">Долг</option>
+          </select>
+        )}
+      </div>
+    </div>
+  );
+
+  // 🎯 Модальное окно продления (полноэкранное на мобильных)
+  const ExtensionModal = () => {
+    if (!extendingRental) return null;
+    const car = getCar(extendingRental.carId);
+    
+    return (
+      <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
+        <form onSubmit={handleExtendSubmit} className="bg-white w-full md:max-w-md md:rounded-3xl rounded-t-3xl max-h-[90vh] overflow-y-auto animate-slideUp">
+          {/* Хедер */}
+          <div className="sticky top-0 bg-white px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+            <h3 className="font-semibold text-slate-900">Продление аренды</h3>
+            <button type="button" onClick={() => setExtendingRental(null)} className="p-2 text-slate-400">
+              <i className="fas fa-xmark"></i>
+            </button>
+          </div>
+          
+          {/* Контент */}
+          <div className="p-4 space-y-4">
+            <div className="bg-slate-50 rounded-xl p-3 text-sm">
+              <div className="font-medium text-slate-900">{getCar(extendingRental.carId)?.brand} {getCar(extendingRental.carId)?.model}</div>
+              <div className="text-slate-500">до {formatDate(extendingRental.endDate)} {extendingRental.endTime}</div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[11px] font-medium text-slate-400 uppercase mb-1 block">Новая дата</label>
+                <input
+                  type="date"
+                  value={extensionData.endDate}
+                  onChange={e => setExtensionData(d => ({ ...d, endDate: e.target.value }))}
+                  required
+                  min={extendingRental.endDate.split('T')[0]}
+                  className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-slate-300"
+                />
+              </div>
+              <div>
+                <label className="text-[11px] font-medium text-slate-400 uppercase mb-1 block">Время</label>
+                <input
+                  type="time"
+                  value={extensionData.endTime}
+                  onChange={e => setExtensionData(d => ({ ...d, endTime: e.target.value }))}
+                  required
+                  className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-slate-300"
+                />
+              </div>
+            </div>
+            
+            {/* Оплата */}
+            <div>
+              <label className="text-[11px] font-medium text-slate-400 uppercase mb-2 block">Оплата продления</label>
+              <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+                {(['PAID', 'DEBT'] as const).map(mode => (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => setPaymentMode(mode)}
+                    className={`flex-1 py-2 rounded-lg text-sm font-medium transition-all ${
+                      paymentMode === mode
+                        ? 'bg-white text-slate-900 shadow-sm'
+                        : 'text-slate-500'
+                    }`}
+                  >
+                    {mode === 'PAID' ? 'Оплачено' : 'В долг'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            
+            {/* Итог */}
+            <div className="bg-emerald-50 rounded-xl p-4 flex items-center justify-between">
+              <div>
+                <div className="text-[11px] text-emerald-600 font-medium uppercase">Доплата</div>
+                <div className="text-xl font-bold text-emerald-700">+{formatMoney(extensionData.extraPrice)}</div>
+              </div>
+              <i className="fas fa-calculator text-emerald-300 text-xl"></i>
+            </div>
+          </div>
+          
+          {/* Кнопки */}
+          <div className="sticky bottom-0 bg-white px-4 py-3 border-t border-slate-100 flex gap-2">
+            <button type="button" onClick={() => setExtendingRental(null)} className="flex-1 py-3 text-slate-500 font-medium">
+              Отмена
+            </button>
+            <button type="submit" className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-semibold">
+              Сохранить
+            </button>
+          </div>
+        </form>
+      </div>
+    );
+  };
+
+  // 🎯 Печать договора (упрощённый шаблон)
+  const PrintTemplate = ({ rent }: { rent: Rental }) => {
+    if (!rent) return null;
+    const car = getCar(rent.carId);
+    const client = getClient(rent.clientId);
+    
+    return (
+      <div id="print-section" className="hidden print:block p-6 font-serif text-sm leading-relaxed">
+        <div className="text-center mb-6">
+          <div className="text-lg font-bold uppercase">{brandName || 'AutoPro'}</div>
+          <div className="mt-2">ДОГОВОР № {rent.contractNumber}</div>
+          <div className="text-xs text-slate-500">аренды транспортного средства</div>
+        </div>
+        
+        <div className="mb-4">
+          <p><span className="font-bold">Арендатор:</span> {client?.name}</p>
+          <p><span className="font-bold">Телефон:</span> {client?.phone}</p>
+          <p><span className="font-bold">Автомобиль:</span> {car?.brand} {car?.model}, гос. № {car?.plate}</p>
+        </div>
+        
+        <div className="mb-4">
+          <p className="font-bold mb-1">Срок аренды:</p>
+          <p>{formatDate(rent.startDate)} {rent.startTime} — {formatDate(rent.endDate)} {rent.endTime}</p>
+        </div>
+        
+        <div className="mb-4">
+          <p className="font-bold mb-1">Стоимость:</p>
+          <p>{formatMoney(rent.totalAmount || 0)} {rent.prepayment ? `(предоплата: ${formatMoney(rent.prepayment)})` : ''}</p>
+          {rent.extensions && rent.extensions.length > 0 && (
+            <p className="text-xs text-slate-500 mt-1">
+              Включая продления: {formatMoney(rent.extensions.reduce((s,e) => s + (e.amount||0), 0))}
+            </p>
+          )}
+        </div>
+        
+        <div className="mt-8 grid grid-cols-2 gap-8">
+          <div>
+            <div className="font-bold mb-8">АРЕНДОДАТЕЛЬ</div>
+            <div className="border-b border-black pb-1">_________________</div>
+            <div className="text-xs text-center mt-1">/ подпись /</div>
+          </div>
+          <div>
+            <div className="font-bold mb-8">АРЕНДАТОР</div>
+            <div className="border-b border-black pb-1">_________________</div>
+            <div className="text-xs text-center mt-1">/ подпись /</div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   return (
-    <div className="space-y-6 pb-24 md:pb-0">
+    <div className="max-w-4xl mx-auto py-4 px-4">
+      {/* Стили для печати и анимаций */}
       <style>{`
         @media print {
-          @page { size: A4; margin: 10mm; }
           body * { visibility: hidden; }
           #print-section, #print-section * { visibility: visible; }
-          #print-section { position: absolute; left: 0; top: 0; width: 100%; font-family: "Times New Roman", Times, serif; font-size: 10pt; line-height: 1.2; color: black; background: white; padding: 0 10mm; }
+          #print-section { position: absolute; left: 0; top: 0; width: 100%; padding: 20px; }
           .no-print { display: none !important; }
-          .print-header { font-size: 16pt; font-weight: bold; text-transform: uppercase; margin-bottom: 10px; text-align: center; }
-          .print-subheader { font-size: 12pt; font-weight: bold; margin-top: 10px; margin-bottom: 5px; text-transform: uppercase; text-align: center; }
-          .print-bold { font-weight: bold; }
-          .print-underline { border-bottom: 1px solid black; padding-bottom: 1px; display: inline-block; }
-          .print-row { display: flex; justify-content: space-between; margin-bottom: 5px; }
-          .print-list { padding-left: 20px; margin-bottom: 10px; }
-          .print-list li { margin-bottom: 2px; }
-          .print-signatures { margin-top: 40px; }
-          .print-table { width: 100%; border-collapse: collapse; margin-bottom: 15px; font-size: 9pt; }
-          .print-table th, .print-table td { border: 1px solid black; padding: 4px; text-align: left; }
         }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        .animate-slideUp { animation: slideUp 0.3s ease-out; }
+        .animate-scaleIn { animation: scaleIn 0.2s ease-out; }
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      <div className="px-2 no-print">
-        <h2 className="text-3xl font-black text-slate-900">
-          {viewMode === 'BOOKINGS' ? 'Бронирования' : (viewMode === 'ARCHIVE' ? 'Архив' : 'Реестр договоров')}
-        </h2>
-        <p className="text-slate-400 font-bold mt-1 uppercase text-[10px] tracking-widest">
-          {viewMode === 'BOOKINGS' ? 'Предварительные заказы' : 'Текущие активные сделки'}
-        </p>
+      {/* Заголовок */}
+      <div className="mb-4">
+        <h1 className="text-xl font-bold text-slate-900">
+          {viewMode === 'BOOKINGS' ? 'Бронирования' : viewMode === 'ARCHIVE' ? 'Архив' : 'Договоры'}
+        </h1>
+        <p className="text-sm text-slate-400">{filteredRentals.length} записей</p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-2 no-print">
-        <div className="relative">
-          <i className="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"></i>
-          <input
-            value={searchName}
-            onChange={e => setSearchName(e.target.value)}
-            placeholder="Поиск по ФИО..."
-            className="w-full pl-12 pr-6 py-4 bg-white border border-slate-100 rounded-2xl font-bold shadow-sm outline-none"
-          />
-        </div>
-        <div className="relative">
-          <i className="fas fa-calendar absolute left-5 top-1/2 -translate-y-1/2 text-slate-300"></i>
-          <input
-            type="date"
-            value={searchDate}
-            onChange={e => setSearchDate(e.target.value)}
-            className="w-full pl-12 pr-6 py-4 bg-white border border-slate-100 rounded-2xl font-bold shadow-sm outline-none"
-          />
-        </div>
-      </div>
+      {/* Фильтры */}
+      <div className="no-print">{renderFilters()}</div>
 
-      <div className="grid gap-4 px-2 no-print">
-        {filteredRentals.map(rent => {
-          const car = getCar(rent.carId);
-          const client = getClient(rent.clientId);
-
-          const extensionSum = (rent.extensions || []).reduce((acc, ext) => acc + Number(ext.amount || 0), 0);
-
-          const prepayment = Number(rent.prepayment || 0);
-          const totalAmount = Number(rent.totalAmount || 0);
-          const remaining = Math.max(0, totalAmount - prepayment);
-
-          return (
-            <div key={rent.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm animate-fadeIn group relative">
-              <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-4">
-                <div className="flex items-center space-x-6 w-full md:w-auto">
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center text-xl ${rent.isReservation ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'}`}>
-                    <i className={`fas ${rent.isReservation ? 'fa-calendar-check' : 'fa-file-contract'}`}></i>
-                  </div>
-                  <div>
-                    <div className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">
-                      {rent.contractNumber} • {rent.bookingType === 'DAILY' ? 'Сутки' : 'Часы'}
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-900">{client?.name || '---'}</h3>
-                    <p className="text-sm text-slate-400 font-medium">{car?.brand} {car?.model} ({car?.plate})</p>
-                  </div>
-                </div>
-
-                <div className="flex items-center space-x-3 text-sm font-bold bg-slate-50 px-5 py-2.5 rounded-2xl border border-slate-100">
-                  <span>{new Date(rent.startDate).toLocaleDateString()}</span>
-                  <i className="fas fa-arrow-right text-[10px] text-slate-300"></i>
-                  <span>{new Date(rent.endDate).toLocaleDateString()}</span>
-                </div>
-
-                <div className="flex items-center space-x-6 w-full md:w-auto justify-between md:justify-end">
-                  <div className="text-right">
-                    <div className="text-2xl font-black text-slate-900">{totalAmount.toLocaleString()} ₽</div>
-
-                    {rent.isReservation ? (
-                      <div className="flex flex-col items-end">
-                        <div className="text-[10px] font-bold uppercase text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md mb-1">
-                          Предоплата: {prepayment.toLocaleString()} ₽
-                        </div>
-                        {remaining > 0 && (
-                          <div className="text-[9px] font-black uppercase text-slate-400">
-                            Остаток: {remaining.toLocaleString()} ₽
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-end">
-                        <div className={`text-[9px] font-black uppercase flex items-center space-x-1 ${rent.paymentStatus === 'DEBT' ? 'text-rose-500' : 'text-emerald-500'}`}>
-                          <i className={`fas ${rent.paymentStatus === 'DEBT' ? 'fa-clock' : 'fa-check-circle'}`}></i>
-                          <span>{rent.paymentStatus === 'DEBT' ? 'Долг' : 'Оплачено'}</span>
-                        </div>
-                        {extensionSum > 0 && (
-                          <div className="text-[8px] font-bold text-blue-500 uppercase mt-0.5">
-                            В т.ч. продления: {extensionSum.toLocaleString()} ₽
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="relative">
-                    <button
-                      onClick={() => setShowActions(showActions === rent.id ? null : rent.id)}
-                      className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
-                    >
-                      <i className="fas fa-ellipsis-v"></i>
-                    </button>
-                    {showActions === rent.id && (
-                      <>
-                        <div className="fixed inset-0 z-40" onClick={() => setShowActions(null)}></div>
-                        <div className="absolute right-0 top-12 w-52 bg-white rounded-3xl shadow-2xl border border-slate-50 z-50 overflow-hidden animate-scaleIn">
-                          <button
-                            onClick={() => { handlePrint(rent); setShowActions(null); }}
-                            className="w-full px-6 py-4 text-left text-sm font-black hover:bg-slate-50 text-slate-600 flex items-center space-x-3 border-b border-slate-50"
-                          >
-                            <i className="fas fa-print"></i> <span>Печать договора</span>
-                          </button>
-                          {rent.isReservation && onIssueFromBooking && (
-                            <button
-                              onClick={() => { onIssueFromBooking(rent.id); setShowActions(null); }}
-                              className="w-full px-6 py-4 text-left text-sm font-black hover:bg-emerald-50 text-emerald-600 flex items-center space-x-3 border-b border-slate-50"
-                            >
-                              <i className="fas fa-key"></i> <span>Выдать авто</span>
-                            </button>
-                          )}
-                          {!rent.isReservation && rent.status === 'ACTIVE' && (
-                            <>
-                              <button
-                                onClick={() => openExtensionModal(rent)}
-                                className="w-full px-6 py-4 text-left text-sm font-black hover:bg-amber-50 text-amber-600 flex items-center space-x-3 border-b border-slate-50"
-                              >
-                                <i className="fas fa-calendar-plus"></i> <span>Продлить</span>
-                              </button>
-                              <button
-                                onClick={() => { onComplete(rent); setShowActions(null); }}
-                                className="w-full px-6 py-4 text-left text-sm font-black hover:bg-blue-50 text-blue-600 flex items-center space-x-3 border-b border-slate-50"
-                              >
-                                <i className="fas fa-check-circle"></i> <span>Завершить</span>
-                              </button>
-                            </>
-                          )}
-                          <button
-                            onClick={() => { if(confirm('Удалить?')) onDelete(rent.id); setShowActions(null); }}
-                            className="w-full px-6 py-4 text-left text-sm font-black hover:bg-rose-50 text-rose-500 flex items-center space-x-3"
-                          >
-                            <i className="fas fa-trash-alt"></i> <span>Удалить</span>
-                          </button>
-                        </div>
-                      </>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {rent.isReservation && onIssueFromBooking && (
-                <button
-                  onClick={() => onIssueFromBooking(rent.id)}
-                  className="w-full mt-2 py-3 bg-emerald-500 text-white rounded-xl font-black uppercase text-xs hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center space-x-2"
-                >
-                  <i className="fas fa-key"></i>
-                  <span>Оформить выдачу</span>
-                </button>
-              )}
-
-              {rent.extensions && rent.extensions.length > 0 && (
-                <div className="mt-4 pt-4 border-t border-dashed border-slate-100 space-y-3">
-                  <div className="flex justify-between items-center">
-                    <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Хронология продлений:</div>
-                    <div className="text-[10px] font-black text-emerald-600 uppercase">Всего доплат: {extensionSum.toLocaleString()} ₽</div>
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {rent.extensions.map((ext, idx) => (
-                      <div key={idx} className={`${ext.paymentStatus === 'DEBT' ? 'bg-rose-50 border-rose-100' : 'bg-emerald-50/50 border-emerald-100'} border rounded-xl px-4 py-2 flex items-center gap-3`}>
-                        <div className={`text-[10px] font-black ${ext.paymentStatus === 'DEBT' ? 'text-rose-700' : 'text-emerald-700'}`}>+{(ext.amount || 0).toLocaleString()} ₽</div>
-                        <div className="text-[10px] text-slate-400 font-bold">до {new Date(ext.endDate).toLocaleDateString()} {ext.endTime}</div>
-                        {ext.paymentStatus === 'DEBT' && <i className="fas fa-clock text-rose-500 text-[9px]"></i>}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          );
-        })}
+      {/* Список */}
+      <div className="space-y-3">
+        {filteredRentals.map(rent => (
+          <ContractCard key={rent.id} rent={rent} compact={!!selectedRental} />
+        ))}
         {filteredRentals.length === 0 && (
-          <div className="p-20 text-center text-slate-400 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-100 italic">
-            Список пуст
+          <div className="text-center py-12 text-slate-400 bg-slate-50 rounded-2xl">
+            <i className="fas fa-file-contract text-3xl mb-2 opacity-30"></i>
+            <p>Нет договоров</p>
+            <p className="text-xs mt-1">Измените фильтры или создайте новый</p>
           </div>
         )}
       </div>
 
-      {printingRental && (
-        <div id="print-section">
-          <div className="text-center print-header">
-            {brandName || 'AutoPro'}
-          </div>
-          <div className="text-center" style={{fontSize: '11pt', marginBottom: '15px'}}>
-             Договор № {printingRental.contractNumber} аренды транспортного средства
-          </div>
-          <p className="mb-2">
-             Арендодатель на основании Устава с одной стороны и гражданин:
-          </p>
-          <div className="print-row mb-2">
-             <div><span className="print-bold">Ф.И.О.:</span> <span className="print-underline" style={{minWidth: '250px'}}>{getClient(printingRental.clientId)?.name}</span></div>
-             <div><span className="print-bold">Тел:</span> {getClient(printingRental.clientId)?.phone}</div>
-          </div>
-          <div className="mb-4">
-             <span className="print-bold">Место проживания:</span> <span className="print-underline" style={{width: '70%'}}></span>
-          </div>
-          <div className="print-subheader">1. ПРЕДМЕТ ДОГОВОРА</div>
-          <p className="mb-2">1.1. Согласно настоящему договору Арендодатель предоставляет арендатору следующий автомобиль:</p>
-          <div className="mb-4" style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px'}}>
-             <div><span className="print-bold">Марка/Модель:</span> {getCar(printingRental.carId)?.brand} {getCar(printingRental.carId)?.model}</div>
-             <div><span className="print-bold">Год выпуска:</span> {getCar(printingRental.carId)?.year}</div>
-             <div><span className="print-bold">Гос. номер:</span> {getCar(printingRental.carId)?.plate}</div>
-             <div><span className="print-bold">Цвет:</span> _______________</div>
-          </div>
-          <div className="print-subheader">2. УСЛОВИЯ ПРОКАТА</div>
-          <ol className="print-list" style={{listStyleType: 'decimal'}}>
-             <li>Арендодатель обязуется предоставить автомобиль в полном исправном состоянии.</li>
-             <li>Полная мойка автотранспорта при возврате.</li>
-             <li>Бензин не ниже АИ-95.</li>
-             <li>Арендодатель не несет ответственность за действия арендатора, которыми причинен ущерб третьим лицам.</li>
-          </ol>
-          <div className="print-subheader">3. ОБЯЗАННОСТИ АРЕНДАТОРА</div>
-          <ul className="print-list" style={{listStyleType: 'disc'}}>
-             <li>Арендатор несет 100% ответственность во время проката автомобиля.</li>
-             <li>Мойка автотранспорта при возвращении обязательна или штраф 1 000 рублей.</li>
-             <li>Не известив Арендодателя о поломке — штраф 15 000 р.</li>
-             <li>Опоздание более чем на 30 мин — оплата как за час.</li>
-             <li>Передача руля третьим лицам запрещена — штраф до 35 000 р.</li>
-             <li>Штрафы ГИБДД оплачивает Арендатор в 100% размере.</li>
-             <li>При ДТП — полная компенсация ущерба и простоя автомобиля.</li>
-             <li>За курение в салоне — штраф 2 000 р.</li>
-             <li>Превышение скорости &gt;150 км/ч — штраф 2 000 р.</li>
-             <li>Вождение в нетрезвом виде — штраф 50 000 р.</li>
-             <li>Дергать ручник — штраф 2 000 р.</li>
-          </ul>
-          <div className="print-subheader">4. СРОК ДЕЙСТВИЯ И ОПЛАТА</div>
-          <div className="mb-2" style={{display: 'flex', justifyContent: 'space-between', paddingRight: '20px'}}>
-             <div>
-               <span className="print-bold">Начало аренды:</span><br/>
-               {new Date(printingRental.startDate).toLocaleDateString()} в {printingRental.startTime}
-             </div>
-             <div>
-               <span className="print-bold">Окончание аренды:</span><br/>
-               {new Date(printingRental.endDate).toLocaleDateString()} в {printingRental.endTime}
-             </div>
-          </div>
-          <div className="mb-4">
-            <span className="print-bold">Общая стоимость:</span> {printingRental.totalAmount.toLocaleString()} ₽<br/>
-            {printingRental.isReservation ? (
-               <>
-                 <span className="print-bold">Внесена предоплата:</span> {printingRental.prepayment ? printingRental.prepayment.toLocaleString() : '0'} ₽<br/>
-                 <span className="print-bold">Остаток к оплате:</span> {(printingRental.totalAmount - (printingRental.prepayment || 0)).toLocaleString()} ₽
-               </>
-            ) : (
-               <><span className="print-bold">Статус оплаты:</span> {printingRental.paymentStatus === 'DEBT' ? 'Имеется задолженность' : 'Оплачено полностью'}</>
-            )}
-          </div>
-          {printingRental.extensions && printingRental.extensions.length > 0 && (
-            <>
-              <div className="print-subheader">5. ПРОДЛЕНИЕ АРЕНДЫ (ДОП. СОГЛАШЕНИЯ)</div>
-              <table className="print-table">
-                <thead>
-                  <tr>
-                    <th>Дата продления</th>
-                    <th>Новый срок</th>
-                    <th>Сумма</th>
-                    <th>Статус</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {printingRental.extensions.map((ext, idx) => (
-                    <tr key={idx}>
-                      <td>{new Date(ext.date).toLocaleDateString()}</td>
-                      <td>до {new Date(ext.endDate).toLocaleDateString()} {ext.endTime}</td>
-                      <td>{ext.amount.toLocaleString()} ₽</td>
-                      <td>{ext.paymentStatus === 'DEBT' ? 'В долг' : 'Оплачено'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div style={{textAlign: 'right', fontWeight: 'bold', marginBottom: '10px'}}>
-                Итого продлений: {printingRental.extensions.reduce((acc, e) => acc + (e.amount || 0), 0).toLocaleString()} ₽
-              </div>
-            </>
-          )}
-          <div className="print-signatures" style={{display: 'flex', justifyContent: 'space-between', marginTop: '40px'}}>
-             <div style={{width: '40%'}}>
-                <div className="print-bold mb-6">АРЕНДОДАТЕЛЬ:</div>
-                <div style={{borderBottom: '1px solid black', width: '100%', height: '20px'}}></div>
-                <div style={{textAlign: 'center', fontSize: '9pt', marginTop: '5px'}}>/ Подпись /</div>
-             </div>
-             <div style={{width: '40%'}}>
-                <div className="print-bold mb-6">АРЕНДАТОР:</div>
-                <div style={{borderBottom: '1px solid black', width: '100%', height: '20px'}}></div>
-                <div style={{textAlign: 'center', fontSize: '9pt', marginTop: '5px'}}>/ Подпись /</div>
-             </div>
-          </div>
-        </div>
-      )}
+      {/* Детальный вид (мобильный) */}
+      {selectedRental && <RentalDetail rent={selectedRental} />}
 
-      {extendingRental && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md no-print">
-          <form onSubmit={handleExtendSubmit} className="bg-white rounded-[3rem] w-full max-w-lg p-10 shadow-2xl animate-scaleIn">
-            <h2 className="text-2xl font-black mb-8 uppercase">Продление сделки</h2>
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Новая дата</label>
-                  <input
-                    type="date"
-                    value={extensionData.endDate}
-                    onChange={e => setExtensionData({...extensionData, endDate: e.target.value})}
-                    required
-                    className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Новое время</label>
-                  <input
-                    type="time"
-                    value={extensionData.endTime}
-                    onChange={e => setExtensionData({...extensionData, endTime: e.target.value})}
-                    required
-                    className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl">
-                 <button
-                   type="button"
-                   onClick={() => setPaymentMode('PAID')}
-                   className={`py-3 rounded-xl font-black text-xs uppercase ${paymentMode === 'PAID' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}
-                 >
-                   Оплачено
-                 </button>
-                 <button
-                   type="button"
-                   onClick={() => setPaymentMode('DEBT')}
-                   className={`py-3 rounded-xl font-black text-xs uppercase ${paymentMode === 'DEBT' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-400'}`}
-                 >
-                   В долг
-                 </button>
-              </div>
-              <div className="p-6 bg-emerald-50 rounded-3xl border border-emerald-100 flex justify-between items-center">
-                 <div>
-                   <div className="text-[10px] font-black text-emerald-600 uppercase">Сумма доплаты</div>
-                   <div className="text-2xl font-black">+{Number(extensionData.extraPrice).toLocaleString()} ₽</div>
-                 </div>
-                 <i className="fas fa-plus-circle text-emerald-300 text-2xl"></i>
-              </div>
-              <button
-                type="submit"
-                className="w-full py-5 bg-emerald-600 text-white rounded-3xl font-black uppercase shadow-xl"
-              >
-                Сохранить
-              </button>
-              <button
-                type="button"
-                onClick={() => setExtendingRental(null)}
-                className="w-full text-slate-400 font-bold uppercase text-xs"
-              >
-                Отмена
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      {/* Модальное продление */}
+      {extendingRental && <ExtensionModal />}
+
+      {/* Печать */}
+      {printingRental && <PrintTemplate rent={printingRental} />}
     </div>
   );
 };
+
+// 🎯 Вспомогательные компоненты
+
+const ActionButton = ({ icon, label, onClick, highlight, danger }: any) => (
+  <button
+    onClick={onClick}
+    className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm font-medium transition-colors ${
+      danger ? 'text-rose-600 hover:bg-rose-50' :
+      highlight === 'emerald' ? 'text-emerald-600 hover:bg-emerald-50' :
+      highlight === 'amber' ? 'text-amber-600 hover:bg-amber-50' :
+      highlight === 'blue' ? 'text-blue-600 hover:bg-blue-50' :
+      'text-slate-600 hover:bg-slate-50'
+    }`}
+  >
+    <i className={`fas ${icon} w-4 text-center`}></i>
+    <span>{label}</span>
+  </button>
+);
+
+const StatusBadge = ({ rent }: { rent: Rental }) => {
+  if (rent.status === 'COMPLETED') return <Badge text="Завершён" color="slate" />;
+  if (rent.status === 'CANCELLED') return <Badge text="Отменён" color="rose" />;
+  if (rent.paymentStatus === 'DEBT') return <Badge text="Долг" color="rose" />;
+  return <Badge text="Активен" color="emerald" />;
+};
+
+const PaymentBadge = ({ status }: { status?: 'PAID' | 'DEBT' }) => (
+  <span className={`px-2.5 py-1 rounded-lg text-[11px] font-medium ${
+    status === 'DEBT' ? 'bg-rose-50 text-rose-600' : 'bg-emerald-50 text-emerald-600'
+  }`}>
+    {status === 'DEBT' ? 'Долг' : 'Оплачено'}
+  </span>
+);
+
+const Badge = ({ text, color }: { text: string; color: 'emerald' | 'rose' | 'slate' | 'amber' }) => (
+  <span className={`px-2.5 py-1 rounded-lg text-[11px] font-medium ${
+    color === 'emerald' ? 'bg-emerald-50 text-emerald-600' :
+    color === 'rose' ? 'bg-rose-50 text-rose-600' :
+    color === 'amber' ? 'bg-amber-50 text-amber-600' :
+    'bg-slate-100 text-slate-600'
+  }`}>
+    {text}
+  </span>
+);
+
+const InfoRow = ({ label, value }: { label: string; value?: string }) => (
+  <div>
+    <div className="text-[11px] text-slate-400 uppercase">{label}</div>
+    <div className="font-medium text-slate-900">{value || '—'}</div>
+  </div>
+);
 
 export default ContractList;
