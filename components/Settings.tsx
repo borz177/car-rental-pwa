@@ -12,7 +12,7 @@ interface SettingsProps {
 
 const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogout, currentMode = 'MENU' }) => {
   const [copied, setCopied] = useState(false);
-  const [localMode, setLocalMode] = useState<'MENU' | 'BRANDING'>(currentMode);
+  const [localMode, setLocalMode] = useState<'MENU' | 'BRANDING' | 'UI_SETTINGS'>(currentMode);
   const [contractsExpanded, setContractsExpanded] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
@@ -55,17 +55,47 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
     }
   };
 
+  const handleSettingToggle = (key: 'showAddCarButton' | 'showDeleteCarButton', value: boolean) => {
+    onUpdate({
+      settings: {
+        ...user.settings,
+        [key]: value
+      }
+    });
+  };
+
   const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPERADMIN;
 
   const menuItems = [
     { id: 'BRANDING', label: 'Настройки бренда', icon: 'fa-paint-brush', color: 'bg-blue-100 text-blue-600', desktopShow: true, adminOnly: true },
     { id: 'TARIFFS', label: 'Управление подпиской', icon: 'fa-credit-card', color: 'bg-emerald-100 text-emerald-600', desktopShow: true, adminOnly: true },
+    { id: 'UI_SETTINGS', label: 'Интерфейс', icon: 'fa-palette', color: 'bg-purple-100 text-purple-600', desktopShow: false, adminOnly: true},
     { id: 'CONTRACTS_SUB', label: 'Договоры', icon: 'fa-file-invoice-dollar', color: 'bg-indigo-100 text-indigo-600', expandable: true, desktopShow: false, adminOnly: true },
     { id: 'CLIENTS', label: 'Клиенты', icon: 'fa-users', color: 'bg-emerald-100 text-emerald-600', desktopShow: false, adminOnly: true },
     { id: 'STAFF', label: 'Сотрудники', icon: 'fa-user-tie', color: 'bg-indigo-100 text-indigo-600', desktopShow: false, adminOnly: true },
     { id: 'INVESTORS', label: 'Инвесторы', icon: 'fa-handshake', color: 'bg-amber-100 text-amber-600', desktopShow: false, adminOnly: true },
     { id: 'CASHBOX', label: 'Касса и Финансы', icon: 'fa-wallet', color: 'bg-rose-100 text-rose-600', desktopShow: false, adminOnly: true },
   ];
+
+  const renderUiSettings = (isModal: boolean) => (
+    <div className={`${isModal ? 'p-1' : 'bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100'}`}>
+        <h3 className={`text-xl font-black text-slate-900 ${isModal ? 'mb-4' : 'mb-6'}`}>Настройки интерфейса</h3>
+        <div className="space-y-4">
+           <SettingToggle
+             label="Показывать кнопку 'Добавить авто'"
+             description="Скрыть кнопку для ограничения добавления авто сотрудниками."
+             enabled={user.settings?.showAddCarButton ?? true}
+             onToggle={(val) => handleSettingToggle('showAddCarButton', val)}
+           />
+           <SettingToggle
+             label="Показывать кнопку 'Удалить авто'"
+             description="Защита от случайного удаления автомобилей из автопарка."
+             enabled={user.settings?.showDeleteCarButton ?? true}
+             onToggle={(val) => handleSettingToggle('showDeleteCarButton', val)}
+           />
+        </div>
+    </div>
+  );
 
   if (localMode === 'BRANDING' && isAdmin) {
     return (
@@ -152,7 +182,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Профиль и Выход */}
+        {/* Profile & Logout */}
         <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 flex flex-col justify-between h-full">
           <div>
             <div className="flex items-center space-x-6">
@@ -187,19 +217,26 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
           </button>
         </div>
 
-        {/* Настройки на десктопе */}
+        {/* Settings Menu */}
         <div className="space-y-4">
           {menuItems.map(item => {
             const shouldShow = (item.desktopShow || (typeof window !== 'undefined' && window.innerWidth < 768)) &&
                              (!item.adminOnly || isAdmin);
             if (!shouldShow) return null;
 
+            // Explicitly hide Staff for staff members
+            if (item.id === 'STAFF' && user.role === UserRole.STAFF) return null;
+
+            // Hide docs for staff without permission
+            const canViewDocs = user.role !== UserRole.STAFF || user.permissions?.canViewDocs;
+            if (['CASHBOX', 'REPORTS'].includes(item.id) && !canViewDocs) return null;
+
             return (
               <div key={item.id} className="w-full">
                 <button
                   onClick={() => {
                     if (item.expandable) setContractsExpanded(!contractsExpanded);
-                    else if (item.id === 'BRANDING') setLocalMode('BRANDING');
+                    else if (item.id === 'BRANDING' || item.id === 'UI_SETTINGS') setLocalMode(item.id as any);
                     else onNavigate(item.id as AppView);
                   }}
                   className={`w-full bg-white p-6 rounded-[2rem] border border-slate-100 flex items-center justify-between group active:scale-[0.98] transition-all shadow-sm ${contractsExpanded && item.expandable ? 'mb-2' : ''}`}
@@ -215,24 +252,15 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
 
                 {item.expandable && contractsExpanded && (
                   <div className="grid grid-cols-2 gap-3 px-2 mb-4 animate-slideDown">
-                    <button
-                      onClick={() => onNavigate('BOOKINGS')}
-                      className="bg-amber-50 p-5 rounded-2xl border-2 border-amber-100 flex flex-col items-center text-center space-y-2 active:scale-95 transition-all"
-                    >
+                    <button onClick={() => onNavigate('BOOKINGS')} className="bg-amber-50 p-5 rounded-2xl border-2 border-amber-100 flex flex-col items-center text-center space-y-2 active:scale-95 transition-all">
                       <i className="fas fa-calendar-alt text-amber-600 text-xl"></i>
                       <span className="text-[10px] font-black text-amber-800 uppercase tracking-widest">Брони</span>
                     </button>
-                    <button
-                      onClick={() => onNavigate('CONTRACTS')}
-                      className="bg-blue-50 p-5 rounded-2xl border-2 border-blue-100 flex flex-col items-center text-center space-y-2 active:scale-95 transition-all"
-                    >
+                    <button onClick={() => onNavigate('CONTRACTS')} className="bg-blue-50 p-5 rounded-2xl border-2 border-blue-100 flex flex-col items-center text-center space-y-2 active:scale-95 transition-all">
                       <i className="fas fa-play-circle text-blue-600 text-xl"></i>
                       <span className="text-[10px] font-black text-blue-800 uppercase tracking-widest">Активные</span>
                     </button>
-                    <button
-                      onClick={() => onNavigate('CONTRACTS_ARCHIVE')}
-                      className="bg-slate-50 p-5 rounded-2xl border-2 border-slate-200 flex flex-col items-center text-center space-y-2 active:scale-95 transition-all col-span-2"
-                    >
+                    <button onClick={() => onNavigate('CONTRACTS_ARCHIVE')} className="bg-slate-50 p-5 rounded-2xl border-2 border-slate-200 flex flex-col items-center text-center space-y-2 active:scale-95 transition-all col-span-2">
                       <i className="fas fa-history text-slate-600 text-xl"></i>
                       <span className="text-[10px] font-black text-slate-700 uppercase tracking-widest">Архив</span>
                     </button>
@@ -241,7 +269,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
               </div>
             );
           })}
-          
+
           {user.role === UserRole.CLIENT && (
              <div className="bg-indigo-50 p-8 rounded-[2.5rem] border border-indigo-100 text-center">
                <i className="fas fa-star text-indigo-400 text-3xl mb-4"></i>
@@ -250,8 +278,37 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
           )}
         </div>
       </div>
+       {isAdmin && (
+         <div className="hidden md:block">
+           {renderUiSettings(false)}
+         </div>
+       )}
+
+      {/* UI Settings Modal for Mobile */}
+      {localMode === 'UI_SETTINGS' && isAdmin && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md md:hidden">
+          <div className="bg-white rounded-[3rem] w-full max-w-lg p-8 shadow-2xl animate-scaleIn">
+            <button onClick={() => setLocalMode('MENU')} className="absolute top-6 right-6 w-10 h-10 bg-slate-100 rounded-full text-slate-400 flex items-center justify-center">
+              <i className="fas fa-times"></i>
+            </button>
+            {renderUiSettings(true)}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
+
+const SettingToggle: React.FC<{label: string, description: string, enabled: boolean, onToggle: (e: boolean) => void}> = ({ label, description, enabled, onToggle }) => (
+  <div className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl">
+    <div>
+      <div className="font-bold text-slate-800 text-sm">{label}</div>
+      <div className="text-xs text-slate-400 mt-1">{description}</div>
+    </div>
+    <button onClick={() => onToggle(!enabled)} className={`w-12 h-7 rounded-full p-1 flex items-center transition-colors ${enabled ? 'bg-blue-600 justify-end' : 'bg-slate-200 justify-start'}`}>
+      <div className="w-5 h-5 bg-white rounded-full shadow-md"></div>
+    </button>
+  </div>
+);
 
 export default Settings;

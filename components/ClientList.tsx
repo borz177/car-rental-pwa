@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { Client, Rental, Transaction, TransactionType } from '../types';
 
 interface ClientListProps {
@@ -16,6 +16,23 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingClient, setEditingClient] = useState<Client | null>(null);
   const [showActions, setShowActions] = useState<string | null>(null);
+
+  // Search and Filter State
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showDebtorsOnly, setShowDebtorsOnly] = useState(false);
+
+  const filteredClients = useMemo(() => {
+    return clients.filter(c => {
+      const matchSearch =
+        c.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        c.phone.includes(searchQuery) ||
+        (c.email && c.email.toLowerCase().includes(searchQuery.toLowerCase()));
+
+      const matchDebt = showDebtorsOnly ? (c.debt && c.debt > 0) : true;
+
+      return matchSearch && matchDebt;
+    });
+  }, [clients, searchQuery, showDebtorsOnly]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -55,8 +72,28 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
         </button>
       </div>
 
+      {/* Search and Filter Bar */}
+      <div className="flex flex-col md:flex-row gap-4">
+        <div className="relative flex-1">
+          <i className="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-slate-400"></i>
+          <input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Поиск по имени, телефону или email..."
+            className="w-full pl-12 pr-4 py-4 bg-white rounded-[1.5rem] font-bold text-slate-700 outline-none border border-slate-100 shadow-sm focus:border-blue-500 transition-all"
+          />
+        </div>
+        <button
+          onClick={() => setShowDebtorsOnly(!showDebtorsOnly)}
+          className={`px-6 py-4 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest transition-all shadow-sm flex items-center gap-2 ${showDebtorsOnly ? 'bg-rose-500 text-white shadow-rose-500/30' : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'}`}
+        >
+          <i className={`fas ${showDebtorsOnly ? 'fa-check-square' : 'fa-square'}`}></i>
+          <span>Только должники</span>
+        </button>
+      </div>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {clients.map(client => (
+        {filteredClients.map(client => (
           <div key={client.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm relative group">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-4">
@@ -102,10 +139,10 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
             </div>
           </div>
         ))}
-        {clients.length === 0 && (
+        {filteredClients.length === 0 && (
           <div className="col-span-full py-20 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-300">
             <i className="fas fa-users text-4xl mb-4 opacity-20"></i>
-            <p className="font-bold uppercase tracking-widest text-sm">Список клиентов пуст</p>
+            <p className="font-bold uppercase tracking-widest text-sm">Клиенты не найдены</p>
           </div>
         )}
       </div>

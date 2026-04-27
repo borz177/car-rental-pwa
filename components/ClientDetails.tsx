@@ -57,12 +57,10 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, rentals, transact
 
     // Add standard payments (manual transactions from cashbox)
     clientTransactions.forEach(t => {
-      // Avoid double counting if transaction was created from rental payment logic
-      // Usually these have a specific description or category
       items.push({
         ...t,
         type: 'PAYMENT',
-        displayTitle: `Платеж: ${t.category}`,
+        displayTitle: t.description || `Платеж: ${t.category}`,
         displayAmount: t.amount
       });
     });

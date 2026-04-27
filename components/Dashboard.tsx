@@ -7,7 +7,7 @@ interface DashboardProps {
   rentals: Rental[];
   clients: Client[];
   user?: User | null;
-  onCompleteRental: (rental: Rental) => Promise<void>;
+  onCompleteRental: (rental: Rental) => void;
 }
 
 interface StatCardProps {
@@ -167,8 +167,8 @@ const Dashboard: React.FC<DashboardProps> = ({ cars, rentals, clients, user, onC
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h4 className="font-black text-slate-900 truncate pr-2">{car.brand} {car.model}</h4>
-                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 inline-block px-2 py-0.5 rounded-md mt-1">{car.plate}</div>
+                          <h4 className="font-black text-slate-900 truncate pr-2">{client.name}</h4>
+                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 inline-block px-2 py-0.5 rounded-md mt-1">{car.brand} {car.model} • {car.plate}</div>
                         </div>
                         <div className="text-right flex flex-col items-end">
                            <div className="text-xs font-black text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
@@ -182,14 +182,7 @@ const Dashboard: React.FC<DashboardProps> = ({ cars, rentals, clients, user, onC
                         </div>
                       </div>
 
-                      <div className="mt-3 flex items-center justify-between gap-2">
-                        <div className="flex items-center space-x-2 truncate">
-                           <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center text-[10px] font-black text-blue-600">
-                             {client.name.charAt(0)}
-                           </div>
-                           <span className="text-xs font-bold text-slate-600 truncate max-w-[100px]">{client.name}</span>
-                        </div>
-
+                      <div className="mt-3 flex items-center justify-end gap-2">
                         <div className="flex gap-2">
                             <button
                               onClick={() => handleWhatsAppRemind(rental)}

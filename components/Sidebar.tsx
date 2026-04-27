@@ -1,27 +1,40 @@
 
 import React, { useState } from 'react';
-import { AppView, UserRole, User } from '../types.ts';
+import { AppView, UserRole, User } from '../types';
 import { NAVIGATION_ITEMS } from '../constants';
 
 interface SidebarProps {
   currentView: AppView;
-  userRole: UserRole;
   onNavigate: (view: AppView) => void;
   onLogout: () => void;
   userName: string;
   requestCount?: number;
+  rentalCount?: number;
+  bookingCount?: number;
   user?: User | null;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, userRole, onNavigate, onLogout, userName, requestCount, user }) => {
-  const [contractsOpen, setContractsOpen] = useState(currentView === 'CONTRACTS' || currentView === 'CONTRACTS_ARCHIVE');
-  
-  const isSuperadmin = userRole === UserRole.SUPERADMIN;
+const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onLogout, userName, requestCount, rentalCount, bookingCount, user }) => {
+  const [contractsOpen, setContractsOpen] = useState(currentView === 'CONTRACTS' || currentView === 'CONTRACTS_ARCHIVE' || currentView === 'BOOKINGS');
+  const [showUserMenu, setShowUserMenu] = useState(false);
 
-  const filteredNav = NAVIGATION_ITEMS.filter(item => 
-    item.roles.includes(userRole) && 
-    item.id !== 'CONTRACTS_ARCHIVE' 
-  );
+  const userRole = user?.role || UserRole.CLIENT;
+  const isSuperadmin = userRole === UserRole.SUPERADMIN;
+  const isStaff = userRole === UserRole.STAFF;
+  const permissions = user?.permissions;
+
+  const filteredNav = NAVIGATION_ITEMS.filter(item => {
+    if (!item.roles.includes(userRole)) return false;
+    if (['CONTRACTS_ARCHIVE', 'BOOKINGS'].includes(item.id)) return false;
+
+    // Role-based visibility
+    if (isStaff) {
+      if (item.id === 'STAFF') return false; // Staff can't see staff list
+      if (['REPORTS', 'CASHBOX', 'INVESTORS'].includes(item.id) && !permissions?.canViewDocs) return false;
+    }
+
+    return true;
+  });
 
   const getTrialDaysLeft = () => {
     if (!user?.subscriptionUntil) return 0;
@@ -35,44 +48,61 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, userRole, onNavigate, on
 
   return (
     <div className="hidden md:flex fixed inset-y-0 left-0 w-64 bg-slate-900 text-white flex-col z-50 transition-transform duration-300">
-      <div className="p-6 border-b border-slate-800 flex items-center space-x-3">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center shadow-lg ${isSuperadmin ? 'bg-amber-500 shadow-amber-500/20' : 'bg-blue-600 shadow-blue-500/20'}`}>
-          <i className={`fas ${isSuperadmin ? 'fa-user-shield' : 'fa-car-side'} text-xl`}></i>
-        </div>
-        <div>
-          <h1 className="font-bold text-lg tracking-tight">AutoPro AI</h1>
-          <p className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">{isSuperadmin ? 'Master Control' : 'Admin Panel'}</p>
-        </div>
+      <div className="p-4 border-b border-slate-800 relative">
+        <button
+          onClick={() => setShowUserMenu(!showUserMenu)}
+          className="w-full flex items-center space-x-3 text-left p-2 rounded-2xl hover:bg-slate-800 transition-all"
+        >
+          <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold shadow-inner ${isSuperadmin ? 'bg-gradient-to-tr from-amber-400 to-amber-600' : 'bg-gradient-to-tr from-blue-500 to-indigo-500'}`}>{userName.charAt(0)}</div>
+          <div className="flex-1 overflow-hidden">
+            <p className="text-sm font-semibold truncate text-white">{userName}</p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-widest">{userRole}</p>
+          </div>
+          <i className={`fas fa-chevron-down text-slate-500 text-xs transition-transform ${showUserMenu ? 'rotate-180' : ''}`}></i>
+        </button>
+
+        {showUserMenu && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)}></div>
+            <div className="absolute top-full left-4 right-4 mt-2 bg-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden animate-scaleIn py-2">
+              <button
+                onClick={() => { onNavigate('SETTINGS'); setShowUserMenu(false); }}
+                className="w-full px-4 py-3 text-left text-sm font-medium hover:bg-slate-600 text-slate-300 flex items-center space-x-3"
+              >
+                <i className="fas fa-cog w-4"></i> <span>Настройки</span>
+              </button>
+              <button
+                onClick={onLogout}
+                className="w-full px-4 py-3 text-left text-sm font-bold hover:bg-rose-500/20 text-rose-400 flex items-center space-x-3"
+              >
+                <i className="fas fa-sign-out-alt w-4"></i> <span>Выйти</span>
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
-      <nav className="flex-1 mt-6 px-4 space-y-1 overflow-y-auto custom-scrollbar">
+      <nav className="flex-1 mt-4 px-4 space-y-1 overflow-y-auto custom-scrollbar">
         {user?.isTrial && trialDays > 0 && (
-          <div className="mb-6 p-4 bg-blue-600/10 border border-blue-600/30 rounded-2xl">
+          <div className="mb-4 p-4 bg-blue-600/10 border border-blue-600/30 rounded-2xl">
              <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2 flex items-center justify-between">
                <span>Пробный период</span>
                <i className="fas fa-info-circle"></i>
              </div>
              <div className="text-sm font-bold text-white mb-2">Осталось {trialDays} дн.</div>
-             <button 
-               onClick={() => onNavigate('TARIFFS')}
-               className="w-full py-2 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-500/20"
-             >
-               Купить тариф
-             </button>
+             <button onClick={() => onNavigate('TARIFFS')} className="w-full py-2 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-lg">Купить тариф</button>
           </div>
         )}
 
         {filteredNav.map(item => {
           if (item.id === 'CONTRACTS') {
-            const isActive = currentView === 'CONTRACTS' || currentView === 'CONTRACTS_ARCHIVE';
+            const isActive = currentView === 'CONTRACTS' || currentView === 'CONTRACTS_ARCHIVE' || currentView === 'BOOKINGS';
             return (
               <div key={item.id} className="space-y-1">
                 <button
                   onClick={() => setContractsOpen(!contractsOpen)}
                   className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
-                    isActive && !contractsOpen
-                      ? 'bg-blue-600 text-white shadow-lg' 
-                      : 'text-slate-400 hover:bg-slate-800 hover:text-white'
+                    isActive && !contractsOpen ? 'bg-blue-600 text-white shadow-lg' : 'text-slate-400 hover:bg-slate-800 hover:text-white'
                   }`}
                 >
                   <div className="flex items-center space-x-3">
@@ -81,26 +111,19 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, userRole, onNavigate, on
                   </div>
                   <i className={`fas fa-chevron-down text-[10px] transition-transform ${contractsOpen ? 'rotate-180' : ''}`}></i>
                 </button>
-                
+
                 {contractsOpen && (
                   <div className="pl-9 space-y-1 animate-fadeIn">
-                    <button
-                      onClick={() => onNavigate('CONTRACTS')}
-                      className={`w-full text-left px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                        currentView === 'CONTRACTS' ? 'text-blue-400 bg-blue-400/10' : 'text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      <i className="fas fa-play-circle mr-2 opacity-50"></i>
-                      Активные
+                    <button onClick={() => onNavigate('BOOKINGS')} className={`w-full text-left px-4 py-2 rounded-lg text-xs font-bold transition-all flex justify-between items-center ${currentView === 'BOOKINGS' ? 'text-amber-400 bg-amber-400/10' : 'text-slate-500 hover:text-slate-300'}`}>
+                      <span><i className="fas fa-calendar-alt mr-2 opacity-50"></i>Бронирования</span>
+                      {bookingCount && bookingCount > 0 ? <span className="bg-amber-500 text-white px-1.5 py-0.5 rounded text-[8px]">{bookingCount}</span> : null}
                     </button>
-                    <button
-                      onClick={() => onNavigate('CONTRACTS_ARCHIVE')}
-                      className={`w-full text-left px-4 py-2 rounded-lg text-xs font-bold transition-all ${
-                        currentView === 'CONTRACTS_ARCHIVE' ? 'text-blue-400 bg-blue-400/10' : 'text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      <i className="fas fa-history mr-2 opacity-50"></i>
-                      Архив
+                    <button onClick={() => onNavigate('CONTRACTS')} className={`w-full text-left px-4 py-2 rounded-lg text-xs font-bold transition-all flex justify-between items-center ${currentView === 'CONTRACTS' ? 'text-blue-400 bg-blue-400/10' : 'text-slate-500 hover:text-slate-300'}`}>
+                      <span><i className="fas fa-play-circle mr-2 opacity-50"></i>Активные</span>
+                      {rentalCount && rentalCount > 0 ? <span className="bg-blue-500 text-white px-1.5 py-0.5 rounded text-[8px]">{rentalCount}</span> : null}
+                    </button>
+                    <button onClick={() => onNavigate('CONTRACTS_ARCHIVE')} className={`w-full text-left px-4 py-2 rounded-lg text-xs font-bold transition-all ${currentView === 'CONTRACTS_ARCHIVE' ? 'text-blue-400 bg-blue-400/10' : 'text-slate-500 hover:text-slate-300'}`}>
+                      <i className="fas fa-history mr-2 opacity-50"></i>Архив
                     </button>
                   </div>
                 )}
@@ -117,41 +140,26 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, userRole, onNavigate, on
               onClick={() => onNavigate(item.id as AppView)}
               className={`w-full flex items-center justify-between px-4 py-3 rounded-xl transition-all ${
                 isActive 
-                  ? (isSystemControl ? 'bg-amber-500 text-white shadow-lg shadow-amber-900/50' : 'bg-blue-600 text-white shadow-lg shadow-blue-900/50')
+                  ? (isSystemControl ? 'bg-amber-500 text-white shadow-lg' : 'bg-blue-600 text-white shadow-lg')
                   : 'text-slate-400 hover:bg-slate-800 hover:text-white'
-              } ${isSystemControl && !isActive ? 'border border-amber-500/20 text-amber-400/70' : ''}`}
+              }`}
             >
               <div className="flex items-center space-x-3">
                 <i className={`fas ${item.icon} w-5`}></i>
                 <span className="font-medium text-sm">{item.label}</span>
               </div>
               {item.badge && requestCount && requestCount > 0 && (
-                <span className="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">
-                  {requestCount}
-                </span>
+                <span className="bg-rose-500 text-white text-[10px] px-2 py-0.5 rounded-full font-bold">{requestCount}</span>
               )}
             </button>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t border-slate-800">
-        <div className="flex items-center space-x-3 mb-4 px-2">
-          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shadow-inner ${isSuperadmin ? 'bg-gradient-to-tr from-amber-400 to-amber-600' : 'bg-gradient-to-tr from-blue-500 to-indigo-500'}`}>
-            {userName.charAt(0)}
-          </div>
-          <div className="flex-1 overflow-hidden">
-            <p className="text-sm font-semibold truncate">{userName}</p>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest">{userRole}</p>
-          </div>
+      <div className="p-4">
+        <div className="text-center text-[9px] text-slate-600 font-bold uppercase tracking-widest">
+           AutoPro AI &copy; 2024
         </div>
-        <button 
-          onClick={onLogout}
-          className="w-full flex items-center space-x-3 px-4 py-3 rounded-2xl text-rose-400 hover:bg-rose-500/10 transition-all font-bold"
-        >
-          <i className="fas fa-sign-out-alt"></i>
-          <span className="text-sm">Выйти</span>
-        </button>
       </div>
     </div>
   );

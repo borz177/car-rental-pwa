@@ -3,7 +3,7 @@ import 'process';
 import React, { useState, useEffect } from 'react';
 import {
   User, Car, Rental, Client, BookingRequest, AppView,
-  Transaction, TransactionType, Investor, Staff, Fine, UserRole, RequestStatus
+  Transaction, TransactionType, Investor, Fine, UserRole, RequestStatus, Staff
 } from './types';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
@@ -27,6 +27,7 @@ import StaffDetails from './components/StaffDetails';
 import SuperadminPanel from './components/SuperadminPanel';
 import ClientCatalog from './components/ClientCatalog';
 import SubscriptionExpiredModal from './components/SubscriptionExpiredModal';
+import CompleteRentalModal from './components/CompleteRentalModal';
 import BackendAPI from './services/api';
 
 const App: React.FC = () => {
@@ -41,6 +42,9 @@ const App: React.FC = () => {
   const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
   const [authLoading, setAuthLoading] = useState(false);
 
+  // Modal State
+  const [completingRental, setCompletingRental] = useState<Rental | null>(null);
+
   // Access Control State
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeModalContent, setUpgradeModalContent] = useState({ title: '', message: '' });
@@ -50,6 +54,7 @@ const App: React.FC = () => {
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [investors, setInvestors] = useState<Investor[]>([]);
+  // Fix: Changed staff state to use Staff[] to match backend data structure.
   const [staff, setStaff] = useState<Staff[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [fines, setFines] = useState<Fine[]>([]);
@@ -117,6 +122,7 @@ const App: React.FC = () => {
         BackendAPI.getRequests()
       ]);
 
+      // Fix: Adjusted type assertion for staff to Staff[].
       const [c, cl, r, t, inv, st, f, req] = results as [
         Car[], Client[], Rental[], Transaction[], Investor[], Staff[], Fine[], BookingRequest[]
       ];
@@ -259,17 +265,40 @@ const App: React.FC = () => {
     }
   };
 
-  const handleCompleteRental = async (rental: Rental) => {
-    if(!confirm('Вы уверены, что хотите завершить аренду? Статус договора изменится на "Завершен".')) return;
-
+  const handleConfirmCompletion = async (rental: Rental, amountReceived: number) => {
     setIsGlobalLoading(true);
     try {
-        await BackendAPI.saveRental({ ...rental, status: 'COMPLETED' });
-        await loadData();
+      // 1. Create income transaction if amount is received
+      if (amountReceived > 0) {
+        await BackendAPI.saveTransaction({
+          amount: amountReceived,
+          type: TransactionType.INCOME,
+          category: 'Аренда (завершение)',
+          description: `Постоплата по дог. ${rental.contractNumber}`,
+          date: new Date().toISOString(),
+          clientId: rental.clientId,
+          carId: rental.carId
+        });
+      }
+
+      // 2. Update client's debt
+      const client = clients.find(c => c.id === rental.clientId);
+      if (client && client.debt && client.debt > 0) {
+        // Reduce debt by the amount paid. Don't let it go below zero from this operation.
+        const newDebt = Math.max(0, client.debt - amountReceived);
+        await BackendAPI.saveClient({ ...client, debt: newDebt });
+      }
+
+      // 3. Update rental status to COMPLETED
+      await BackendAPI.saveRental({ ...rental, status: 'COMPLETED' });
+
+      // 4. Refresh all data
+      await loadData();
+      setCompletingRental(null); // Close the modal
     } catch (e: any) {
-        alert(e.message);
+      alert('Ошибка при завершении аренды: ' + e.message);
     } finally {
-        setIsGlobalLoading(false);
+      setIsGlobalLoading(false);
     }
   };
 
@@ -390,6 +419,13 @@ const App: React.FC = () => {
   // Count ONLY pending requests for the badge
   const pendingRequestsCount = requests.filter(r => r.status === RequestStatus.PENDING).length;
 
+  const rentalToComplete = completingRental ? rentals.find(r => r.id === completingRental.id) : null;
+  const carToComplete = rentalToComplete ? cars.find(c => c.id === rentalToComplete.carId) : null;
+  const clientToComplete = rentalToComplete ? clients.find(cl => cl.id === rentalToComplete.clientId) : null;
+
+  const permissions = currentUser.permissions;
+  const isStaff = currentUser.role === UserRole.STAFF;
+
   return (
     <div className="min-h-screen bg-slate-50 relative flex overflow-hidden">
       {/* RESTRICTION MODAL (Only shows when action blocked) */}
@@ -399,6 +435,17 @@ const App: React.FC = () => {
           onClose={() => setShowUpgradeModal(false)}
           title={upgradeModalContent.title}
           message={upgradeModalContent.message}
+        />
+      )}
+
+      {/* RENTAL COMPLETION MODAL */}
+      {completingRental && rentalToComplete && carToComplete && clientToComplete && (
+        <CompleteRentalModal
+          rental={rentalToComplete}
+          car={carToComplete}
+          client={clientToComplete}
+          onClose={() => setCompletingRental(null)}
+          onConfirm={handleConfirmCompletion}
         />
       )}
 
@@ -412,7 +459,7 @@ const App: React.FC = () => {
 
       <Sidebar
         currentView={currentView}
-        userRole={currentUser.role}
+        user={currentUser}
         userName={currentUser.name}
         onNavigate={(view) => {
           // Reset selection when navigating from sidebar to prevent sticking to specific reports
@@ -423,7 +470,6 @@ const App: React.FC = () => {
         requestCount={pendingRequestsCount}
         rentalCount={activeRentalsCount}
         bookingCount={bookingsCount}
-        user={currentUser}
       />
 
       <main className="flex-1 overflow-y-auto pt-32 md:pt-12 pb-44 md:pb-12 md:ml-64 p-6">
@@ -434,7 +480,7 @@ const App: React.FC = () => {
               rentals={rentals}
               clients={clients}
               user={currentUser}
-              onCompleteRental={handleCompleteRental}
+              onCompleteRental={setCompletingRental}
             />
           }
 
@@ -450,7 +496,8 @@ const App: React.FC = () => {
               onIssue={(id) => { setSelectedEntityId(id); setCurrentView('MANUAL_BOOKING'); }}
               onReserve={(id) => { setSelectedEntityId(id); setCurrentView('MANUAL_BOOKING'); }}
               onInfo={(id) => { setSelectedEntityId(id); setCurrentView('REPORTS'); }}
-              currentOwnerId={currentUser.id}
+              onComplete={setCompletingRental}
+              currentUser={currentUser}
               planLimit={getPlanLimit()}
             />
           )}
@@ -475,12 +522,13 @@ const App: React.FC = () => {
               onUpdate={apiAction(BackendAPI.saveRental)}
               onDelete={apiAction(BackendAPI.deleteRental)}
               onIssueFromBooking={(id) => { setSelectedEntityId(id); setCurrentView('MANUAL_BOOKING'); }}
+              onComplete={setCompletingRental}
               viewMode={currentView === 'BOOKINGS' ? 'BOOKINGS' : (currentView === 'CONTRACTS_ARCHIVE' ? 'ARCHIVE' : 'CONTRACTS')}
               brandName={currentUser.publicBrandName}
             />
           )}
 
-          {currentView === 'CASHBOX' && (
+          {currentView === 'CASHBOX' && (!isStaff || permissions?.canViewDocs) && (
             <Cashbox
               transactions={transactions}
               clients={clients}
@@ -492,7 +540,7 @@ const App: React.FC = () => {
             />
           )}
 
-          {currentView === 'REPORTS' && (
+          {currentView === 'REPORTS' && (!isStaff || permissions?.canViewDocs) && (
             <Reports
               transactions={transactions}
               cars={cars}
@@ -505,7 +553,7 @@ const App: React.FC = () => {
             />
           )}
 
-          {currentView === 'INVESTORS' && (
+          {currentView === 'INVESTORS' && (!isStaff || permissions?.canViewDocs) && (
             <InvestorList
               investors={investors}
               cars={cars}
@@ -518,7 +566,7 @@ const App: React.FC = () => {
             />
           )}
 
-          {currentView === 'STAFF' && (
+          {currentView === 'STAFF' && !isStaff && (
             <StaffList
               staff={staff}
               onAdd={apiAction(BackendAPI.saveStaff)}
@@ -571,6 +619,7 @@ const App: React.FC = () => {
               cars={cars}
               clients={clients}
               rentals={rentals}
+              currentUser={currentUser}
               preSelectedRentalId={currentView === 'MANUAL_BOOKING' && rentals.find(r => r.id === selectedEntityId) ? selectedEntityId : null}
               preSelectedCarId={!rentals.find(r => r.id === selectedEntityId) ? selectedEntityId || undefined : undefined}
               onCreate={handleSaveRental}
@@ -629,7 +678,11 @@ const App: React.FC = () => {
           {currentView === 'SETTINGS' && (
             <Settings
               user={currentUser}
-              onUpdate={apiAction((u) => BackendAPI.updateGlobalUser(currentUser.id, u))}
+              onUpdate={async (updates) => {
+                 // Optimistic update for UI
+                 setCurrentUser(prev => prev ? ({ ...prev, ...updates, settings: { ...prev.settings, ...updates.settings } }) : null);
+                 await apiAction((u) => BackendAPI.updateGlobalUser(currentUser.id, u))(updates);
+              }}
               onNavigate={setCurrentView}
               onLogout={() => BackendAPI.logout()}
             />

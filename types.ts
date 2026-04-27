@@ -6,6 +6,28 @@ export enum UserRole {
   CLIENT = 'CLIENT'
 }
 
+export interface StaffPermissions {
+  canCreateBooking: boolean;
+  canAddCar: boolean;
+  canEdit: boolean;
+  canDelete: boolean;
+  canViewDocs: boolean;
+  fullAccess: boolean;
+}
+
+// Fix: Add Staff interface to resolve module export error
+export interface Staff {
+  id: string;
+  ownerId: string;
+  name: string;
+  login: string;
+  email?: string;
+  password?: string;
+  role: UserRole;
+  createdAt?: string;
+  permissions?: StaffPermissions;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -17,16 +39,14 @@ export interface User {
   subscriptionUntil?: string;
   isTrial?: boolean;
   activePlan?: string;
-}
-
-export interface Staff {
-  id: string;
-  ownerId: string;
-  name: string;
-  login: string;
-  password?: string;
-  role: UserRole;
-  createdAt: string;
+  settings?: {
+    showAddCarButton?: boolean;
+    showDeleteCarButton?: boolean;
+  };
+  ownerId?: string; // Link staff to their admin owner
+  permissions?: StaffPermissions; // Permissions for staff role
+  createdAt?: string;
+  login?: string; // Alias for email for backwards compatibility in some components
 }
 
 export interface Investor {
@@ -145,6 +165,8 @@ export interface Car {
   images: string[];
   investorId?: string;
   investorShare?: number;
+  lastOilChangeMileage?: number;
+  oilChangeInterval?: number;
 }
 
 export interface RentalExtension {

@@ -1,19 +1,18 @@
 
 import React, { useState, useMemo } from 'react';
-import { Transaction, TransactionType, Client, Rental, Staff, Investor, Car } from '../types.ts';
+import { Transaction, TransactionType, Client, Rental, User, Investor, Car, Staff } from '../types';
 
 interface CashboxProps {
   transactions: Transaction[];
   clients: Client[];
   rentals: Rental[];
+  // Fix: Changed staff prop to Staff[] to align with new type definition
   staff: Staff[];
   investors: Investor[];
-  // Added cars to interface to fix TS error in App.tsx
   cars: Car[];
   onAddTransaction: (t: Partial<Transaction>, clientId?: string) => void;
 }
 
-// Added cars to destructuring in the component signature
 const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff, investors, cars, onAddTransaction }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [txType, setTxType] = useState<TransactionType>(TransactionType.INCOME);
@@ -21,9 +20,10 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
   const [searchClient, setSearchClient] = useState('');
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedInvestorId, setSelectedInvestorId] = useState('');
+  const [selectedCarId, setSelectedCarId] = useState('');
   const [showClientList, setShowClientList] = useState(false);
 
-  const balance = transactions.reduce((acc, t) => 
+  const balance = transactions.reduce((acc, t) =>
     t.type === TransactionType.INCOME ? acc + t.amount : acc - t.amount, 0
   );
   const incomeMonth = transactions.filter(t => t.type === TransactionType.INCOME).reduce((acc, t) => acc + t.amount, 0);
@@ -31,8 +31,8 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
 
   const filteredClients = useMemo(() => {
     if (!searchClient) return clients;
-    return clients.filter(c => 
-      c.name.toLowerCase().includes(searchClient.toLowerCase()) || 
+    return clients.filter(c =>
+      c.name.toLowerCase().includes(searchClient.toLowerCase()) ||
       c.phone.includes(searchClient)
     );
   }, [clients, searchClient]);
@@ -43,14 +43,18 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
     return rentals.filter(r => r.clientId === selectedClientId && r.paymentStatus === 'DEBT');
   }, [rentals, selectedClientId]);
 
+  // Categories that require a car selection
+  const carRelatedCategories = ['Мойка', 'Ремонт', 'Замена масла'];
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const amount = Number(fd.get('amount'));
-    
+
     let description = (fd.get('description') as string) || '';
     let invId = '';
     let category = (fd.get('category') || selectedCategory) as string;
+    let carId = selectedCarId;
 
     if (txType === TransactionType.EXPENSE) {
       if (selectedCategory === 'Оклад') {
@@ -63,6 +67,12 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
           invId = investor.id;
         }
       }
+
+      // Add car info to description if selected
+      if (carRelatedCategories.includes(selectedCategory) && selectedCarId) {
+         const car = cars.find(c => c.id === selectedCarId);
+         if (car) description = `${description ? description + ' | ' : ''}${car.brand} ${car.model} (${car.plate})`;
+      }
     }
 
     onAddTransaction({
@@ -71,24 +81,26 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
       category: category,
       description: description,
       date: new Date().toISOString(),
-      investorId: invId || undefined
+      investorId: invId || undefined,
+      carId: carId || undefined // Link transaction to car for reports
     }, selectedClientId || undefined);
 
     setIsModalOpen(false);
     setSelectedClientId('');
     setSelectedInvestorId('');
+    setSelectedCarId('');
     setSearchClient('');
     setSelectedCategory('');
     setShowClientList(false);
   };
 
-  const expenseCategories = ['Аренда', 'Мойка', 'Оклад', 'Инвестиции', 'Прочее'];
+  const expenseCategories = ['Мойка', 'Ремонт', 'Замена масла', 'Оклад', 'Инвестиции', 'Аренда', 'Прочее'];
 
   return (
     <div className="space-y-8 animate-fadeIn">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <h2 className="text-3xl font-black text-slate-900">Касса и финансы</h2>
-        <button 
+        <button
           onClick={() => setIsModalOpen(true)}
           className="w-full md:w-auto bg-blue-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center space-x-2"
         >
@@ -160,27 +172,27 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
       {isModalOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
           <form onSubmit={handleSubmit} className="bg-white rounded-[3rem] w-full max-w-lg p-10 shadow-2xl animate-scaleIn relative">
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => setIsModalOpen(false)}
               className="absolute top-8 right-8 w-10 h-10 flex items-center justify-center text-slate-300 hover:text-slate-900 bg-slate-50 rounded-full transition-all"
             >
               <i className="fas fa-times"></i>
             </button>
-            
+
             <h2 className="text-2xl font-black text-slate-900 mb-8">Новая операция</h2>
-            
+
             <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-[1.5rem] mb-8">
-              <button 
-                type="button" 
-                onClick={() => { setTxType(TransactionType.INCOME); setSelectedClientId(''); setSearchClient(''); setSelectedCategory(''); }}
+              <button
+                type="button"
+                onClick={() => { setTxType(TransactionType.INCOME); setSelectedClientId(''); setSearchClient(''); setSelectedCategory(''); setSelectedCarId(''); }}
                 className={`py-3.5 rounded-xl font-black text-xs uppercase transition-all ${txType === TransactionType.INCOME ? 'bg-white shadow-md text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 Приход
               </button>
-              <button 
-                type="button" 
-                onClick={() => { setTxType(TransactionType.EXPENSE); setSelectedClientId(''); setSearchClient(''); setSelectedCategory(''); }}
+              <button
+                type="button"
+                onClick={() => { setTxType(TransactionType.EXPENSE); setSelectedClientId(''); setSearchClient(''); setSelectedCategory(''); setSelectedCarId(''); }}
                 className={`py-3.5 rounded-xl font-black text-xs uppercase transition-all ${txType === TransactionType.EXPENSE ? 'bg-white shadow-md text-rose-600' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 Расход
@@ -191,7 +203,7 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
               {txType === TransactionType.INCOME && (
                 <div className="relative">
                   <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Клиент (поиск по списку)</label>
-                  <div 
+                  <div
                     onClick={() => setShowClientList(true)}
                     className="w-full p-5 bg-slate-50 rounded-2xl font-bold border-2 border-transparent cursor-pointer flex justify-between items-center hover:bg-slate-100 transition-all text-slate-700"
                   >
@@ -200,7 +212,7 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
                     </span>
                     <i className="fas fa-search text-slate-300"></i>
                   </div>
-                  
+
                   {showClientList && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
                       <div className="bg-white rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl animate-scaleIn flex flex-col max-h-[80vh]">
@@ -210,7 +222,7 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
                             <i className="fas fa-times"></i>
                           </button>
                         </div>
-                        <input 
+                        <input
                           autoFocus
                           placeholder="Поиск..."
                           className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 mb-4"
@@ -219,8 +231,8 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
                         />
                         <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
                           {filteredClients.map(c => (
-                            <button 
-                              key={c.id} 
+                            <button
+                              key={c.id}
                               type="button"
                               onClick={() => {
                                 setSelectedClientId(c.id);
@@ -260,11 +272,11 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
                     <input name="category" placeholder="Аренда, Бонус и т.д." required className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
                   )
                 ) : (
-                  <select 
-                    name="category" 
-                    required 
+                  <select
+                    name="category"
+                    required
                     value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    onChange={(e) => { setSelectedCategory(e.target.value); setSelectedCarId(''); }}
                     className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
                   >
                     <option value="">-- Выберите категорию --</option>
@@ -273,29 +285,54 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
                 )}
               </div>
 
-              {txType === TransactionType.EXPENSE && selectedCategory === 'Оклад' && (
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Сотрудник</label>
-                  <select name="staff_name" required className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900">
-                    <option value="">-- Выберите сотрудника --</option>
-                    {staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
-                  </select>
-                </div>
-              )}
+              {/* Conditional Fields based on Category */}
+              {txType === TransactionType.EXPENSE && (
+                <>
+                  {selectedCategory === 'Оклад' && (
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Сотрудник</label>
+                      <select name="staff_name" required className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900">
+                        <option value="">-- Выберите сотрудника --</option>
+                        {staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                      </select>
+                    </div>
+                  )}
 
-              {txType === TransactionType.EXPENSE && selectedCategory === 'Инвестиции' && (
-                <div>
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Инвестор</label>
-                  <select 
-                    value={selectedInvestorId}
-                    onChange={(e) => setSelectedInvestorId(e.target.value)}
-                    required 
-                    className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
-                  >
-                    <option value="">-- Выберите инвестора --</option>
-                    {investors.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
-                  </select>
-                </div>
+                  {selectedCategory === 'Инвестиции' && (
+                    <div>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Инвестор</label>
+                      <select
+                        value={selectedInvestorId}
+                        onChange={(e) => setSelectedInvestorId(e.target.value)}
+                        required
+                        className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
+                      >
+                        <option value="">-- Выберите инвестора --</option>
+                        {investors.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  {/* CAR SELECTION for Maintenance Categories */}
+                  {carRelatedCategories.includes(selectedCategory) && (
+                    <div className="animate-slideDown">
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Выберите автомобиль</label>
+                      <select
+                        value={selectedCarId}
+                        onChange={(e) => setSelectedCarId(e.target.value)}
+                        required
+                        className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
+                      >
+                        <option value="">-- Выберите авто --</option>
+                        {cars.map(c => <option key={c.id} value={c.id}>{c.brand} {c.model} ({c.plate})</option>)}
+                      </select>
+                      <div className="mt-2 ml-2 text-[10px] text-blue-500 font-bold">
+                        <i className="fas fa-info-circle mr-1"></i>
+                        Расход будет учтен в отчете по выбранному авто.
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               <div>

@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Car, Client, Rental, AppView } from '../types';
+import { Car, Client, Rental, AppView, User, UserRole } from '../types';
 
 interface ManualBookingProps {
   cars: Car[];
@@ -12,10 +12,11 @@ interface ManualBookingProps {
   onCreate: (rental: Rental) => Promise<void>;
   onNavigate?: (view: AppView) => void;
   onQuickAddClient: (c: Partial<Client>) => Promise<string>;
+  currentUser: User;
 }
 
 const ManualBooking: React.FC<ManualBookingProps> = ({
-  cars, clients, rentals = [], preSelectedCarId, preIsReservation = false, preSelectedRentalId, onCreate, onNavigate, onQuickAddClient
+  cars, clients, rentals = [], preSelectedCarId, preIsReservation = false, preSelectedRentalId, onCreate, onNavigate, onQuickAddClient, currentUser
 }) => {
   const [showClientSearch, setShowClientSearch] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
@@ -27,12 +28,29 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
   // State for success modal
   const [successData, setSuccessData] = useState<{rental: Rental, car: Car, client: Client} | null>(null);
 
+  const isStaff = currentUser.role === UserRole.STAFF;
+  const canCreateBooking = !isStaff || currentUser.permissions?.canCreateBooking;
+
+  if (!canCreateBooking) {
+    return (
+      <div className="p-20 text-center text-rose-500 bg-rose-50 rounded-3xl border-2 border-dashed border-rose-100">
+        <i className="fas fa-lock text-4xl mb-4"></i>
+        <h3 className="text-xl font-black">Доступ запрещен</h3>
+        <p className="text-sm font-medium">У вас нет прав на оформление сделок.</p>
+      </div>
+    );
+  }
+
   // Moscow Date/Time Helpers
-  const getMoscowDateStr = () => new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Moscow' });
+  const getMoscowDateStr = (date = new Date()) => date.toLocaleDateString('en-CA', { timeZone: 'Europe/Moscow' });
   const getMoscowTimeStr = () => new Date().toLocaleTimeString('ru-RU', { timeZone: 'Europe/Moscow', hour: '2-digit', minute: '2-digit' });
 
   const today = getMoscowDateStr();
   const nowTime = getMoscowTimeStr();
+
+  const tomorrowDate = new Date();
+  tomorrowDate.setDate(tomorrowDate.getDate() + 1);
+  const tomorrow = getMoscowDateStr(tomorrowDate);
 
   const [formData, setFormData] = useState({
     carId: preSelectedCarId || '',
@@ -40,8 +58,8 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
     clientName: '',
     startDate: today,
     startTime: nowTime,
-    endDate: today,
-    endTime: '18:00',
+    endDate: tomorrow,
+    endTime: nowTime,
     price: 0,
     prepayment: 0
   });
@@ -81,18 +99,25 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
       const end = new Date(`${formData.endDate}T${formData.endTime}`);
       const diffMs = end.getTime() - start.getTime();
 
+      let calculatedPrice = 0;
       if (diffMs > 0) {
         const totalHours = diffMs / (1000 * 60 * 60);
-        let calculatedPrice = 0;
 
         if (bookingType === 'DAILY') {
-          const days = Math.ceil(totalHours / 24);
-          calculatedPrice = days * car.pricePerDay;
-        } else {
-          calculatedPrice = Math.ceil(totalHours) * (car.pricePerHour || Math.round(car.pricePerDay / 24));
+          if (totalHours <= 24) {
+            calculatedPrice = car.pricePerDay;
+          } else {
+            const fullDays = Math.floor(totalHours / 24);
+            const remainingHours = Math.ceil(totalHours % 24);
+            const pricePerHour = car.pricePerHour || Math.round(car.pricePerDay / 24);
+            calculatedPrice = (fullDays * car.pricePerDay) + (remainingHours * pricePerHour);
+          }
+        } else { // HOURLY
+          const totalHoursCeil = Math.ceil(totalHours);
+          calculatedPrice = totalHoursCeil * (car.pricePerHour || Math.round(car.pricePerDay / 24));
         }
-        setFormData(prev => ({ ...prev, price: Math.round(calculatedPrice) }));
       }
+      setFormData(prev => ({ ...prev, price: Math.max(0, Math.round(calculatedPrice)) }));
     }
   }, [formData.carId, formData.startDate, formData.startTime, formData.endDate, formData.endTime, bookingType, cars]);
 
@@ -136,7 +161,7 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
     }
 
     // Reset form data in background
-    setFormData({ carId: '', clientId: '', clientName: '', startDate: today, startTime: nowTime, endDate: today, endTime: '18:00', price: 0, prepayment: 0 });
+    setFormData({ carId: '', clientId: '', clientName: '', startDate: today, startTime: nowTime, endDate: tomorrow, endTime: nowTime, price: 0, prepayment: 0 });
   };
 
   const handleQuickAddClient = async (e: React.FormEvent<HTMLFormElement>) => {

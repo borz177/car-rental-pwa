@@ -9,19 +9,21 @@ interface ContractListProps {
   onUpdate: (rental: Rental) => void;
   onDelete: (id: string) => void;
   onIssueFromBooking?: (id: string) => void;
+  onComplete: (rental: Rental) => void;
   viewMode?: 'CONTRACTS' | 'BOOKINGS' | 'ARCHIVE';
   brandName?: string;
 }
 
-const ContractList: React.FC<ContractListProps> = ({ 
-  rentals, 
-  cars, 
-  clients, 
-  onUpdate, 
-  onDelete, 
-  onIssueFromBooking, 
-  viewMode = 'CONTRACTS', 
-  brandName 
+const ContractList: React.FC<ContractListProps> = ({
+  rentals,
+  cars,
+  clients,
+  onUpdate,
+  onDelete,
+  onIssueFromBooking,
+  onComplete,
+  viewMode = 'CONTRACTS',
+  brandName
 }) => {
   const [extendingRental, setExtendingRental] = useState<Rental | null>(null);
   const [showActions, setShowActions] = useState<string | null>(null);
@@ -57,8 +59,6 @@ const ContractList: React.FC<ContractListProps> = ({
       const car = getCar(extendingRental.carId);
       if (!car) return;
 
-      // CRITICAL FIX: Ensure dates are clean YYYY-MM-DD strings before creating Date objects
-      // extendingRental.endDate might be "2023-10-10T00:00:00.000Z"
       const currentEndDateStr = extendingRental.endDate.split('T')[0];
       const newEndDateStr = extensionData.endDate.split('T')[0];
 
@@ -71,13 +71,10 @@ const ContractList: React.FC<ContractListProps> = ({
         const totalHours = diffMs / (1000 * 60 * 60);
         let addedValue = 0;
 
-        // Add minimal hour logic (e.g. if > 1 hour, charge full)
         if (extendingRental.bookingType === 'DAILY') {
-          // For daily, we usually calculate by 24h blocks
           const days = Math.ceil(totalHours / 24);
           addedValue = days * car.pricePerDay;
         } else {
-          // For hourly
           addedValue = Math.ceil(totalHours) * (car.pricePerHour || Math.round(car.pricePerDay / 24));
         }
         setExtensionData(prev => ({ ...prev, extraPrice: Math.max(0, Math.round(addedValue)) }));
@@ -119,7 +116,6 @@ const ContractList: React.FC<ContractListProps> = ({
 
   const openExtensionModal = (rent: Rental) => {
     setExtendingRental(rent);
-    // Explicitly clean the date format to ensure input[type="date"] accepts it
     const cleanDate = rent.endDate ? rent.endDate.split('T')[0] : '';
     setExtensionData({ endDate: cleanDate, endTime: rent.endTime, extraPrice: 0 });
     setShowActions(null);
@@ -127,31 +123,12 @@ const ContractList: React.FC<ContractListProps> = ({
 
   return (
     <div className="space-y-6 pb-24 md:pb-0">
-      {/* Print Styles */}
       <style>{`
         @media print {
-          @page {
-            size: A4;
-            margin: 10mm;
-          }
-          body * {
-            visibility: hidden;
-          }
-          #print-section, #print-section * {
-            visibility: visible;
-          }
-          #print-section {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            font-family: "Times New Roman", Times, serif;
-            font-size: 10pt; /* Smaller font for single page */
-            line-height: 1.2; /* Tighter lines */
-            color: black;
-            background: white;
-            padding: 0 10mm;
-          }
+          @page { size: A4; margin: 10mm; }
+          body * { visibility: hidden; }
+          #print-section, #print-section * { visibility: visible; }
+          #print-section { position: absolute; left: 0; top: 0; width: 100%; font-family: "Times New Roman", Times, serif; font-size: 10pt; line-height: 1.2; color: black; background: white; padding: 0 10mm; }
           .no-print { display: none !important; }
           .print-header { font-size: 16pt; font-weight: bold; text-transform: uppercase; margin-bottom: 10px; text-align: center; }
           .print-subheader { font-size: 12pt; font-weight: bold; margin-top: 10px; margin-bottom: 5px; text-transform: uppercase; text-align: center; }
@@ -166,7 +143,6 @@ const ContractList: React.FC<ContractListProps> = ({
         }
       `}</style>
 
-      {/* UI Controls - ONLY VISIBLE ON SCREEN */}
       <div className="px-2 no-print">
         <h2 className="text-3xl font-black text-slate-900">
           {viewMode === 'BOOKINGS' ? 'Бронирования' : (viewMode === 'ARCHIVE' ? 'Архив' : 'Реестр договоров')}
@@ -202,10 +178,8 @@ const ContractList: React.FC<ContractListProps> = ({
           const car = getCar(rent.carId);
           const client = getClient(rent.clientId);
 
-          // Безопасный расчет суммы продлений
           const extensionSum = (rent.extensions || []).reduce((acc, ext) => acc + Number(ext.amount || 0), 0);
 
-          // Для бронирований
           const prepayment = Number(rent.prepayment || 0);
           const totalAmount = Number(rent.totalAmount || 0);
           const remaining = Math.max(0, totalAmount - prepayment);
@@ -291,12 +265,12 @@ const ContractList: React.FC<ContractListProps> = ({
                             <>
                               <button
                                 onClick={() => openExtensionModal(rent)}
-                                className="w-full px-6 py-4 text-left text-sm font-black hover:bg-emerald-50 text-emerald-600 flex items-center space-x-3 border-b border-slate-50"
+                                className="w-full px-6 py-4 text-left text-sm font-black hover:bg-amber-50 text-amber-600 flex items-center space-x-3 border-b border-slate-50"
                               >
                                 <i className="fas fa-calendar-plus"></i> <span>Продлить</span>
                               </button>
                               <button
-                                onClick={() => { onUpdate({...rent, status: 'COMPLETED'}); setShowActions(null); }}
+                                onClick={() => { onComplete(rent); setShowActions(null); }}
                                 className="w-full px-6 py-4 text-left text-sm font-black hover:bg-blue-50 text-blue-600 flex items-center space-x-3 border-b border-slate-50"
                               >
                                 <i className="fas fa-check-circle"></i> <span>Завершить</span>
@@ -316,22 +290,20 @@ const ContractList: React.FC<ContractListProps> = ({
                 </div>
               </div>
 
-              {/* Added Issue Button for Reservations */}
               {rent.isReservation && onIssueFromBooking && (
-                  <button
-                      onClick={() => onIssueFromBooking(rent.id)}
-                      className="w-full mt-2 py-2 px-3 bg-emerald-500 text-white rounded-lg font-medium text-xs uppercase hover:bg-emerald-600 shadow-sm transition-colors flex items-center justify-center gap-1.5"
-                  >
-                    <i className="fas fa-key text-[12px]"></i>
-                    <span>Оформить выдачу</span>
-                  </button>
+                <button
+                  onClick={() => onIssueFromBooking(rent.id)}
+                  className="w-full mt-2 py-3 bg-emerald-500 text-white rounded-xl font-black uppercase text-xs hover:bg-emerald-600 shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center space-x-2"
+                >
+                  <i className="fas fa-key"></i>
+                  <span>Оформить выдачу</span>
+                </button>
               )}
 
-              {/* Хронология продлений */}
               {rent.extensions && rent.extensions.length > 0 && (
-                  <div className="mt-4 pt-4 border-t border-dashed border-slate-100 space-y-3">
-                    <div className="flex justify-between items-center">
-                      <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Хронология продлений:</div>
+                <div className="mt-4 pt-4 border-t border-dashed border-slate-100 space-y-3">
+                  <div className="flex justify-between items-center">
+                    <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Хронология продлений:</div>
                     <div className="text-[10px] font-black text-emerald-600 uppercase">Всего доплат: {extensionSum.toLocaleString()} ₽</div>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -355,7 +327,6 @@ const ContractList: React.FC<ContractListProps> = ({
         )}
       </div>
 
-      {/* Hidden Print Template */}
       {printingRental && (
         <div id="print-section">
           <div className="text-center print-header">
@@ -364,30 +335,24 @@ const ContractList: React.FC<ContractListProps> = ({
           <div className="text-center" style={{fontSize: '11pt', marginBottom: '15px'}}>
              Договор № {printingRental.contractNumber} аренды транспортного средства
           </div>
-
           <p className="mb-2">
              Арендодатель на основании Устава с одной стороны и гражданин:
           </p>
-
           <div className="print-row mb-2">
              <div><span className="print-bold">Ф.И.О.:</span> <span className="print-underline" style={{minWidth: '250px'}}>{getClient(printingRental.clientId)?.name}</span></div>
              <div><span className="print-bold">Тел:</span> {getClient(printingRental.clientId)?.phone}</div>
           </div>
-
           <div className="mb-4">
              <span className="print-bold">Место проживания:</span> <span className="print-underline" style={{width: '70%'}}></span>
           </div>
-
           <div className="print-subheader">1. ПРЕДМЕТ ДОГОВОРА</div>
           <p className="mb-2">1.1. Согласно настоящему договору Арендодатель предоставляет арендатору следующий автомобиль:</p>
-
           <div className="mb-4" style={{display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '5px'}}>
              <div><span className="print-bold">Марка/Модель:</span> {getCar(printingRental.carId)?.brand} {getCar(printingRental.carId)?.model}</div>
              <div><span className="print-bold">Год выпуска:</span> {getCar(printingRental.carId)?.year}</div>
              <div><span className="print-bold">Гос. номер:</span> {getCar(printingRental.carId)?.plate}</div>
              <div><span className="print-bold">Цвет:</span> _______________</div>
           </div>
-
           <div className="print-subheader">2. УСЛОВИЯ ПРОКАТА</div>
           <ol className="print-list" style={{listStyleType: 'decimal'}}>
              <li>Арендодатель обязуется предоставить автомобиль в полном исправном состоянии.</li>
@@ -395,7 +360,6 @@ const ContractList: React.FC<ContractListProps> = ({
              <li>Бензин не ниже АИ-95.</li>
              <li>Арендодатель не несет ответственность за действия арендатора, которыми причинен ущерб третьим лицам.</li>
           </ol>
-
           <div className="print-subheader">3. ОБЯЗАННОСТИ АРЕНДАТОРА</div>
           <ul className="print-list" style={{listStyleType: 'disc'}}>
              <li>Арендатор несет 100% ответственность во время проката автомобиля.</li>
@@ -410,7 +374,6 @@ const ContractList: React.FC<ContractListProps> = ({
              <li>Вождение в нетрезвом виде — штраф 50 000 р.</li>
              <li>Дергать ручник — штраф 2 000 р.</li>
           </ul>
-
           <div className="print-subheader">4. СРОК ДЕЙСТВИЯ И ОПЛАТА</div>
           <div className="mb-2" style={{display: 'flex', justifyContent: 'space-between', paddingRight: '20px'}}>
              <div>
@@ -422,7 +385,6 @@ const ContractList: React.FC<ContractListProps> = ({
                {new Date(printingRental.endDate).toLocaleDateString()} в {printingRental.endTime}
              </div>
           </div>
-
           <div className="mb-4">
             <span className="print-bold">Общая стоимость:</span> {printingRental.totalAmount.toLocaleString()} ₽<br/>
             {printingRental.isReservation ? (
@@ -434,7 +396,6 @@ const ContractList: React.FC<ContractListProps> = ({
                <><span className="print-bold">Статус оплаты:</span> {printingRental.paymentStatus === 'DEBT' ? 'Имеется задолженность' : 'Оплачено полностью'}</>
             )}
           </div>
-
           {printingRental.extensions && printingRental.extensions.length > 0 && (
             <>
               <div className="print-subheader">5. ПРОДЛЕНИЕ АРЕНДЫ (ДОП. СОГЛАШЕНИЯ)</div>
@@ -463,7 +424,6 @@ const ContractList: React.FC<ContractListProps> = ({
               </div>
             </>
           )}
-
           <div className="print-signatures" style={{display: 'flex', justifyContent: 'space-between', marginTop: '40px'}}>
              <div style={{width: '40%'}}>
                 <div className="print-bold mb-6">АРЕНДОДАТЕЛЬ:</div>
@@ -479,7 +439,6 @@ const ContractList: React.FC<ContractListProps> = ({
         </div>
       )}
 
-      {/* Extension Modal */}
       {extendingRental && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md no-print">
           <form onSubmit={handleExtendSubmit} className="bg-white rounded-[3rem] w-full max-w-lg p-10 shadow-2xl animate-scaleIn">
@@ -530,15 +489,15 @@ const ContractList: React.FC<ContractListProps> = ({
                  </div>
                  <i className="fas fa-plus-circle text-emerald-300 text-2xl"></i>
               </div>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 className="w-full py-5 bg-emerald-600 text-white rounded-3xl font-black uppercase shadow-xl"
               >
                 Сохранить
               </button>
-              <button 
-                type="button" 
-                onClick={() => setExtendingRental(null)} 
+              <button
+                type="button"
+                onClick={() => setExtendingRental(null)}
                 className="w-full text-slate-400 font-bold uppercase text-xs"
               >
                 Отмена
