@@ -2,7 +2,12 @@
 import { UserRole, FuelType, Transmission, CarStatus } from './types';
 
 export const CAR_CATEGORIES = ['Эконом', 'Комфорт', 'Бизнес', 'Внедорожник', 'Спорт', 'Минивэн'];
-export const FUEL_TYPES = Object.values(FuelType);
+export enum FuelType {
+  PETROL = 'petrol',
+  DIESEL = 'diesel',
+  ELECTRIC = 'electric',
+  HYBRID = 'hybrid'
+}
 export const TRANSMISSIONS = Object.values(Transmission);
 
 export const NAVIGATION_ITEMS = [
