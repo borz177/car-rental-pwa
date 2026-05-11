@@ -59,6 +59,7 @@ const App: React.FC = () => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [fines, setFines] = useState<Fine[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
+  const [currentFleetSlug, setCurrentFleetSlug] = useState<string | null>(null);
 
   // --- ACCESS CONTROL HELPERS ---
 
@@ -147,59 +148,72 @@ const App: React.FC = () => {
     }
   };
 
-  useEffect(() => {
-    const init = async () => {
-      try {
-        const user = await BackendAPI.getCurrentUser();
-        // Always try to load public fleet if param is present, regardless of auth status
-        // This ensures clients see the correct cars
-        const urlParams = new URLSearchParams(window.location.search);
-        const fleetSlug = urlParams.get('fleet');
+ useEffect(() => {
+  const init = async () => {
+    try {
+      // 🆕 1. Сначала читаем fleetSlug из URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const fleetSlug = urlParams.get('fleet');
 
-        if (fleetSlug) {
-           try {
-              const publicData = await BackendAPI.getPublicFleet(fleetSlug);
-              setCars(publicData.cars);
-              // Only overwrite rentals if not admin, or merge logic needed
-              // For simplicity, we trust loadData for admins, and publicData for clients/guests
-              if (!user || user.role === UserRole.CLIENT) {
-                 setRentals(publicData.rentals);
-                 setFleetOwner(publicData.owner);
-              }
-           } catch (err) {
-              console.error('Failed to load public fleet', err);
-           }
+      // 🆕 2. Проверяем публичный флот ДО авторизации (если есть slug)
+      if (fleetSlug) {
+        try {
+          const publicData = await BackendAPI.getPublicFleet(fleetSlug);
+          setCars(publicData.cars);
+          setRentals(publicData.rentals);
+          setFleetOwner(publicData.owner);
+
+          // 🆕 3. Сохраняем slug в state для последующих проверок
+          // (если у тебя нет этого state — добавь: const [currentFleetSlug, setCurrentFleetSlug] = useState<string | null>(null);)
+         setCurrentFleetSlug(fleetSlug);
+        } catch (err) {
+          console.error('Failed to load public fleet', err);
+          // 🆕 Опционально: можно показать ошибку пользователю
         }
-
-        if (user) {
-          setCurrentUser(user);
-          if (user.role !== UserRole.CLIENT) {
-             await loadData();
-          } else {
-             // For clients, we still need their own requests and rentals info (e.g. debt)
-             // getRequests/getRentals returns data filtered by client_id = user.id
-             const reqs = await BackendAPI.getRequests();
-             setRequests(reqs);
-             // Note: Cars are already loaded via getPublicFleet above if slug exists
-          }
-
-          if (user.role === UserRole.CLIENT) {
-            setCurrentView('CLIENT_CATALOG');
-          }
-        } else {
-          // Public guest view
-          if (fleetSlug) {
-             setCurrentView('CLIENT_CATALOG');
-          }
-        }
-      } catch (e) {
-        console.error("Ошибка инициализации:", e);
-      } finally {
-        setIsInitializing(false);
       }
-    };
-    init();
-  }, []);
+
+      // 🆕 4. Теперь проверяем авторизацию
+      const user = await BackendAPI.getCurrentUser();
+
+      if (user) {
+        setCurrentUser(user);
+
+        // 🆕 5. КЛЮЧЕВАЯ ПРАВКА: Определяем, чей флот запрашивается
+        const isOwnFleet = user.publicSlug === fleetSlug || user.id === fleetSlug;
+
+        if (fleetSlug && !isOwnFleet) {
+          // 🎯 Просмотр ЧУЖОГО флота — показываем каталог, НЕ грузим приватные данные
+          setCurrentView('CLIENT_CATALOG');
+          // 🚫 Не вызываем loadData() — не загружаем чужие транзакции, клиентов и т.д.
+        }
+        else if (user.role !== UserRole.CLIENT) {
+          // 🎯 Владелец смотрит СВОЙ флот или зашёл без slug — стандартная загрузка
+          await loadData();
+          // Если есть slug и это его флот — можно оставить на дашборде или переключить на каталог по желанию:
+          // if (fleetSlug && isOwnFleet) setCurrentView('CLIENT_CATALOG');
+        }
+        else if (user.role === UserRole.CLIENT) {
+          // 🎯 Клиент — грузим только его заявки
+          const reqs = await BackendAPI.getRequests();
+          setRequests(reqs);
+          setCurrentView('CLIENT_CATALOG');
+        }
+      }
+      else {
+        // 🎯 Гость + есть slug — показываем каталог
+        if (fleetSlug) {
+          setCurrentView('CLIENT_CATALOG');
+        }
+      }
+
+    } catch (e) {
+      console.error("Ошибка инициализации:", e);
+    } finally {
+      setIsInitializing(false);
+    }
+  };
+  init();
+}, []);
 
   const handleAuthSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
