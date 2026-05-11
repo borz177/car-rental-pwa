@@ -319,6 +319,16 @@ const App: React.FC = () => {
     await apiAction(BackendAPI.saveCar)(car);
   };
 
+
+  if (isInitializing) {
+    return (
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
+        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+
   // Public Catalog View Wrapper
   if (!currentUser && currentView === 'CLIENT_CATALOG') {
     return (
@@ -347,13 +357,7 @@ const App: React.FC = () => {
     );
   }
 
-  if (isInitializing) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
-  }
+
 
   if (!currentUser) {
     return (
