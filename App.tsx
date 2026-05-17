@@ -155,7 +155,7 @@ const App: React.FC = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const fleetSlug = urlParams.get('fleet');
 
-      // 🆕 2. Проверяем публичный флот ДО авторизации (если есть slug)
+
       if (fleetSlug) {
         try {
           const publicData = await BackendAPI.getPublicFleet(fleetSlug);
@@ -163,8 +163,7 @@ const App: React.FC = () => {
           setRentals(publicData.rentals);
           setFleetOwner(publicData.owner);
 
-          // 🆕 3. Сохраняем slug в state для последующих проверок
-          // (если у тебя нет этого state — добавь: const [currentFleetSlug, setCurrentFleetSlug] = useState<string | null>(null);)
+
          setCurrentFleetSlug(fleetSlug);
         } catch (err) {
           console.error('Failed to load public fleet', err);
@@ -178,19 +177,18 @@ const App: React.FC = () => {
       if (user) {
         setCurrentUser(user);
 
-        // 🆕 5. КЛЮЧЕВАЯ ПРАВКА: Определяем, чей флот запрашивается
+
         const isOwnFleet = user.publicSlug === fleetSlug || user.id === fleetSlug;
 
         if (fleetSlug && !isOwnFleet) {
-          // 🎯 Просмотр ЧУЖОГО флота — показываем каталог, НЕ грузим приватные данные
+
           setCurrentView('CLIENT_CATALOG');
-          // 🚫 Не вызываем loadData() — не загружаем чужие транзакции, клиентов и т.д.
+
         }
         else if (user.role !== UserRole.CLIENT) {
           // 🎯 Владелец смотрит СВОЙ флот или зашёл без slug — стандартная загрузка
           await loadData();
-          // Если есть slug и это его флот — можно оставить на дашборде или переключить на каталог по желанию:
-          // if (fleetSlug && isOwnFleet) setCurrentView('CLIENT_CATALOG');
+
         }
         else if (user.role === UserRole.CLIENT) {
           // 🎯 Клиент — грузим только его заявки
