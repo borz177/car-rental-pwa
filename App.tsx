@@ -488,235 +488,260 @@ const App: React.FC = () => {
         bookingCount={bookingsCount}
       />
 
-      <main className="flex-1 overflow-y-auto pt-32 md:pt-12 pb-44 md:pb-12 md:ml-64 p-6">
+      <main className="flex-1 overflow-y-auto pt-36 md:pt-16 pb-44 md:pb-12 md:ml-64 p-6">
         <div className="max-w-7xl mx-auto">
           {currentView === 'DASHBOARD' &&
-            <Dashboard
-              cars={cars}
-              rentals={rentals}
-              clients={clients}
-              user={currentUser}
-              onCompleteRental={setCompletingRental}
-            />
+              <Dashboard
+                  cars={cars}
+                  rentals={rentals}
+                  clients={clients}
+                  user={currentUser}
+                  onCompleteRental={setCompletingRental}
+              />
           }
 
           {currentView === 'CARS' && (
-            <CarList
-              cars={cars}
-              investors={investors}
-              rentals={rentals}
-              clients={clients}
-              onAdd={handleAddCar}
-              onUpdate={apiAction(BackendAPI.saveCar)}
-              onDelete={apiAction(BackendAPI.deleteCar)}
-              onIssue={(id) => { setSelectedEntityId(id); setCurrentView('MANUAL_BOOKING'); }}
-              onReserve={(id) => { setSelectedEntityId(id); setCurrentView('MANUAL_BOOKING'); }}
-              onInfo={(id) => { setSelectedEntityId(id); setCurrentView('REPORTS'); }}
-              onComplete={setCompletingRental}
-              currentUser={currentUser}
-              planLimit={getPlanLimit()}
-            />
+              <CarList
+                  cars={cars}
+                  investors={investors}
+                  rentals={rentals}
+                  clients={clients}
+                  onAdd={handleAddCar}
+                  onUpdate={apiAction(BackendAPI.saveCar)}
+                  onDelete={apiAction(BackendAPI.deleteCar)}
+                  onIssue={(id) => {
+                    setSelectedEntityId(id);
+                    setCurrentView('MANUAL_BOOKING');
+                  }}
+                  onReserve={(id) => {
+                    setSelectedEntityId(id);
+                    setCurrentView('MANUAL_BOOKING');
+                  }}
+                  onInfo={(id) => {
+                    setSelectedEntityId(id);
+                    setCurrentView('REPORTS');
+                  }}
+                  onComplete={setCompletingRental}
+                  currentUser={currentUser}
+                  planLimit={getPlanLimit()}
+              />
           )}
 
           {currentView === 'CLIENTS' && (
-            <ClientList
-              clients={clients}
-              rentals={rentals}
-              transactions={transactions}
-              onAdd={apiAction(BackendAPI.saveClient)}
-              onUpdate={apiAction(BackendAPI.saveClient)}
-              onDelete={apiAction(BackendAPI.deleteClient)}
-              onSelectClient={(id) => { setSelectedEntityId(id); setCurrentView('CLIENT_DETAILS'); }}
-            />
+              <ClientList
+                  clients={clients}
+                  rentals={rentals}
+                  transactions={transactions}
+                  onAdd={apiAction(BackendAPI.saveClient)}
+                  onUpdate={apiAction(BackendAPI.saveClient)}
+                  onDelete={apiAction(BackendAPI.deleteClient)}
+                  onSelectClient={(id) => {
+                    setSelectedEntityId(id);
+                    setCurrentView('CLIENT_DETAILS');
+                  }}
+              />
           )}
 
           {(currentView === 'CONTRACTS' || currentView === 'BOOKINGS' || currentView === 'CONTRACTS_ARCHIVE') && (
-            <ContractList
-              rentals={rentals}
-              cars={cars}
-              clients={clients}
-              onUpdate={apiAction(BackendAPI.saveRental)}
-              onDelete={apiAction(BackendAPI.deleteRental)}
-              onIssueFromBooking={(id) => { setSelectedEntityId(id); setCurrentView('MANUAL_BOOKING'); }}
-              onComplete={setCompletingRental}
-              viewMode={currentView === 'BOOKINGS' ? 'BOOKINGS' : (currentView === 'CONTRACTS_ARCHIVE' ? 'ARCHIVE' : 'CONTRACTS')}
-              brandName={currentUser.publicBrandName}
-            />
+              <ContractList
+                  rentals={rentals}
+                  cars={cars}
+                  clients={clients}
+                  onUpdate={apiAction(BackendAPI.saveRental)}
+                  onDelete={apiAction(BackendAPI.deleteRental)}
+                  onIssueFromBooking={(id) => {
+                    setSelectedEntityId(id);
+                    setCurrentView('MANUAL_BOOKING');
+                  }}
+                  onComplete={setCompletingRental}
+                  viewMode={currentView === 'BOOKINGS' ? 'BOOKINGS' : (currentView === 'CONTRACTS_ARCHIVE' ? 'ARCHIVE' : 'CONTRACTS')}
+                  brandName={currentUser.publicBrandName}
+              />
           )}
 
           {currentView === 'CASHBOX' && (!isStaff || permissions?.canViewDocs) && (
-            <Cashbox
-              transactions={transactions}
-              clients={clients}
-              rentals={rentals}
-              staff={staff}
-              investors={investors}
-              cars={cars}
-              onAddTransaction={apiAction(BackendAPI.saveTransaction)}
-            />
+              <Cashbox
+                  transactions={transactions}
+                  clients={clients}
+                  rentals={rentals}
+                  staff={staff}
+                  investors={investors}
+                  cars={cars}
+                  onAddTransaction={apiAction(BackendAPI.saveTransaction)}
+              />
           )}
 
           {currentView === 'REPORTS' && (!isStaff || permissions?.canViewDocs) && (
-            <Reports
-              transactions={transactions}
-              cars={cars}
-              investors={investors}
-              rentals={rentals}
-              clients={clients}
-              fines={fines}
-              initialSearchId={selectedEntityId}
-              initialCategory={selectedEntityId ? 'CARS' : 'ALL'}
-            />
+              <Reports
+                  transactions={transactions}
+                  cars={cars}
+                  investors={investors}
+                  rentals={rentals}
+                  clients={clients}
+                  fines={fines}
+                  initialSearchId={selectedEntityId}
+                  initialCategory={selectedEntityId ? 'CARS' : 'ALL'}
+              />
           )}
 
           {currentView === 'INVESTORS' && (!isStaff || permissions?.canViewDocs) && (
-            <InvestorList
-              investors={investors}
-              cars={cars}
-              rentals={rentals}
-              transactions={transactions}
-              onAdd={apiAction(BackendAPI.saveInvestor)}
-              onUpdate={apiAction(BackendAPI.saveInvestor)}
-              onDelete={apiAction(BackendAPI.deleteInvestor)}
-              onSelectInvestor={(id) => { setSelectedEntityId(id); setCurrentView('INVESTOR_DETAILS'); }}
-            />
+              <InvestorList
+                  investors={investors}
+                  cars={cars}
+                  rentals={rentals}
+                  transactions={transactions}
+                  onAdd={apiAction(BackendAPI.saveInvestor)}
+                  onUpdate={apiAction(BackendAPI.saveInvestor)}
+                  onDelete={apiAction(BackendAPI.deleteInvestor)}
+                  onSelectInvestor={(id) => {
+                    setSelectedEntityId(id);
+                    setCurrentView('INVESTOR_DETAILS');
+                  }}
+              />
           )}
 
           {currentView === 'STAFF' && !isStaff && (
-            <StaffList
-              staff={staff}
-              onAdd={apiAction(BackendAPI.saveStaff)}
-              onUpdate={apiAction(BackendAPI.saveStaff)}
-              onDelete={apiAction(BackendAPI.deleteStaff)}
-              onSelectStaff={(id) => { setSelectedEntityId(id); setCurrentView('STAFF_DETAILS'); }}
-            />
+              <StaffList
+                  staff={staff}
+                  onAdd={apiAction(BackendAPI.saveStaff)}
+                  onUpdate={apiAction(BackendAPI.saveStaff)}
+                  onDelete={apiAction(BackendAPI.deleteStaff)}
+                  onSelectStaff={(id) => {
+                    setSelectedEntityId(id);
+                    setCurrentView('STAFF_DETAILS');
+                  }}
+              />
           )}
 
           {currentView === 'CLIENT_DETAILS' && (
-            <ClientDetails
-              client={clients.find(c => c.id === selectedEntityId)!}
-              rentals={rentals}
-              transactions={transactions}
-              cars={cars}
-              fines={fines}
-              onBack={() => setCurrentView('CLIENTS')}
-              onAddFine={apiAction(BackendAPI.saveFine)}
-              onPayFine={apiAction(BackendAPI.payFine)}
-            />
+              <ClientDetails
+                  client={clients.find(c => c.id === selectedEntityId)!}
+                  rentals={rentals}
+                  transactions={transactions}
+                  cars={cars}
+                  fines={fines}
+                  onBack={() => setCurrentView('CLIENTS')}
+                  onAddFine={apiAction(BackendAPI.saveFine)}
+                  onPayFine={apiAction(BackendAPI.payFine)}
+              />
           )}
 
           {currentView === 'INVESTOR_DETAILS' && (
-            <InvestorDetails
-              investor={investors.find(i => i.id === selectedEntityId)!}
-              cars={cars}
-              rentals={rentals}
-              transactions={transactions}
-              onBack={() => setCurrentView('INVESTORS')}
-            />
+              <InvestorDetails
+                  investor={investors.find(i => i.id === selectedEntityId)!}
+                  cars={cars}
+                  rentals={rentals}
+                  transactions={transactions}
+                  onBack={() => setCurrentView('INVESTORS')}
+              />
           )}
 
           {currentView === 'STAFF_DETAILS' && (
-            <StaffDetails
-              member={staff.find(s => s.id === selectedEntityId)!}
-              onBack={() => setCurrentView('STAFF')}
-            />
+              <StaffDetails
+                  member={staff.find(s => s.id === selectedEntityId)!}
+                  onBack={() => setCurrentView('STAFF')}
+              />
           )}
 
           {currentView === 'SUPERADMIN_PANEL' && (
-            <SuperadminPanel
-              allUsers={allUsers}
-              onUpdateUser={apiAction(BackendAPI.updateGlobalUser)}
-              onDeleteUser={apiAction(BackendAPI.deleteGlobalUser)}
-            />
+              <SuperadminPanel
+                  allUsers={allUsers}
+                  onUpdateUser={apiAction(BackendAPI.updateGlobalUser)}
+                  onDeleteUser={apiAction(BackendAPI.deleteGlobalUser)}
+              />
           )}
 
           {currentView === 'MANUAL_BOOKING' && (
-            <ManualBooking
-              cars={cars}
-              clients={clients}
-              rentals={rentals}
-              currentUser={currentUser}
-              preSelectedRentalId={currentView === 'MANUAL_BOOKING' && rentals.find(r => r.id === selectedEntityId) ? selectedEntityId : null}
-              preSelectedCarId={!rentals.find(r => r.id === selectedEntityId) ? selectedEntityId || undefined : undefined}
-              onCreate={handleSaveRental}
-              onNavigate={setCurrentView}
-              onQuickAddClient={async (c) => {
-                const res = await BackendAPI.saveClient(c as Client);
-                return res.id;
-              }}
-            />
+              <ManualBooking
+                  cars={cars}
+                  clients={clients}
+                  rentals={rentals}
+                  currentUser={currentUser}
+                  preSelectedRentalId={currentView === 'MANUAL_BOOKING' && rentals.find(r => r.id === selectedEntityId) ? selectedEntityId : null}
+                  preSelectedCarId={!rentals.find(r => r.id === selectedEntityId) ? selectedEntityId || undefined : undefined}
+                  onCreate={handleSaveRental}
+                  onNavigate={setCurrentView}
+                  onQuickAddClient={async (c) => {
+                    const res = await BackendAPI.saveClient(c as Client);
+                    return res.id;
+                  }}
+              />
           )}
 
-          {currentView === 'CALENDAR' && <BookingCalendar cars={cars} rentals={rentals} />}
+          {currentView === 'CALENDAR' && <BookingCalendar cars={cars} rentals={rentals}/>}
 
           {currentView === 'REQUESTS' && (
-            <BookingRequests
-              requests={requests}
-              cars={cars}
-              onAction={apiAction(BackendAPI.deleteRequest)}
-            />
+              <BookingRequests
+                  requests={requests}
+                  cars={cars}
+                  onAction={apiAction(BackendAPI.deleteRequest)}
+              />
           )}
 
           {currentView === 'CLIENT_CATALOG' && (
-             <ClientCatalog
-               cars={cars}
-               rentals={rentals}
-               currentUser={currentUser}
-               onSubmitRequest={async (req) => {
-                  // Use public endpoint here too to ensure ownerId is respected correctly
-                  await BackendAPI.submitBookingRequest(req);
-                  // Refresh requests list
-                  const reqs = await BackendAPI.getRequests();
-                  setRequests(reqs);
-               }}
-               fleetOwner={fleetOwner}
-               onAuthRequest={() => {}}
-               onRegisterClient={async (u) => {
-                 const user = await BackendAPI.register({...u, role: UserRole.CLIENT});
-                 setCurrentUser(user);
-               }}
-               onLoginClient={async (e, p) => {
-                 const user = await BackendAPI.login({email: e, password: p});
-                 setCurrentUser(user);
-               }}
-             />
+              <ClientCatalog
+                  cars={cars}
+                  rentals={rentals}
+                  currentUser={currentUser}
+                  onSubmitRequest={async (req) => {
+                    // Use public endpoint here too to ensure ownerId is respected correctly
+                    await BackendAPI.submitBookingRequest(req);
+                    // Refresh requests list
+                    const reqs = await BackendAPI.getRequests();
+                    setRequests(reqs);
+                  }}
+                  fleetOwner={fleetOwner}
+                  onAuthRequest={() => {
+                  }}
+                  onRegisterClient={async (u) => {
+                    const user = await BackendAPI.register({...u, role: UserRole.CLIENT});
+                    setCurrentUser(user);
+                  }}
+                  onLoginClient={async (e, p) => {
+                    const user = await BackendAPI.login({email: e, password: p});
+                    setCurrentUser(user);
+                  }}
+              />
           )}
 
           {/* New View for Client Bookings */}
           {currentView === 'CLIENT_MY_BOOKINGS' && (
-            <BookingRequests
-              requests={requests}
-              cars={cars}
-              isReadOnly={true}
-            />
+              <BookingRequests
+                  requests={requests}
+                  cars={cars}
+                  isReadOnly={true}
+              />
           )}
 
           {currentView === 'SETTINGS' && (
-            <Settings
-              user={currentUser}
-              onUpdate={async (updates) => {
-                 // Optimistic update for UI
-                 setCurrentUser(prev => prev ? ({ ...prev, ...updates, settings: { ...prev.settings, ...updates.settings } }) : null);
-                 await apiAction((u) => BackendAPI.updateGlobalUser(currentUser.id, u))(updates);
-              }}
-              onNavigate={setCurrentView}
-              onLogout={() => BackendAPI.logout()}
-            />
+              <Settings
+                  user={currentUser}
+                  onUpdate={async (updates) => {
+                    // Optimistic update for UI
+                    setCurrentUser(prev => prev ? ({
+                      ...prev, ...updates,
+                      settings: {...prev.settings, ...updates.settings}
+                    }) : null);
+                    await apiAction((u) => BackendAPI.updateGlobalUser(currentUser.id, u))(updates);
+                  }}
+                  onNavigate={setCurrentView}
+                  onLogout={() => BackendAPI.logout()}
+              />
           )}
 
           {currentView === 'TARIFFS' && (
-            <Tariffs
-              user={currentUser}
-              onUpdate={apiAction((u) => BackendAPI.updateGlobalUser(currentUser.id, u))}
-              onBack={() => setCurrentView('SETTINGS')}
-            />
+              <Tariffs
+                  user={currentUser}
+                  onUpdate={apiAction((u) => BackendAPI.updateGlobalUser(currentUser.id, u))}
+                  onBack={() => setCurrentView('SETTINGS')}
+              />
           )}
         </div>
       </main>
 
       <BottomNav
-        currentView={currentView}
-        userRole={currentUser.role}
+          currentView={currentView}
+          userRole={currentUser.role}
         onNavigate={(view) => {
           setSelectedEntityId(null);
           setCurrentView(view);

@@ -17,12 +17,12 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color }) => (
-  <div className="bg-white p-5 rounded-xl border border-slate-200 flex items-center justify-between">
+  <div className="bg-white p-5 rounded-2xl border border-slate-200 flex items-center justify-between hover:border-slate-300 transition-colors">
     <div>
       <span className="text-slate-500 text-xs font-medium uppercase tracking-wide block mb-1">{title}</span>
       <div className="text-xl font-semibold text-slate-900">{value}</div>
     </div>
-    <div className={`w-10 h-10 rounded-lg flex items-center justify-center text-base bg-${color}-50 text-${color}-600`}>
+    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-base bg-${color}-50 text-${color}-600`}>
       <i className={`fas ${icon}`}></i>
     </div>
   </div>
