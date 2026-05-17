@@ -488,8 +488,8 @@ const App: React.FC = () => {
         bookingCount={bookingsCount}
       />
 
-      <main className="flex-1 overflow-y-auto pt-36 md:pt-16 pb-44 md:pb-12 md:ml-64 p-6">
-        <div className="max-w-7xl mx-auto">
+      <main className="flex-1 overflow-y-auto pt-32 md:pt-12 pb-44 md:pb-12 md:ml-64 p-6">
+        <div className="max-w-7xl mx-auto mt-4">
           {currentView === 'DASHBOARD' &&
               <Dashboard
                   cars={cars}
@@ -742,8 +742,8 @@ const App: React.FC = () => {
       <BottomNav
           currentView={currentView}
           userRole={currentUser.role}
-        onNavigate={(view) => {
-          setSelectedEntityId(null);
+          onNavigate={(view) => {
+            setSelectedEntityId(null);
           setCurrentView(view);
         }}
         requestCount={pendingRequestsCount}
