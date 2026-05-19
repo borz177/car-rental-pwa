@@ -102,22 +102,7 @@ const Dashboard: React.FC<DashboardProps> = ({ cars, rentals, clients, user, onC
 
   return (
     <div className="space-y-8 animate-fadeIn">
-      {user?.isTrial && (
-        <div className="bg-gradient-to-r from-blue-600 to-indigo-700 p-8 rounded-[2.5rem] text-white flex flex-col md:flex-row justify-between items-center shadow-xl shadow-blue-500/20 relative overflow-hidden animate-slideDown">
-           <div className="relative z-10 text-center md:text-left">
-              <h3 className="text-2xl font-black mb-2 uppercase tracking-tight">Активен пробный период</h3>
-              <p className="text-blue-100 font-medium max-w-lg">Осталось несколько дней бесплатного использования всех функций системы. Выберите тариф для бесперебойной работы.</p>
-           </div>
-           <button
-             onClick={() => window.dispatchEvent(new CustomEvent('navigate', { detail: 'TARIFFS' }))}
-             className="relative z-10 mt-6 md:mt-0 px-8 py-4 bg-white text-blue-700 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-50 transition-all shadow-lg active:scale-95"
-           >
-             Выбрать тариф
-           </button>
-           <i className="fas fa-gift absolute -right-6 -bottom-6 text-9xl text-white/10 rotate-12"></i>
-        </div>
-      )}
-
+      
       {/* Top Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         <StatCard title="Выручка (₽)" value={totalRevenue.toLocaleString()} icon="fa-wallet" color="blue" />
