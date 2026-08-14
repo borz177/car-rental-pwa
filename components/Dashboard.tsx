@@ -18,10 +18,10 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color }) => (
-  <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex items-center justify-between group hover:border-slate-200 transition-all">
+  <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between group hover:border-slate-200 transition-all">
     <div>
-      <span className="text-slate-400 text-[10px] font-black uppercase tracking-widest block mb-1">{title}</span>
-      <div className="text-2xl font-black text-slate-900">{value}</div>
+      <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-wide block mb-1">{title}</span>
+      <div className="text-2xl font-bold text-slate-900">{value}</div>
     </div>
     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl bg-${color}-50 text-${color}-500 group-hover:scale-110 transition-transform`}>
       <i className={`fas ${icon}`}></i>
@@ -101,10 +101,10 @@ const Dashboard: React.FC<DashboardProps> = ({ cars, rentals, clients, user, onC
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn">
-      
+    <div className="space-y-5 animate-fadeIn">
+
       {/* Top Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <StatCard title="Выручка (₽)" value={totalRevenue.toLocaleString()} icon="fa-wallet" color="blue" />
         <StatCard title="Загрузка" value={`${utilizationRate}%`} icon="fa-chart-line" color="emerald" />
         <StatCard title="Клиенты" value={clients.length} icon="fa-users" color="purple" />
@@ -118,13 +118,13 @@ const Dashboard: React.FC<DashboardProps> = ({ cars, rentals, clients, user, onC
              <i className="fas fa-clock"></i>
            </div>
            <div>
-             <h3 className="text-2xl font-black text-slate-900">Возвраты и долги</h3>
-             <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">Автомобили, ожидающие возврата</p>
+             <h3 className="text-2xl font-semibold text-slate-900">Возвраты и долги</h3>
+             <p className="text-slate-400 font-bold uppercase text-[10px] tracking-wide">Автомобили, ожидающие возврата</p>
            </div>
         </div>
 
         {returningRentals.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {returningRentals.map(rental => {
               const car = cars.find(c => c.id === rental.carId);
               const client = clients.find(c => c.id === rental.clientId);
@@ -134,7 +134,7 @@ const Dashboard: React.FC<DashboardProps> = ({ cars, rentals, clients, user, onC
               const overdue = getOverdueText(rental);
 
               return (
-                <div key={rental.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-lg transition-all group relative overflow-hidden">
+                <div key={rental.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-all group relative overflow-hidden">
                   <div className="flex items-center gap-5">
                     {/* Car Image */}
                     <div className="w-20 h-20 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0 shadow-inner relative">
@@ -152,15 +152,15 @@ const Dashboard: React.FC<DashboardProps> = ({ cars, rentals, clients, user, onC
                     <div className="flex-1 min-w-0">
                       <div className="flex justify-between items-start">
                         <div>
-                          <h4 className="font-black text-slate-900 truncate pr-2">{client.name}</h4>
-                          <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 inline-block px-2 py-0.5 rounded-md mt-1">{car.brand} {car.model} • {car.plate}</div>
+                          <h4 className="font-semibold text-slate-900 truncate pr-2">{client.name}</h4>
+                          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide bg-slate-50 inline-block px-2 py-0.5 rounded-md mt-1">{car.brand} {car.model} • {car.plate}</div>
                         </div>
                         <div className="text-right flex flex-col items-end">
-                           <div className="text-xs font-black text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
+                           <div className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
                              до {rental.endTime}
                            </div>
                            {overdue && (
-                             <div className="text-[9px] font-black text-white bg-rose-600 px-2 py-1 rounded-lg mt-1 shadow-sm animate-pulse flex items-center gap-1">
+                             <div className="text-[9px] font-semibold text-white bg-rose-600 px-2 py-1 rounded-lg mt-1 shadow-sm animate-pulse flex items-center gap-1">
                                <span>+{overdue}</span>
                              </div>
                            )}
@@ -171,18 +171,18 @@ const Dashboard: React.FC<DashboardProps> = ({ cars, rentals, clients, user, onC
                         <div className="flex gap-2">
                             <button
                               onClick={() => handleWhatsAppRemind(rental)}
-                              className="bg-[#25D366] text-white w-8 h-8 rounded-xl hover:bg-[#20b858] transition-all shadow-lg shadow-emerald-100 flex items-center justify-center active:scale-95"
+                              className="bg-[#25D366] text-white w-8 h-8 rounded-xl hover:bg-[#20b858] transition-all shadow-lg flex items-center justify-center active:scale-95"
                               title="Напомнить в WhatsApp"
                             >
                               <i className="fab fa-whatsapp"></i>
                             </button>
                             <button
                               onClick={() => onCompleteRental(rental)}
-                              className="bg-blue-600 text-white px-3 h-8 rounded-xl hover:bg-blue-700 transition-all shadow-lg shadow-blue-100 flex items-center justify-center gap-1 active:scale-95"
+                              className="bg-blue-600 text-white px-3 h-8 rounded-xl hover:bg-blue-700 transition-all shadow-lg flex items-center justify-center gap-1 active:scale-95"
                               title="Завершить аренду"
                             >
                               <i className="fas fa-check"></i>
-                              <span className="text-[10px] font-black uppercase">Завершить</span>
+                              <span className="text-[10px] font-semibold uppercase">Завершить</span>
                             </button>
                         </div>
                       </div>
@@ -193,11 +193,11 @@ const Dashboard: React.FC<DashboardProps> = ({ cars, rentals, clients, user, onC
             })}
           </div>
         ) : (
-          <div className="bg-white rounded-[2.5rem] p-12 text-center border border-slate-100 shadow-sm">
-            <div className="w-20 h-20 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500 text-3xl">
+          <div className="bg-white rounded-2xl p-8 text-center border border-slate-100 shadow-sm">
+            <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500 text-3xl">
               <i className="fas fa-check-circle"></i>
             </div>
-            <h4 className="text-xl font-black text-slate-900">Возвратов не ожидается</h4>
+            <h4 className="text-xl font-semibold text-slate-900">Возвратов не ожидается</h4>
             <p className="text-slate-400 text-sm font-medium mt-1">Все активные аренды продолжаются или заканчиваются в другие дни.</p>
           </div>
         )}

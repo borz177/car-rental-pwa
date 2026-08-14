@@ -28,12 +28,14 @@ import SuperadminPanel from './components/SuperadminPanel';
 import ClientCatalog from './components/ClientCatalog';
 import SubscriptionExpiredModal from './components/SubscriptionExpiredModal';
 import CompleteRentalModal from './components/CompleteRentalModal';
-import BackendAPI from './services/api';
+import BackendAPI from './services/offlineApi';
+import { flushQueue } from './services/offlineSync';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isInitializing, setIsInitializing] = useState(true);
   const [isGlobalLoading, setIsGlobalLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [currentView, setCurrentView] = useState<AppView>('DASHBOARD');
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [fleetOwner, setFleetOwner] = useState<User | null>(null);
@@ -213,6 +215,22 @@ const App: React.FC = () => {
   init();
 }, []);
 
+useEffect(() => {
+  const handleOnline = async () => {
+    setIsOnline(true);
+    await flushQueue();
+    await loadData();
+  };
+  const handleOffline = () => setIsOnline(false);
+
+  window.addEventListener('online', handleOnline);
+  window.addEventListener('offline', handleOffline);
+  return () => {
+    window.removeEventListener('online', handleOnline);
+    window.removeEventListener('offline', handleOffline);
+  };
+}, []);
+
   const handleAuthSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -334,8 +352,27 @@ const App: React.FC = () => {
 
   if (isInitializing) {
     return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+      <div className="min-h-screen bg-slate-950 flex items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(59,130,246,0.16),transparent_60%)]"></div>
+
+        <div className="relative flex flex-col items-center gap-5 animate-splash-logo">
+          <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-2xl shadow-md">
+            <i className="fas fa-car-side"></i>
+          </div>
+
+          <div className="text-center">
+            <h1 className="text-2xl font-semibold text-white tracking-tight">AutoPro AI</h1>
+            <p className="text-slate-500 font-semibold uppercase text-[10px] tracking-wide mt-1.5">Система управления автопарком</p>
+          </div>
+
+          <div className="w-36 h-1 bg-slate-800 rounded-full overflow-hidden mt-3">
+            <div className="w-1/3 h-full bg-blue-500 rounded-full animate-splash-bar"></div>
+          </div>
+        </div>
+
+        <div className="absolute bottom-8 text-slate-700 text-[10px] font-semibold uppercase tracking-wide">
+          {isOnline ? 'Загрузка' : 'Офлайн режим'}
+        </div>
       </div>
     );
   }
@@ -374,13 +411,13 @@ const App: React.FC = () => {
   if (!currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
-        <div className="bg-white rounded-[2.5rem] w-full max-w-md p-10 shadow-2xl animate-scaleIn">
+        <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-3xl shadow-lg mx-auto mb-4">
+            <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-3xl shadow-lg mx-auto mb-4">
               <i className="fas fa-car-side"></i>
             </div>
-            <h1 className="text-3xl font-black text-slate-900 tracking-tight">AutoPro AI</h1>
-            <p className="text-slate-400 font-bold uppercase text-xs tracking-widest mt-2">Система управления автопарком</p>
+            <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">AutoPro AI</h1>
+            <p className="text-slate-400 font-bold uppercase text-xs tracking-wide mt-2">Система управления автопарком</p>
           </div>
 
           <form onSubmit={handleAuthSubmit} className="space-y-4">
@@ -410,7 +447,7 @@ const App: React.FC = () => {
             <button
               type="submit"
               disabled={authLoading}
-              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20 hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center space-x-2"
+              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-semibold uppercase tracking-wide text-xs shadow-md hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center space-x-2"
             >
               {authLoading && <i className="fas fa-circle-notch animate-spin"></i>}
               <span>{authMode === 'LOGIN' ? 'Войти' : 'Создать аккаунт'}</span>
@@ -420,7 +457,7 @@ const App: React.FC = () => {
           <div className="mt-6 text-center">
             <button
               onClick={() => setAuthMode(authMode === 'LOGIN' ? 'REGISTER' : 'LOGIN')}
-              className="text-slate-400 font-bold text-xs uppercase tracking-widest hover:text-blue-600 transition-colors"
+              className="text-slate-400 font-bold text-xs uppercase tracking-wide hover:text-blue-600 transition-colors"
             >
               {authMode === 'LOGIN' ? 'Нет аккаунта? Регистрация' : 'Уже есть аккаунт? Войти'}
             </button>
@@ -468,6 +505,13 @@ const App: React.FC = () => {
       {isGlobalLoading && (
         <div className="fixed inset-0 z-[100] bg-white/40 backdrop-blur-[2px] flex items-center justify-center">
           <div className="w-14 h-14 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        </div>
+      )}
+
+      {!isOnline && (
+        <div className="fixed top-0 inset-x-0 z-[90] bg-amber-500 text-white text-xs font-semibold text-center py-1.5 px-4 flex items-center justify-center gap-2">
+          <i className="fas fa-triangle-exclamation"></i>
+          <span>Офлайн режим — изменения синхронизируются при подключении</span>
         </div>
       )}
 

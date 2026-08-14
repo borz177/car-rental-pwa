@@ -34,9 +34,9 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, userRole, onNavigate
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
             onClick={() => setShowMenu(false)}
           ></div>
-          <div className="relative bg-white rounded-[3rem] p-8 shadow-2xl animate-slideUp overflow-hidden transition-all duration-500">
+          <div className="relative bg-white rounded-2xl p-5 shadow-md animate-slideUp overflow-hidden transition-all duration-500">
             <div className="flex justify-between items-center mb-8 px-2">
-              <h3 className="font-black text-slate-900 uppercase tracking-widest text-xs">Быстрые действия</h3>
+              <h3 className="font-semibold text-slate-900 uppercase tracking-wide text-xs">Быстрые действия</h3>
               <button onClick={() => setShowMenu(false)} className="w-10 h-10 flex items-center justify-center text-slate-400 bg-slate-50 rounded-full">
                 <i className="fas fa-times"></i>
               </button>
@@ -45,11 +45,11 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, userRole, onNavigate
             <div className="grid grid-cols-3 gap-y-8 gap-x-4">
               <button onClick={() => handleNavigate('CASHBOX')} className="flex flex-col items-center space-y-3">
                 <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg"><i className="fas fa-plus-circle text-xl"></i></div>
-                <span className="text-[10px] font-black text-emerald-600 uppercase text-center">Приход</span>
+                <span className="text-[10px] font-semibold text-emerald-600 uppercase text-center">Приход</span>
               </button>
               <button onClick={() => handleNavigate('CASHBOX')} className="flex flex-col items-center space-y-3">
                 <div className="w-14 h-14 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-lg"><i className="fas fa-minus-circle text-xl"></i></div>
-                <span className="text-[10px] font-black text-rose-600 uppercase text-center">Расход</span>
+                <span className="text-[10px] font-semibold text-rose-600 uppercase text-center">Расход</span>
               </button>
               {menuItems.map(item => (
                 <button key={item.id} onClick={() => handleNavigate(item.id as AppView)} className="flex flex-col items-center space-y-3">
@@ -69,7 +69,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, userRole, onNavigate
               <NavItem id="DASHBOARD" icon="fa-chart-pie" label="Дашборд" currentView={currentView} onNavigate={handleNavigate} />
               <NavItem id="CARS" icon="fa-car" label="Автопарк" currentView={currentView} onNavigate={handleNavigate} />
               <div className="relative -top-5">
-                <button onClick={() => setShowMenu(!showMenu)} className="w-14 h-14 rounded-2xl bg-blue-600 text-white shadow-xl shadow-blue-500/40 flex items-center justify-center transform active:scale-90 transition-all duration-300">
+                <button onClick={() => setShowMenu(!showMenu)} className="w-14 h-14 rounded-2xl bg-blue-600 text-white shadow-md flex items-center justify-center transform active:scale-90 transition-all duration-300">
                   <i className={`fas ${showMenu ? 'fa-times' : 'fa-plus'} text-xl`}></i>
                 </button>
               </div>
@@ -107,7 +107,7 @@ const NavItem = ({ id, icon, label, currentView, onNavigate, badge }: any) => {
           </span>
         )}
       </div>
-      <span className="text-[10px] font-bold uppercase tracking-widest">{label}</span>
+      <span className="text-[10px] font-bold uppercase tracking-wide">{label}</span>
     </button>
   );
 };

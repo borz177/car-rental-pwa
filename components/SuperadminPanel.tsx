@@ -78,12 +78,12 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn pb-24">
+    <div className="space-y-5 animate-fadeIn pb-24">
       {/* Header & Stats */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-2">
         <div>
-          <h2 className="text-3xl font-black text-slate-900 tracking-tight">Панель Владельца</h2>
-          <p className="text-slate-400 font-bold mt-1 uppercase text-[10px] tracking-widest">Управление клиентами SaaS</p>
+          <h2 className="text-3xl font-semibold text-slate-900 tracking-tight">Панель Владельца</h2>
+          <p className="text-slate-400 font-bold mt-1 uppercase text-[10px] tracking-wide">Управление клиентами SaaS</p>
         </div>
       </div>
 
@@ -95,8 +95,8 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
       </div>
 
       {/* Filters & Table */}
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl overflow-hidden">
-        <div className="p-6 border-b border-slate-50 flex flex-col lg:flex-row justify-between items-center gap-4 bg-slate-50/50">
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-md overflow-hidden">
+        <div className="p-4 border-b border-slate-50 flex flex-col lg:flex-row justify-between items-center gap-4 bg-slate-50/50">
           <div className="flex bg-slate-200/50 p-1 rounded-2xl">
              {([
                { id: 'ALL', label: 'Все' },
@@ -107,7 +107,7 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
                <button
                  key={tab.id}
                  onClick={() => setFilterStatus(tab.id)}
-                 className={`px-6 py-2 rounded-xl text-xs font-black uppercase transition-all ${filterStatus === tab.id ? 'bg-white shadow-md text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                 className={`px-6 py-2 rounded-xl text-xs font-semibold uppercase transition-all ${filterStatus === tab.id ? 'bg-white shadow-md text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
                >
                  {tab.label}
                </button>
@@ -127,7 +127,7 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
 
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-widest">
+            <thead className="bg-slate-50 text-slate-400 text-[10px] font-semibold uppercase tracking-wide">
               <tr>
                 <th className="px-8 py-4">Клиент / Компания</th>
                 <th className="px-8 py-4">Тариф</th>
@@ -144,7 +144,7 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
                   <tr key={user.id} className="hover:bg-slate-50/50 transition-all group">
                     <td className="px-8 py-5">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-500 font-black text-sm">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-500 font-semibold text-sm">
                           {user.name.charAt(0)}
                         </div>
                         <div>
@@ -154,7 +154,7 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
                       </div>
                     </td>
                     <td className="px-8 py-5">
-                      <span className={`px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-tight border ${
+                      <span className={`px-3 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-tight border ${
                         user.activePlan === 'Премиум' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
                         user.activePlan === 'Бизнес' ? 'bg-blue-50 text-blue-600 border-blue-100' :
                         'bg-slate-50 text-slate-600 border-slate-100'
@@ -187,7 +187,7 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
                         <div className="flex justify-end space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
                           <button
                             onClick={() => setEditingUser(user)}
-                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200"
+                            className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all shadow-lg"
                           >
                             Управление
                           </button>
@@ -200,7 +200,7 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
                           </button>
                         </div>
                       )}
-                      {isSuper && <span className="text-[10px] font-black text-slate-300 uppercase">Это Вы</span>}
+                      {isSuper && <span className="text-[10px] font-semibold text-slate-300 uppercase">Это Вы</span>}
                     </td>
                   </tr>
                 );
@@ -220,19 +220,19 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
       {/* Manual Activation Modal */}
       {editingUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-          <form onSubmit={handleSubscriptionUpdate} className="bg-white rounded-[3rem] w-full max-w-lg p-10 shadow-2xl animate-scaleIn relative overflow-hidden">
+          <form onSubmit={handleSubscriptionUpdate} className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
 
-            <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tight">Настройка доступа</h2>
+            <h2 className="text-2xl font-semibold text-slate-900 mb-2 uppercase tracking-tight">Настройка доступа</h2>
             <p className="text-sm text-slate-400 font-bold mb-8 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-500"></span>
               {editingUser.name} ({editingUser.email})
             </p>
 
-            <div className="space-y-6 mb-10">
+            <div className="space-y-4 mb-10">
               {/* Plan Selector */}
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Тарифный план</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Тарифный план</label>
                 <div className="grid grid-cols-3 gap-2">
                   {PLANS.map(plan => (
                     <label key={plan} className="cursor-pointer">
@@ -253,7 +253,7 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
 
               {/* Date & Quick Actions */}
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Дата окончания</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Дата окончания</label>
                 <input
                   id="sub-until"
                   name="until"
@@ -262,9 +262,9 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
                   className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 mb-3"
                 />
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => quickSetDate(1)} className="flex-1 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-100">+1 Месяц</button>
-                  <button type="button" onClick={() => quickSetDate(3)} className="flex-1 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black uppercase hover:bg-emerald-100">+3 Месяца</button>
-                  <button type="button" onClick={() => quickSetDate(12)} className="flex-1 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-black uppercase hover:bg-indigo-100">+1 Год</button>
+                  <button type="button" onClick={() => quickSetDate(1)} className="flex-1 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-semibold uppercase hover:bg-emerald-100">+1 Месяц</button>
+                  <button type="button" onClick={() => quickSetDate(3)} className="flex-1 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-semibold uppercase hover:bg-emerald-100">+3 Месяца</button>
+                  <button type="button" onClick={() => quickSetDate(12)} className="flex-1 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-semibold uppercase hover:bg-indigo-100">+1 Год</button>
                 </div>
               </div>
 
@@ -280,7 +280,7 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
 
             <div className="flex gap-4 pt-4 border-t border-slate-100">
               <button type="button" onClick={() => setEditingUser(null)} className="flex-1 py-4 bg-white border-2 border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50">Отмена</button>
-              <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-xl shadow-blue-500/30 hover:bg-blue-700 active:scale-95 transition-all">
+              <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-md hover:bg-blue-700 active:scale-95 transition-all">
                 Сохранить доступ
               </button>
             </div>
@@ -292,10 +292,10 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
 };
 
 const StatCard = ({ title, value, icon, color }: any) => (
-  <div className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm flex items-center justify-between">
+  <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
     <div>
-      <div className="text-[10px] font-black uppercase text-slate-400 tracking-widest mb-1">{title}</div>
-      <div className="text-3xl font-black text-slate-900">{value}</div>
+      <div className="text-[10px] font-semibold uppercase text-slate-400 tracking-wide mb-1">{title}</div>
+      <div className="text-3xl font-bold text-slate-900">{value}</div>
     </div>
     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${color}`}>
       <i className={`fas ${icon}`}></i>

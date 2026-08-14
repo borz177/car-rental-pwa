@@ -48,7 +48,7 @@ const BookingRequests: React.FC<BookingRequestsProps> = ({ requests, cars, onAct
   const rejectedCount = requests.filter(r => r.status === RequestStatus.REJECTED).length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center px-2 gap-4">
         <h2 className="text-2xl font-bold text-slate-800">{isReadOnly ? 'Мои бронирования' : 'Заявки на бронирование'}</h2>
 
@@ -57,7 +57,7 @@ const BookingRequests: React.FC<BookingRequestsProps> = ({ requests, cars, onAct
           <div className="flex bg-slate-100 p-1 rounded-xl">
             <button
               onClick={() => setActiveTab('PENDING')}
-              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-2 ${
                 activeTab === 'PENDING' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
               }`}
             >
@@ -66,7 +66,7 @@ const BookingRequests: React.FC<BookingRequestsProps> = ({ requests, cars, onAct
             </button>
             <button
               onClick={() => setActiveTab('REJECTED')}
-              className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center gap-2 ${
+              className={`px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-2 ${
                 activeTab === 'REJECTED' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'
               }`}
             >
@@ -79,7 +79,7 @@ const BookingRequests: React.FC<BookingRequestsProps> = ({ requests, cars, onAct
 
       <div className="grid grid-cols-1 gap-4">
         {filteredRequests.length === 0 ? (
-          <div className="bg-white p-20 rounded-[2rem] text-center border-2 border-dashed border-slate-100">
+          <div className="bg-white p-20 rounded-2xl text-center border-2 border-dashed border-slate-100">
             <i className={`fas ${activeTab === 'REJECTED' && !isReadOnly ? 'fa-ban' : 'fa-inbox'} text-5xl text-slate-200 mb-4`}></i>
             <p className="text-slate-400 font-medium text-lg">
               {isReadOnly ? 'Список пуст' : (activeTab === 'PENDING' ? 'Новых заявок нет' : 'Нет отклоненных заявок')}
@@ -91,7 +91,7 @@ const BookingRequests: React.FC<BookingRequestsProps> = ({ requests, cars, onAct
             const cleanPhone = getCleanPhone(req.clientPhone || '');
 
             return (
-              <div key={req.id} className={`bg-white p-6 rounded-[2rem] shadow-sm border border-slate-100 flex flex-col lg:flex-row items-center justify-between gap-6 hover:shadow-md transition-all ${req.status === RequestStatus.REJECTED ? 'opacity-70 grayscale-[0.5] hover:grayscale-0 hover:opacity-100' : ''}`}>
+              <div key={req.id} className={`bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-col lg:flex-row items-center justify-between gap-4 hover:shadow-md transition-all ${req.status === RequestStatus.REJECTED ? 'opacity-70 grayscale-[0.5] hover:grayscale-0 hover:opacity-100' : ''}`}>
                 {/* Car & Client Info */}
                 <div className="flex flex-col md:flex-row items-center md:items-start space-y-4 md:space-y-0 md:space-x-6 w-full lg:w-auto">
                   <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-inner flex-shrink-0 bg-slate-100">
@@ -104,7 +104,7 @@ const BookingRequests: React.FC<BookingRequestsProps> = ({ requests, cars, onAct
                   <div className="text-center md:text-left space-y-2">
                     <div>
                         <h3 className="text-xl font-bold text-slate-900">{car?.brand || 'Авто удалено'} {car?.model}</h3>
-                        <div className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{car?.plate}</div>
+                        <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{car?.plate}</div>
                     </div>
                     {!isReadOnly && (
                       <div className="bg-slate-50 p-3 rounded-xl border border-slate-100">
@@ -131,7 +131,7 @@ const BookingRequests: React.FC<BookingRequestsProps> = ({ requests, cars, onAct
 
                 {/* Dates */}
                 <div className="flex flex-col items-center space-y-2">
-                  <div className="text-[10px] text-slate-400 uppercase font-black tracking-widest">Период аренды</div>
+                  <div className="text-[10px] text-slate-400 uppercase font-semibold tracking-wide">Период аренды</div>
                   <div className="flex items-center space-x-3 text-sm font-bold text-slate-700 bg-slate-50 px-4 py-2 rounded-xl">
                     <span>{new Date(req.startDate).toLocaleDateString()} {req.startTime}</span>
                     <i className="fas fa-arrow-right text-[10px] text-blue-400"></i>
@@ -159,7 +159,7 @@ const BookingRequests: React.FC<BookingRequestsProps> = ({ requests, cars, onAct
                       </button>
                       <button
                           onClick={() => onAction(req.id, 'APPROVE')}
-                          className="flex-1 px-4 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all text-xs uppercase tracking-wider"
+                          className="flex-1 px-4 py-3 rounded-xl bg-blue-600 text-white font-bold hover:bg-blue-700 shadow-lg transition-all text-xs uppercase tracking-wider"
                       >
                           Принять
                       </button>

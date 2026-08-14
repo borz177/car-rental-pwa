@@ -57,15 +57,15 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
   };
 
   return (
-    <div className="space-y-6 pb-24 md:pb-0 animate-fadeIn">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm">
+    <div className="space-y-4 pb-24 md:pb-0 animate-fadeIn">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
         <div>
-          <h2 className="text-3xl font-black text-slate-900">Клиенты</h2>
-          <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest mt-1">Управление базой арендаторов</p>
+          <h2 className="text-3xl font-semibold text-slate-900">Клиенты</h2>
+          <p className="text-slate-400 font-bold uppercase text-[10px] tracking-wide mt-1">Управление базой арендаторов</p>
         </div>
         <button
           onClick={() => { setEditingClient(null); setIsModalOpen(true); }}
-          className="w-full md:w-auto bg-blue-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center space-x-2 active:scale-95"
+          className="w-full md:w-auto bg-blue-600 text-white px-8 py-4 rounded-2xl font-semibold hover:bg-blue-700 shadow-md transition-all flex items-center justify-center space-x-2 active:scale-95"
         >
           <i className="fas fa-plus"></i>
           <span>Новый клиент</span>
@@ -80,12 +80,12 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Поиск по имени, телефону или email..."
-            className="w-full pl-12 pr-4 py-4 bg-white rounded-[1.5rem] font-bold text-slate-700 outline-none border border-slate-100 shadow-sm focus:border-blue-500 transition-all"
+            className="w-full pl-12 pr-4 py-4 bg-white rounded-xl font-bold text-slate-700 outline-none border border-slate-100 shadow-sm focus:border-blue-500 transition-all"
           />
         </div>
         <button
           onClick={() => setShowDebtorsOnly(!showDebtorsOnly)}
-          className={`px-6 py-4 rounded-[1.5rem] font-black uppercase text-[10px] tracking-widest transition-all shadow-sm flex items-center gap-2 ${showDebtorsOnly ? 'bg-rose-500 text-white shadow-rose-500/30' : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'}`}
+          className={`px-6 py-4 rounded-xl font-semibold uppercase text-[10px] tracking-wide transition-all shadow-sm flex items-center gap-2 ${showDebtorsOnly ? 'bg-rose-500 text-white' : 'bg-white text-slate-500 border border-slate-100 hover:bg-slate-50'}`}
         >
           <i className={`fas ${showDebtorsOnly ? 'fa-check-square' : 'fa-square'}`}></i>
           <span>Только должники</span>
@@ -94,14 +94,14 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredClients.map(client => (
-          <div key={client.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm relative group">
+          <div key={client.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm relative group">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-blue-600 text-lg font-black uppercase">
+                <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-blue-600 text-lg font-semibold uppercase">
                   {client.name.charAt(0)}
                 </div>
                 <div>
-                  <h3 className="font-black text-slate-900 tracking-tight">{client.name}</h3>
+                  <h3 className="font-semibold text-slate-900 tracking-tight">{client.name}</h3>
                   <p className="text-xs text-slate-400 font-bold">{client.phone}</p>
                 </div>
               </div>
@@ -117,7 +117,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
                 {showActions === client.id && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowActions(null)}></div>
-                    <div className="absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-2xl border border-slate-50 z-50 overflow-hidden animate-scaleIn">
+                    <div className="absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-md border border-slate-50 z-50 overflow-hidden animate-scaleIn">
                       <button onClick={() => { onSelectClient(client.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 border-b border-slate-50">
                         <i className="fas fa-info-circle w-4 text-blue-500"></i> <span>Информация</span>
                       </button>
@@ -133,24 +133,24 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
               </div>
             </div>
 
-            <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest text-slate-400 pt-4 border-t border-slate-50">
+            <div className="flex justify-between items-center text-[10px] font-semibold uppercase tracking-wide text-slate-400 pt-4 border-t border-slate-50">
               <span>Долг: <span className={client.debt && client.debt > 0 ? 'text-rose-500' : 'text-emerald-500'}>{client.debt?.toLocaleString() || 0} ₽</span></span>
               <span>{new Date(client.createdAt).toLocaleDateString()}</span>
             </div>
           </div>
         ))}
         {filteredClients.length === 0 && (
-          <div className="col-span-full py-20 bg-white rounded-[2.5rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-300">
+          <div className="col-span-full py-20 bg-white rounded-2xl border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-300">
             <i className="fas fa-users text-4xl mb-4 opacity-20"></i>
-            <p className="font-bold uppercase tracking-widest text-sm">Клиенты не найдены</p>
+            <p className="font-bold uppercase tracking-wide text-sm">Клиенты не найдены</p>
           </div>
         )}
       </div>
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-          <form onSubmit={handleSubmit} className="bg-white rounded-[2.5rem] w-full max-w-lg p-10 shadow-2xl animate-scaleIn">
-            <h2 className="text-2xl font-black mb-8">{editingClient ? 'Редактировать' : 'Новый'} клиент</h2>
+          <form onSubmit={handleSubmit} className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn">
+            <h2 className="text-2xl font-semibold mb-8">{editingClient ? 'Редактировать' : 'Новый'} клиент</h2>
             <div className="space-y-4 mb-8">
               <input name="name" defaultValue={editingClient?.name} placeholder="ФИО" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
               <div className="grid grid-cols-2 gap-4">
@@ -160,13 +160,13 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
               <input name="passport" defaultValue={editingClient?.passport} placeholder="Паспортные данные" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
               <input name="license" defaultValue={editingClient?.driverLicense} placeholder="Водительское удостоверение" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Долг (₽)</label>
-                <input name="debt" type="number" defaultValue={editingClient?.debt || 0} className="w-full p-4 bg-rose-50 rounded-2xl font-black text-rose-600 outline-none border-2 border-transparent focus:border-rose-500" />
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2">Долг (₽)</label>
+                <input name="debt" type="number" defaultValue={editingClient?.debt || 0} className="w-full p-4 bg-rose-50 rounded-2xl font-bold text-rose-600 outline-none border-2 border-transparent focus:border-rose-500" />
               </div>
             </div>
             <div className="flex gap-4">
               <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl font-bold">Отмена</button>
-              <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg shadow-blue-500/20">Сохранить</button>
+              <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-lg">Сохранить</button>
             </div>
           </form>
         </div>

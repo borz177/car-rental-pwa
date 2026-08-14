@@ -83,11 +83,11 @@ const CarCard: React.FC<{
   };
 
   return (
-    <div className="bg-white rounded-[2.5rem] overflow-hidden shadow-sm border border-slate-100 transition-all group hover:shadow-xl relative">
+    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 transition-all group hover:shadow-md relative">
       <div className="h-40 md:h-40 relative overflow-hidden bg-slate-100 cursor-pointer" onClick={handleImageClick}>
         <img src={car.images[0] || 'https://images.unsplash.com/photo-1494905998402-395d579af36f?q=80&w=400'} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
 
-        <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[9px] font-black uppercase tracking-widest shadow-lg z-10 text-white ${status.color}`}>
+        <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[9px] font-semibold uppercase tracking-wide shadow-lg z-10 text-white ${status.color}`}>
           {status.label}
         </div>
 
@@ -104,27 +104,27 @@ const CarCard: React.FC<{
       <div className="p-3">
         <div className="flex justify-between items-start mb-3">
           <div>
-            <h3 className="text-base md:text-lg font-black text-slate-900 tracking-tight">{car.brand} {car.model}</h3>
-            <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{car.plate} • {car.year} г.</p>
+            <h3 className="text-base md:text-lg font-semibold text-slate-900 tracking-tight">{car.brand} {car.model}</h3>
+            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{car.plate} • {car.year} г.</p>
           </div>
           <div className="text-right">
-            <div className="text-blue-600 font-black text-base md:text-lg leading-none">{car.pricePerDay.toLocaleString()} ₽</div>
-            <div className="text-[8px] text-slate-400 uppercase font-black tracking-widest">в сутки</div>
+            <div className="text-blue-600 font-bold text-base md:text-lg leading-none">{car.pricePerDay.toLocaleString()} ₽</div>
+            <div className="text-[8px] text-slate-400 uppercase font-semibold tracking-wide">в сутки</div>
           </div>
         </div>
 
         <div className="flex items-center gap-2">
           {status.label === 'Свободен' ? (
             <div className="flex-1 flex gap-2">
-              <button onClick={onIssue} disabled={!canCreateBooking} className="flex-1 bg-blue-600 text-white py-2.5 rounded-2xl font-black text-[10px] uppercase transition-all hover:bg-blue-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">Оформить</button>
-              <button onClick={onReserve} disabled={!canCreateBooking} className="flex-1 bg-amber-500 text-white py-2.5 rounded-2xl font-black text-[10px] uppercase transition-all hover:bg-amber-600 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">Бронь</button>
+              <button onClick={onIssue} disabled={!canCreateBooking} className="flex-1 bg-blue-600 text-white py-2.5 rounded-2xl font-semibold text-[10px] uppercase transition-all hover:bg-blue-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">Оформить</button>
+              <button onClick={onReserve} disabled={!canCreateBooking} className="flex-1 bg-amber-500 text-white py-2.5 rounded-2xl font-semibold text-[10px] uppercase transition-all hover:bg-amber-600 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">Бронь</button>
             </div>
           ) : (
             <div className="flex-1 flex gap-2">
-              <button onClick={handleWhatsAppClick} className="flex-1 bg-emerald-500 text-white py-2.5 rounded-2xl font-black text-[10px] uppercase transition-all hover:bg-emerald-600 shadow-lg flex items-center justify-center gap-2">
+              <button onClick={handleWhatsAppClick} className="flex-1 bg-emerald-500 text-white py-2.5 rounded-2xl font-semibold text-[10px] uppercase transition-all hover:bg-emerald-600 shadow-lg flex items-center justify-center gap-2">
                 <i className="fab fa-whatsapp"></i><span>Написать</span>
               </button>
-              <button onClick={onReserve} disabled={!canCreateBooking} className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-2xl font-black text-[10px] uppercase hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">Бронь</button>
+              <button onClick={onReserve} disabled={!canCreateBooking} className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-2xl font-semibold text-[10px] uppercase hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">Бронь</button>
             </div>
           )}
           <div className="relative">
@@ -134,7 +134,7 @@ const CarCard: React.FC<{
             {showMenu && (
               <>
                 <div className="fixed inset-0 z-20" onClick={() => setShowMenu(false)}></div>
-                <div className="absolute bottom-14 right-0 w-48 bg-white rounded-2xl shadow-2xl border border-slate-50 z-30 py-1 animate-scaleIn">
+                <div className="absolute bottom-14 right-0 w-48 bg-white rounded-2xl shadow-md border border-slate-50 z-30 py-1 animate-scaleIn">
                   <button onClick={() => { onShowInfo(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600"><i className="fas fa-info-circle text-blue-500 w-4"></i><span>Инфо</span></button>
                   <button onClick={() => { onInfo(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600"><i className="fas fa-chart-line text-indigo-500 w-4"></i><span>Отчет</span></button>
                   {canEdit && <button onClick={() => { onEdit(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-slate-50 flex items-center space-x-3 text-amber-500"><i className="fas fa-edit w-4"></i><span>Изменить</span></button>}
@@ -239,9 +239,9 @@ const CarList: React.FC<CarListProps> = ({
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn pb-24 md:pb-0">
-      <div className="bg-white p-6 md:p-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col gap-6">
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+    <div className="space-y-4 animate-fadeIn pb-24 md:pb-0">
+      <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-4">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">
               {[
@@ -254,7 +254,7 @@ const CarList: React.FC<CarListProps> = ({
                 <button
                   key={f.id}
                   onClick={() => setStatusFilter(f.id)}
-                  className={`px-4 py-2 rounded-xl text-[9px] font-black uppercase transition-all flex items-center gap-2 ${statusFilter === f.id ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400'}`}
+                  className={`px-4 py-2 rounded-xl text-[9px] font-semibold uppercase transition-all flex items-center gap-2 ${statusFilter === f.id ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400'}`}
                 >
                   <span>{f.label}</span>
                   <span className={`px-2 py-0.5 text-[10px] rounded-md ${statusFilter === f.id ? 'bg-white/20' : 'bg-slate-200'}`}>{f.count}</span>
@@ -268,7 +268,7 @@ const CarList: React.FC<CarListProps> = ({
               onClick={() => {
                 setEditing(null); setTempImages([]); setIsModalOpen(true);
               }}
-              className="w-full lg:w-auto px-8 py-5 rounded-[1.8rem] font-black shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700 shadow-blue-500/20"
+              className="w-full lg:w-auto px-8 py-5 rounded-xl font-semibold shadow-md transition-all active:scale-95 flex items-center justify-center gap-2 bg-blue-600 text-white hover:bg-blue-700"
             >
               <i className="fas fa-plus"></i>
               <span>Добавить авто</span>
@@ -277,7 +277,7 @@ const CarList: React.FC<CarListProps> = ({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredCars.map((car) => {
           const rental = getActiveRental(car.id);
           const client = getClientData(rental?.clientId);
@@ -308,9 +308,9 @@ const CarList: React.FC<CarListProps> = ({
 
       {confirmingOilChange && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
-          <div className="bg-white rounded-[2rem] p-8 w-full max-w-sm text-center animate-scaleIn">
-            <div className="w-16 h-16 bg-emerald-50 text-emerald-500 mx-auto rounded-2xl flex items-center justify-center text-2xl mb-4"><i className="fas fa-oil-can"></i></div>
-            <h3 className="font-black text-lg mb-2">Зафиксировать замену масла?</h3>
+          <div className="bg-white rounded-2xl p-8 w-full max-w-sm text-center animate-scaleIn">
+            <div className="w-12 h-12 bg-emerald-50 text-emerald-500 mx-auto rounded-2xl flex items-center justify-center text-2xl mb-4"><i className="fas fa-oil-can"></i></div>
+            <h3 className="font-semibold text-lg mb-2">Зафиксировать замену масла?</h3>
             <p className="text-sm text-slate-500 mb-6">Пробег последней замены будет обновлен на текущий: <b className="text-slate-800">{confirmingOilChange.mileage.toLocaleString()} км</b>.</p>
             <div className="flex gap-2">
               <button onClick={() => setConfirmingOilChange(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold">Отмена</button>
@@ -322,9 +322,9 @@ const CarList: React.FC<CarListProps> = ({
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm overflow-y-auto">
-          <form onSubmit={handleSubmit} className="bg-white rounded-[3rem] w-full max-w-2xl p-8 md:p-12 shadow-2xl my-auto animate-scaleIn">
-            <h2 className="text-3xl font-black text-slate-900 uppercase mb-8">{editing ? 'Редактировать' : 'Новое'} авто</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <form onSubmit={handleSubmit} className="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-8 shadow-md my-auto animate-scaleIn">
+            <h2 className="text-3xl font-semibold text-slate-900 uppercase mb-8">{editing ? 'Редактировать' : 'Новое'} авто</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 <div className="space-y-4">
                   <input name="brand" defaultValue={editing?.brand} required placeholder="Марка" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
                   <input name="model" defaultValue={editing?.model} required placeholder="Модель" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
@@ -334,7 +334,7 @@ const CarList: React.FC<CarListProps> = ({
                   </div>
                    <input name="mileage" type="number" defaultValue={editing?.mileage} placeholder="Пробег (км)" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
                   <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 space-y-3">
-                     <div className="text-[10px] font-black text-indigo-400 uppercase tracking-widest ml-1">Данные инвестора</div>
+                     <div className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wide ml-1">Данные инвестора</div>
                      <select name="investorId" defaultValue={editing?.investorId || ''} className="w-full p-3 bg-white rounded-xl font-bold border border-indigo-100 outline-none">
                         <option value="">Собственный автопарк</option>
                         {investors.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
@@ -347,20 +347,20 @@ const CarList: React.FC<CarListProps> = ({
                 </div>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <input name="pricePerDay" type="number" defaultValue={editing?.pricePerDay} required placeholder="Цена сутки" className="p-4 bg-blue-50 rounded-2xl font-black text-blue-600 outline-none" />
+                    <input name="pricePerDay" type="number" defaultValue={editing?.pricePerDay} required placeholder="Цена сутки" className="p-4 bg-blue-50 rounded-2xl font-bold text-blue-600 outline-none" />
                     <input name="pricePerHour" type="number" defaultValue={editing?.pricePerHour} required placeholder="Цена час" className="p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
                   </div>
                   <select name="status" defaultValue={editing?.status || CarStatus.AVAILABLE} className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none">
                     {Object.values(CarStatus).map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                   <div className="p-4 bg-amber-50/50 rounded-2xl border border-amber-100 space-y-3">
-                     <div className="text-[10px] font-black text-amber-500 uppercase tracking-widest ml-1">Замена масла</div>
+                     <div className="text-[10px] font-semibold text-amber-500 uppercase tracking-wide ml-1">Замена масла</div>
                      <input name="lastOilChangeMileage" type="number" defaultValue={editing?.lastOilChangeMileage} placeholder="Пробег последней замены" className="w-full p-3 bg-white rounded-xl font-bold border border-amber-100 outline-none" />
                      <input name="oilChangeInterval" type="number" defaultValue={editing?.oilChangeInterval || 10000} placeholder="Интервал замены (км)" className="w-full p-3 bg-white rounded-xl font-bold border border-amber-100 outline-none" />
                   </div>
                   <div className="aspect-video bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:border-blue-400 hover:text-blue-500 transition-all" onClick={() => fileInputRef.current?.click()}>
                      <i className="fas fa-camera text-2xl"></i>
-                     <span className="text-[10px] font-black uppercase mt-2">{tempImages.length > 0 ? `${tempImages.length} фото` : 'Добавить фото'}</span>
+                     <span className="text-[10px] font-semibold uppercase mt-2">{tempImages.length > 0 ? `${tempImages.length} фото` : 'Добавить фото'}</span>
                   </div>
                   <input ref={fileInputRef} type="file" multiple accept="image/*" className="hidden" onChange={async (e) => {
                     const files = e.target.files; if (!files) return;
@@ -370,8 +370,8 @@ const CarList: React.FC<CarListProps> = ({
                 </div>
               </div>
             <div className="flex gap-4">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-5 bg-slate-100 rounded-2xl font-black text-slate-500 uppercase text-[10px]">Отмена</button>
-              <button type="submit" className="flex-1 py-5 bg-blue-600 text-white rounded-2xl font-black uppercase text-[10px] shadow-xl">Сохранить</button>
+              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-5 bg-slate-100 rounded-2xl font-semibold text-slate-500 uppercase text-[10px]">Отмена</button>
+              <button type="submit" className="flex-1 py-5 bg-blue-600 text-white rounded-2xl font-semibold uppercase text-[10px] shadow-md">Сохранить</button>
             </div>
           </form>
         </div>
@@ -413,20 +413,20 @@ const CarInfoModal: React.FC<{data: {car: Car, rental?: Rental, client?: Client}
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fadeIn">
-      <div className="bg-white rounded-[3rem] w-full max-w-lg p-10 shadow-2xl animate-scaleIn relative">
+      <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn relative">
         <button onClick={onClose} className="absolute top-8 right-8 text-slate-300 hover:text-slate-900 transition-all">
           <i className="fas fa-times"></i>
         </button>
-        <h2 className="text-2xl font-black text-slate-900 mb-2">{car.brand} {car.model}</h2>
-        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">{car.plate}</p>
+        <h2 className="text-2xl font-semibold text-slate-900 mb-2">{car.brand} {car.model}</h2>
+        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-wide">{car.plate}</p>
 
         {rental ? (
           <div className="mt-8 space-y-4">
-            <div className={`p-6 rounded-3xl border-2 ${rental.isReservation ? 'bg-amber-50 border-amber-100' : 'bg-blue-50 border-blue-100'}`}>
-              <div className={`text-[10px] font-black uppercase tracking-widest mb-2 ${rental.isReservation ? 'text-amber-600' : 'text-blue-600'}`}>
+            <div className={`p-6 rounded-xl border-2 ${rental.isReservation ? 'bg-amber-50 border-amber-100' : 'bg-blue-50 border-blue-100'}`}>
+              <div className={`text-[10px] font-semibold uppercase tracking-wide mb-2 ${rental.isReservation ? 'text-amber-600' : 'text-blue-600'}`}>
                 {rental.isReservation ? 'Забронировано' : 'В аренде'}
               </div>
-              <div className="text-xl font-black text-slate-900">{client?.name || 'Клиент не найден'}</div>
+              <div className="text-xl font-semibold text-slate-900">{client?.name || 'Клиент не найден'}</div>
               <div className="text-sm font-medium text-slate-400">{client?.phone}</div>
             </div>
             <div className="grid grid-cols-2 gap-4">
@@ -440,24 +440,24 @@ const CarInfoModal: React.FC<{data: {car: Car, rental?: Rental, client?: Client}
               </div>
             </div>
             {overdueInfo && (
-              <div className="p-5 bg-rose-50 border-2 border-rose-100 rounded-3xl animate-pulse">
+              <div className="p-5 bg-rose-50 border-2 border-rose-100 rounded-xl animate-pulse">
                 <div className="flex justify-between items-center">
                   <div>
-                     <div className="text-xs font-black text-rose-600 uppercase">Просрочка</div>
-                     <div className="text-lg font-black text-rose-800">{overdueInfo.text}</div>
+                     <div className="text-xs font-semibold text-rose-600 uppercase">Просрочка</div>
+                     <div className="text-lg font-bold text-rose-800">{overdueInfo.text}</div>
                   </div>
                   <div className="text-right">
-                     <div className="text-xs font-black text-rose-600 uppercase">Долг</div>
-                     <div className="text-lg font-black text-rose-800">{overdueInfo.amount.toLocaleString()} ₽</div>
+                     <div className="text-xs font-semibold text-rose-600 uppercase">Долг</div>
+                     <div className="text-lg font-bold text-rose-800">{overdueInfo.amount.toLocaleString()} ₽</div>
                   </div>
                 </div>
               </div>
             )}
           </div>
         ) : (
-          <div className="mt-8 p-8 bg-emerald-50 border-2 border-emerald-100 rounded-3xl text-center">
+          <div className="mt-8 p-8 bg-emerald-50 border-2 border-emerald-100 rounded-xl text-center">
             <i className="fas fa-check-circle text-3xl text-emerald-500 mb-3"></i>
-            <p className="font-black text-lg text-emerald-800">Автомобиль свободен</p>
+            <p className="font-semibold text-lg text-emerald-800">Автомобиль свободен</p>
           </div>
         )}
         <button onClick={onClose} className="w-full mt-8 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold">Закрыть</button>
@@ -491,7 +491,7 @@ const ImageViewerModal: React.FC<{images: string[], onClose: () => void}> = ({ i
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md animate-fadeIn" onClick={onClose}>
-      <img src={images[currentIndex]} alt="Car view" className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg shadow-2xl" onClick={e => e.stopPropagation()} />
+      <img src={images[currentIndex]} alt="Car view" className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg shadow-md" onClick={e => e.stopPropagation()} />
 
       <button onClick={onClose} className="absolute top-5 right-5 w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20 transition-all text-lg">
         <i className="fas fa-times"></i>

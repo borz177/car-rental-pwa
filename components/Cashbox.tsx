@@ -97,49 +97,49 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
   const expenseCategories = ['Мойка', 'Ремонт', 'Замена масла', 'Оклад', 'Инвестиции', 'Аренда', 'Прочее'];
 
   return (
-    <div className="space-y-8 animate-fadeIn">
+    <div className="space-y-5 animate-fadeIn">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h2 className="text-3xl font-black text-slate-900">Касса и финансы</h2>
+        <h2 className="text-3xl font-semibold text-slate-900">Касса и финансы</h2>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="w-full md:w-auto bg-blue-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all flex items-center justify-center space-x-2"
+          className="w-full md:w-auto bg-blue-600 text-white px-8 py-4 rounded-2xl font-semibold hover:bg-blue-700 shadow-md transition-all flex items-center justify-center space-x-2"
         >
           <i className="fas fa-plus"></i>
           <span>Создать операцию</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div className="bg-slate-900 p-8 rounded-[2.5rem] text-white shadow-xl relative overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-slate-900 p-5 rounded-2xl text-white shadow-md relative overflow-hidden">
           <div className="relative z-10">
-            <div className="text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Общий баланс</div>
-            <div className="text-4xl font-black">{balance.toLocaleString()} ₽</div>
+            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Общий баланс</div>
+            <div className="text-4xl font-bold">{balance.toLocaleString()} ₽</div>
           </div>
           <i className="fas fa-coins absolute -right-6 -bottom-6 text-7xl text-white/5 rotate-12"></i>
         </div>
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-          <div className="text-xs font-black text-emerald-500 uppercase tracking-widest mb-2">Доход (мес)</div>
-          <div className="text-4xl font-black text-emerald-600">+{incomeMonth.toLocaleString()} ₽</div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-2">Доход (мес)</div>
+          <div className="text-4xl font-bold text-emerald-600">+{incomeMonth.toLocaleString()} ₽</div>
         </div>
-        <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 shadow-sm">
-          <div className="text-xs font-black text-rose-500 uppercase tracking-widest mb-2">Расход (мес)</div>
-          <div className="text-4xl font-black text-rose-600">-{expensesMonth.toLocaleString()} ₽</div>
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+          <div className="text-xs font-semibold text-rose-500 uppercase tracking-wide mb-2">Расход (мес)</div>
+          <div className="text-4xl font-bold text-rose-600">-{expensesMonth.toLocaleString()} ₽</div>
         </div>
       </div>
 
-      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-          <h3 className="text-xl font-black text-slate-800">История транзакций</h3>
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        <div className="p-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+          <h3 className="text-xl font-semibold text-slate-800">История транзакций</h3>
           <button className="text-blue-600 font-bold text-sm hover:bg-blue-50 px-4 py-2 rounded-xl transition-all">Экспорт в CSV</button>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead className="bg-slate-50/50">
               <tr>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Дата</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Описание</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Категория</th>
-                <th className="px-8 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Сумма</th>
+                <th className="px-8 py-4 text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Дата</th>
+                <th className="px-8 py-4 text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Описание</th>
+                <th className="px-8 py-4 text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Категория</th>
+                <th className="px-8 py-4 text-[10px] font-semibold text-slate-400 uppercase tracking-wide text-right">Сумма</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
@@ -150,14 +150,14 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
                     <div className="font-bold text-slate-900">{t.description || <span className="text-slate-300 italic font-medium">Без описания</span>}</div>
                   </td>
                   <td className="px-8 py-5">
-                    <span className={`px-4 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-tight ${
+                    <span className={`px-4 py-1.5 rounded-xl text-[10px] font-semibold uppercase tracking-tight ${
                       t.type === TransactionType.INCOME ? 'bg-emerald-50 text-emerald-700' : 
                       t.type === TransactionType.EXPENSE ? 'bg-rose-50 text-rose-700' : 'bg-indigo-50 text-indigo-700'
                     }`}>
                       {t.category}
                     </span>
                   </td>
-                  <td className={`px-8 py-5 text-right font-black text-xl ${
+                  <td className={`px-8 py-5 text-right font-bold text-xl ${
                     t.type === TransactionType.INCOME ? 'text-emerald-600' : 'text-rose-600'
                   }`}>
                     {t.type === TransactionType.INCOME ? '+' : '-'}{t.amount.toLocaleString()} ₽
@@ -171,7 +171,7 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
-          <form onSubmit={handleSubmit} className="bg-white rounded-[3rem] w-full max-w-lg p-10 shadow-2xl animate-scaleIn relative">
+          <form onSubmit={handleSubmit} className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn relative">
             <button
               type="button"
               onClick={() => setIsModalOpen(false)}
@@ -180,20 +180,20 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
               <i className="fas fa-times"></i>
             </button>
 
-            <h2 className="text-2xl font-black text-slate-900 mb-8">Новая операция</h2>
+            <h2 className="text-2xl font-semibold text-slate-900 mb-8">Новая операция</h2>
 
-            <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-[1.5rem] mb-8">
+            <div className="grid grid-cols-2 gap-2 p-1.5 bg-slate-100 rounded-xl mb-8">
               <button
                 type="button"
                 onClick={() => { setTxType(TransactionType.INCOME); setSelectedClientId(''); setSearchClient(''); setSelectedCategory(''); setSelectedCarId(''); }}
-                className={`py-3.5 rounded-xl font-black text-xs uppercase transition-all ${txType === TransactionType.INCOME ? 'bg-white shadow-md text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
+                className={`py-3.5 rounded-xl font-semibold text-xs uppercase transition-all ${txType === TransactionType.INCOME ? 'bg-white shadow-md text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 Приход
               </button>
               <button
                 type="button"
                 onClick={() => { setTxType(TransactionType.EXPENSE); setSelectedClientId(''); setSearchClient(''); setSelectedCategory(''); setSelectedCarId(''); }}
-                className={`py-3.5 rounded-xl font-black text-xs uppercase transition-all ${txType === TransactionType.EXPENSE ? 'bg-white shadow-md text-rose-600' : 'text-slate-400 hover:text-slate-600'}`}
+                className={`py-3.5 rounded-xl font-semibold text-xs uppercase transition-all ${txType === TransactionType.EXPENSE ? 'bg-white shadow-md text-rose-600' : 'text-slate-400 hover:text-slate-600'}`}
               >
                 Расход
               </button>
@@ -202,7 +202,7 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
             <div className="space-y-5 mb-10">
               {txType === TransactionType.INCOME && (
                 <div className="relative">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Клиент (поиск по списку)</label>
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Клиент (поиск по списку)</label>
                   <div
                     onClick={() => setShowClientList(true)}
                     className="w-full p-5 bg-slate-50 rounded-2xl font-bold border-2 border-transparent cursor-pointer flex justify-between items-center hover:bg-slate-100 transition-all text-slate-700"
@@ -215,9 +215,9 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
 
                   {showClientList && (
                     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-                      <div className="bg-white rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl animate-scaleIn flex flex-col max-h-[80vh]">
+                      <div className="bg-white rounded-2xl w-full max-w-md p-8 shadow-md animate-scaleIn flex flex-col max-h-[80vh]">
                         <div className="flex justify-between items-center mb-6">
-                          <h4 className="font-black text-slate-900 uppercase tracking-tight text-xl">Выбор клиента</h4>
+                          <h4 className="font-semibold text-slate-900 uppercase tracking-tight text-xl">Выбор клиента</h4>
                           <button type="button" onClick={() => setShowClientList(false)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:bg-slate-50 rounded-full">
                             <i className="fas fa-times"></i>
                           </button>
@@ -253,12 +253,12 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
               )}
 
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Сумма (₽)</label>
-                <input name="amount" type="number" required placeholder="0" className="w-full p-5 bg-slate-50 rounded-2xl font-black text-3xl text-slate-900 outline-none border-2 border-transparent focus:border-blue-500" />
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Сумма (₽)</label>
+                <input name="amount" type="number" required placeholder="0" className="w-full p-5 bg-slate-50 rounded-2xl font-bold text-3xl text-slate-900 outline-none border-2 border-transparent focus:border-blue-500" />
               </div>
 
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Категория</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Категория</label>
                 {txType === TransactionType.INCOME ? (
                   selectedClientId && clientDebtRentals.length > 0 ? (
                     <select name="category" required className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900">
@@ -290,7 +290,7 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
                 <>
                   {selectedCategory === 'Оклад' && (
                     <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Сотрудник</label>
+                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Сотрудник</label>
                       <select name="staff_name" required className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900">
                         <option value="">-- Выберите сотрудника --</option>
                         {staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
@@ -300,7 +300,7 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
 
                   {selectedCategory === 'Инвестиции' && (
                     <div>
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Инвестор</label>
+                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Инвестор</label>
                       <select
                         value={selectedInvestorId}
                         onChange={(e) => setSelectedInvestorId(e.target.value)}
@@ -316,7 +316,7 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
                   {/* CAR SELECTION for Maintenance Categories */}
                   {carRelatedCategories.includes(selectedCategory) && (
                     <div className="animate-slideDown">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Выберите автомобиль</label>
+                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Выберите автомобиль</label>
                       <select
                         value={selectedCarId}
                         onChange={(e) => setSelectedCarId(e.target.value)}
@@ -336,12 +336,12 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
               )}
 
               <div>
-                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2 mb-1 block">Описание (необязательно)</label>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Описание (необязательно)</label>
                 <input name="description" placeholder="Детали для истории" className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
               </div>
             </div>
 
-            <button type="submit" className="w-full py-5 bg-blue-600 text-white rounded-[1.8rem] font-black text-lg shadow-xl shadow-blue-500/30 hover:bg-blue-700 transition-all active:scale-[0.98]">
+            <button type="submit" className="w-full py-5 bg-blue-600 text-white rounded-xl font-semibold text-lg shadow-md hover:bg-blue-700 transition-all active:scale-[0.98]">
               Провести в кассе
             </button>
           </form>

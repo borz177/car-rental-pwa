@@ -16,7 +16,7 @@ const SubscriptionExpiredModal: React.FC<SubscriptionExpiredModalProps> = ({
 }) => {
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fadeIn">
-      <div className="bg-white rounded-[2.5rem] w-full max-w-md p-8 shadow-2xl animate-scaleIn relative overflow-hidden text-center border border-slate-200">
+      <div className="bg-white rounded-2xl w-full max-w-md p-8 shadow-md animate-scaleIn relative overflow-hidden text-center border border-slate-200">
 
         <button
           onClick={onClose}
@@ -31,11 +31,11 @@ const SubscriptionExpiredModal: React.FC<SubscriptionExpiredModalProps> = ({
         <div className="absolute -bottom-10 -left-10 w-32 h-32 bg-orange-50 rounded-full blur-2xl opacity-50 pointer-events-none"></div>
 
         <div className="relative z-10 pt-4">
-          <div className="w-20 h-20 mx-auto mb-6 bg-rose-50 rounded-[1.5rem] flex items-center justify-center shadow-inner">
+          <div className="w-14 h-14 mx-auto mb-6 bg-rose-50 rounded-xl flex items-center justify-center shadow-inner">
             <i className="fas fa-lock text-3xl text-rose-500"></i>
           </div>
 
-          <h2 className="text-2xl font-black text-slate-900 mb-3 tracking-tight">
+          <h2 className="text-2xl font-semibold text-slate-900 mb-3 tracking-tight">
             {title}
           </h2>
 
@@ -46,7 +46,7 @@ const SubscriptionExpiredModal: React.FC<SubscriptionExpiredModalProps> = ({
           <div className="space-y-3">
             <button
               onClick={onRenew}
-              className="w-full py-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:shadow-xl hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
+              className="w-full py-4 bg-gradient-to-r from-slate-900 to-slate-800 text-white rounded-2xl font-semibold uppercase tracking-wide text-xs hover:shadow-md hover:scale-[1.02] transition-all flex items-center justify-center gap-3"
             >
               <span>Выбрать тариф</span>
               <i className="fas fa-arrow-right"></i>
@@ -54,7 +54,7 @@ const SubscriptionExpiredModal: React.FC<SubscriptionExpiredModalProps> = ({
 
             <button
               onClick={onClose}
-              className="w-full py-4 bg-transparent text-slate-400 font-bold uppercase tracking-widest text-[10px] hover:text-slate-600 transition-colors"
+              className="w-full py-4 bg-transparent text-slate-400 font-bold uppercase tracking-wide text-[10px] hover:text-slate-600 transition-colors"
             >
               Отмена
             </button>

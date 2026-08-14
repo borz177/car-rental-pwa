@@ -35,7 +35,7 @@ const CompleteRentalModal: React.FC<CompleteRentalModalProps> = ({ rental, car, 
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-      <div className="bg-white rounded-[3rem] w-full max-w-lg p-10 shadow-2xl animate-scaleIn relative">
+      <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn relative">
         <button
           onClick={onClose}
           className="absolute top-8 right-8 text-slate-300 hover:text-slate-900 transition-all"
@@ -43,14 +43,14 @@ const CompleteRentalModal: React.FC<CompleteRentalModalProps> = ({ rental, car, 
           <i className="fas fa-times"></i>
         </button>
 
-        <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tight">Завершение аренды</h2>
+        <h2 className="text-2xl font-semibold text-slate-900 mb-2 uppercase tracking-tight">Завершение аренды</h2>
         <p className="text-sm font-medium text-slate-400 mb-8">
           Вы уверены, что хотите завершить договор №{rental.contractNumber}?
         </p>
 
-        <div className="space-y-6">
+        <div className="space-y-4">
           {/* Details */}
-          <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-4">
+          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-4">
             <div className="flex items-center space-x-4">
               <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
                 <i className="fas fa-car"></i>
@@ -72,21 +72,21 @@ const CompleteRentalModal: React.FC<CompleteRentalModalProps> = ({ rental, car, 
           </div>
 
           {/* Payment Section */}
-          <div className="bg-emerald-50 p-6 rounded-3xl border-2 border-emerald-100">
+          <div className="bg-emerald-50 p-4 rounded-xl border-2 border-emerald-100">
             <div className="flex justify-between items-center">
               <div>
-                <label className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1 block">
+                <label className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wide mb-1 block">
                   Сумма к оприходованию (₽)
                 </label>
                 <input
                   type="number"
                   value={amountReceived}
                   onChange={(e) => setAmountReceived(Number(e.target.value))}
-                  className="w-full bg-transparent text-4xl font-black text-emerald-700 outline-none p-0 border-none"
+                  className="w-full bg-transparent text-4xl font-bold text-emerald-700 outline-none p-0 border-none"
                 />
               </div>
               <div className="text-right">
-                <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Долг по сделке</div>
+                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Долг по сделке</div>
                 <div className="text-lg font-bold text-slate-500">{amountOwed.toLocaleString()} ₽</div>
               </div>
             </div>
@@ -103,7 +103,7 @@ const CompleteRentalModal: React.FC<CompleteRentalModalProps> = ({ rental, car, 
           </button>
           <button
             onClick={handleConfirm}
-            className="flex-1 py-5 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-sm shadow-xl shadow-blue-500/30 hover:bg-blue-700 active:scale-95 transition-all"
+            className="flex-1 py-5 bg-blue-600 text-white rounded-2xl font-semibold uppercase tracking-wide text-sm shadow-md hover:bg-blue-700 active:scale-95 transition-all"
           >
             Подтвердить
           </button>

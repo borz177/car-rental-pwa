@@ -56,7 +56,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onLogout, us
           <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold shadow-inner ${isSuperadmin ? 'bg-gradient-to-tr from-amber-400 to-amber-600' : 'bg-gradient-to-tr from-blue-500 to-indigo-500'}`}>{userName.charAt(0)}</div>
           <div className="flex-1 overflow-hidden">
             <p className="text-sm font-semibold truncate text-white">{userName}</p>
-            <p className="text-[10px] text-slate-500 uppercase tracking-widest">{userRole}</p>
+            <p className="text-[10px] text-slate-500 uppercase tracking-wide">{userRole}</p>
           </div>
           <i className={`fas fa-chevron-down text-slate-500 text-xs transition-transform ${showUserMenu ? 'rotate-180' : ''}`}></i>
         </button>
@@ -64,7 +64,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onLogout, us
         {showUserMenu && (
           <>
             <div className="fixed inset-0 z-40" onClick={() => setShowUserMenu(false)}></div>
-            <div className="absolute top-full left-4 right-4 mt-2 bg-slate-700 rounded-2xl shadow-2xl z-50 overflow-hidden animate-scaleIn py-2">
+            <div className="absolute top-full left-4 right-4 mt-2 bg-slate-700 rounded-2xl shadow-md z-50 overflow-hidden animate-scaleIn py-2">
               <button
                 onClick={() => { onNavigate('SETTINGS'); setShowUserMenu(false); }}
                 className="w-full px-4 py-3 text-left text-sm font-medium hover:bg-slate-600 text-slate-300 flex items-center space-x-3"
@@ -85,12 +85,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onLogout, us
       <nav className="flex-1 mt-4 px-4 space-y-1 overflow-y-auto custom-scrollbar">
         {user?.isTrial && trialDays > 0 && (
           <div className="mb-4 p-4 bg-blue-600/10 border border-blue-600/30 rounded-2xl">
-             <div className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2 flex items-center justify-between">
+             <div className="text-[10px] font-semibold text-blue-400 uppercase tracking-wide mb-2 flex items-center justify-between">
                <span>Пробный период</span>
                <i className="fas fa-info-circle"></i>
              </div>
              <div className="text-sm font-bold text-white mb-2">Осталось {trialDays} дн.</div>
-             <button onClick={() => onNavigate('TARIFFS')} className="w-full py-2 bg-blue-600 text-white text-[10px] font-black uppercase tracking-widest rounded-xl hover:bg-blue-700 transition-all shadow-lg">Купить тариф</button>
+             <button onClick={() => onNavigate('TARIFFS')} className="w-full py-2 bg-blue-600 text-white text-[10px] font-semibold uppercase tracking-wide rounded-xl hover:bg-blue-700 transition-all shadow-lg">Купить тариф</button>
           </div>
         )}
 
@@ -157,7 +157,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onLogout, us
       </nav>
 
       <div className="p-4">
-        <div className="text-center text-[9px] text-slate-600 font-bold uppercase tracking-widest">
+        <div className="text-center text-[9px] text-slate-600 font-bold uppercase tracking-wide">
            AutoPro AI &copy; 2024
         </div>
       </div>

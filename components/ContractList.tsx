@@ -168,7 +168,7 @@ const ContractList: React.FC<ContractListProps> = ({
         {showActions === rent.id && (
           <>
             <div className="fixed inset-0 z-40 md:absolute md:inset-auto" onClick={() => setShowActions(null)} />
-            <div className="fixed bottom-0 left-0 right-0 md:absolute md:bottom-auto md:left-auto md:right-0 md:top-full md:w-56 bg-white rounded-t-3xl md:rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden animate-slideUp">
+            <div className="fixed bottom-0 left-0 right-0 md:absolute md:bottom-auto md:left-auto md:right-0 md:top-full md:w-56 bg-white rounded-t-xl md:rounded-2xl shadow-md border border-slate-100 z-50 overflow-hidden animate-slideUp">
               <div className="md:hidden p-4 border-b border-slate-100 flex items-center justify-between">
                 <span className="font-semibold">Действия</span>
                 <button onClick={() => setShowActions(null)} className="p-2 text-slate-400"><i className="fas fa-xmark"></i></button>
@@ -263,7 +263,7 @@ const ContractList: React.FC<ContractListProps> = ({
     if (!extendingRental) return null;
     return (
       <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
-        <form onSubmit={handleExtendSubmit} className="bg-white w-full md:max-w-md md:rounded-3xl rounded-t-3xl max-h-[90vh] overflow-y-auto animate-slideUp">
+        <form onSubmit={handleExtendSubmit} className="bg-white w-full md:max-w-md md:rounded-xl rounded-t-xl max-h-[90vh] overflow-y-auto animate-slideUp">
           <div className="sticky top-0 bg-white px-4 py-3 border-b border-slate-100 flex items-center justify-between">
             <h3 className="font-semibold">Продление аренды</h3>
             <button type="button" onClick={() => setExtendingRental(null)} className="p-2 text-slate-400"><i className="fas fa-xmark"></i></button>
@@ -373,7 +373,7 @@ const ContractList: React.FC<ContractListProps> = ({
           <ContractCard key={rent.id} rent={rent} />
         ))}
         {filteredRentals.length === 0 && (
-          <div className="p-12 text-center text-slate-400 bg-slate-50 rounded-2xl">
+          <div className="p-8 text-center text-slate-400 bg-slate-50 rounded-2xl">
             <i className="fas fa-file-contract text-3xl mb-2 opacity-30"></i>
             <p>Нет договоров</p>
           </div>

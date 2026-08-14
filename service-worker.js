@@ -1,6 +1,5 @@
-
-const CACHE_NAME = 'autopro-v1';
-const ASSETS_TO_CACHE = [
+const CACHE_NAME = 'autopro-v2';
+const APP_SHELL = [
   '/',
   '/index.html',
   '/metadata.json',
@@ -10,32 +9,67 @@ const ASSETS_TO_CACHE = [
 
 self.addEventListener('install', (event) => {
   event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS_TO_CACHE))
-  );
-});
-
-self.addEventListener('fetch', (event) => {
-  event.respondWith(
-    caches.match(event.request).then((response) => {
-      return response || fetch(event.request).then((fetchResponse) => {
-        return caches.open(CACHE_NAME).then((cache) => {
-          // Cache fonts and images from CDNs
-          if (event.request.url.includes('images.unsplash.com') || event.request.url.includes('cdnjs')) {
-            cache.put(event.request, fetchResponse.clone());
-          }
-          return fetchResponse;
-        });
-      });
-    }).catch(() => caches.match('/'))
+    caches.open(CACHE_NAME).then((cache) =>
+      // allSettled so one failed CDN fetch doesn't abort install of the rest
+      Promise.allSettled(APP_SHELL.map((url) => cache.add(url)))
+    ).then(() => self.skipWaiting())
   );
 });
 
 self.addEventListener('activate', (event) => {
   event.waitUntil(
-    caches.keys().then((keys) => {
-      return Promise.all(
-        keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))
-      );
+    caches.keys()
+      .then((keys) => Promise.all(keys.filter((key) => key !== CACHE_NAME).map((key) => caches.delete(key))))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  if (request.method !== 'GET') {
+    // Mutations always go straight to the network — offline write handling
+    // lives in the app's IndexedDB mutation queue, not the service worker.
+    return;
+  }
+
+  const url = new URL(request.url);
+  const isApi = url.pathname.startsWith('/api/');
+
+  if (request.mode === 'navigate') {
+    // SPA navigation: network-first, fall back to the cached shell offline.
+    event.respondWith(
+      fetch(request).catch(() => caches.match('/index.html'))
+    );
+    return;
+  }
+
+  if (isApi) {
+    // API GET: network-first, cache the response, fall back to last-known-good on failure.
+    // (Primary offline data path is the app's IndexedDB cache; this is defense in depth.)
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          return response;
+        })
+        .catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  // Same-origin static assets (including Vite's hashed JS/CSS bundle) and CDN assets:
+  // cache-first, then network + runtime cache.
+  event.respondWith(
+    caches.match(request).then((cached) => {
+      if (cached) return cached;
+      return fetch(request).then((response) => {
+        if (response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+        }
+        return response;
+      });
     })
   );
 });

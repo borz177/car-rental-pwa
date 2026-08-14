@@ -25,10 +25,10 @@ const AiAdvisor: React.FC<AiAdvisorProps> = ({ cars, rentals }) => {
 
   return (
     <div className="max-w-4xl mx-auto">
-      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-3xl p-8 text-white mb-8 relative overflow-hidden">
+      <div className="bg-gradient-to-r from-blue-600 to-indigo-700 rounded-xl p-5 text-white mb-8 relative overflow-hidden">
         <div className="relative z-10">
           <div className="flex items-center space-x-4 mb-6">
-            <div className="w-16 h-16 bg-white/20 rounded-2xl backdrop-blur-md flex items-center justify-center text-3xl">
+            <div className="w-12 h-12 bg-white/20 rounded-2xl backdrop-blur-md flex items-center justify-center text-3xl">
               <i className="fas fa-robot animate-pulse"></i>
             </div>
             <div>
@@ -48,7 +48,7 @@ const AiAdvisor: React.FC<AiAdvisorProps> = ({ cars, rentals }) => {
         <i className="fas fa-brain absolute -right-10 -bottom-10 text-9xl text-white/10 rotate-12"></i>
       </div>
 
-      <div className="bg-white rounded-3xl shadow-xl p-8 border border-gray-100 min-h-[400px]">
+      <div className="bg-white rounded-xl shadow-md p-5 border border-gray-100 min-h-[400px]">
         {loading ? (
           <div className="flex flex-col items-center justify-center h-64 space-y-4">
             <div className="flex space-x-2">
@@ -62,7 +62,7 @@ const AiAdvisor: React.FC<AiAdvisorProps> = ({ cars, rentals }) => {
           <div className="prose prose-blue max-w-none">
             <div className="flex items-center space-x-2 text-blue-600 mb-6">
               <i className="fas fa-lightbulb"></i>
-              <span className="font-bold uppercase tracking-widest text-sm">Actionable Insights</span>
+              <span className="font-bold uppercase tracking-wide text-sm">Actionable Insights</span>
             </div>
             <div className="text-gray-700 leading-relaxed whitespace-pre-wrap">
               {insight.split('\n').map((line, i) => (

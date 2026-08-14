@@ -1,0 +1,21 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: autopro-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: autopro_user
+      POSTGRES_PASSWORD: autopro123
+      POSTGRES_DB: autopro_db
+    ports:
+      - "5435:5432"
+    volumes:
+      - autopro_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autopro_user -d autopro_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  autopro_pgdata:

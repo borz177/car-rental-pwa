@@ -104,34 +104,34 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onAdd, onUpdate, onDelete,
   };
 
   return (
-    <div className="space-y-8 animate-fadeIn pb-24 md:pb-0">
+    <div className="space-y-5 animate-fadeIn pb-24 md:pb-0">
       <div className="flex justify-between items-center px-2">
         <div>
-          <h2 className="text-3xl font-black text-slate-900">Команда</h2>
-          <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest mt-1">Управление сотрудниками и доступом</p>
+          <h2 className="text-3xl font-semibold text-slate-900">Команда</h2>
+          <p className="text-slate-400 font-bold uppercase text-[10px] tracking-wide mt-1">Управление сотрудниками и доступом</p>
         </div>
         <button
           onClick={() => { setEditingMember(null); setPermissions(DEFAULT_PERMISSIONS); setIsModalOpen(true); }}
-          className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-black hover:bg-blue-700 shadow-xl shadow-blue-500/20 transition-all text-sm flex items-center gap-2"
+          className="bg-blue-600 text-white px-8 py-4 rounded-2xl font-semibold hover:bg-blue-700 shadow-md transition-all text-sm flex items-center gap-2"
         >
           <i className="fas fa-user-plus"></i> <span>Добавить</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 px-2">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-2">
         {staff.map(member => (
-          <div key={member.id} className="bg-white p-6 rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl transition-all relative group">
+          <div key={member.id} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all relative group">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="w-14 h-14 bg-slate-50 text-blue-600 rounded-2xl flex items-center justify-center text-xl font-black shadow-inner">
+                <div className="w-14 h-14 bg-slate-50 text-blue-600 rounded-2xl flex items-center justify-center text-xl font-semibold shadow-inner">
                   {member.name.charAt(0)}
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-slate-900 tracking-tight">{member.name}</h3>
                   <div className="flex items-center space-x-2 mt-1">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest truncate max-w-[120px]">{member.email || member.login}</span>
+                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide truncate max-w-[120px]">{member.email || member.login}</span>
                     <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
-                    <span className={`text-[10px] font-black uppercase tracking-widest ${member.permissions?.fullAccess ? 'text-emerald-500' : 'text-blue-500'}`}>
+                    <span className={`text-[10px] font-semibold uppercase tracking-wide ${member.permissions?.fullAccess ? 'text-emerald-500' : 'text-blue-500'}`}>
                       {member.permissions?.fullAccess ? 'Полный доступ' : 'Сотрудник'}
                     </span>
                   </div>
@@ -148,7 +148,7 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onAdd, onUpdate, onDelete,
                 {showActions === member.id && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowActions(null)}></div>
-                    <div className="absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-2xl border border-slate-50 z-50 overflow-hidden animate-scaleIn">
+                    <div className="absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-md border border-slate-50 z-50 overflow-hidden animate-scaleIn">
                       <button onClick={() => { onSelectStaff(member.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 border-b border-slate-50">
                         <i className="fas fa-id-card text-blue-500"></i> <span>Профиль</span>
                       </button>
@@ -166,7 +166,7 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onAdd, onUpdate, onDelete,
           </div>
         ))}
         {staff.length === 0 && (
-          <div className="col-span-full py-20 text-center text-slate-400 bg-white rounded-[2rem] border-2 border-dashed border-slate-100 italic">
+          <div className="col-span-full py-20 text-center text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-100 italic">
             Команда еще не сформирована
           </div>
         )}
@@ -174,12 +174,12 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onAdd, onUpdate, onDelete,
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
-          <form onSubmit={handleSubmit} className="bg-white rounded-[3rem] w-full max-w-2xl p-10 shadow-2xl animate-scaleIn my-auto">
-            <h2 className="text-2xl font-black mb-8">{editingMember ? 'Редактировать сотрудника' : 'Новый сотрудник'}</h2>
+          <form onSubmit={handleSubmit} className="bg-white rounded-2xl w-full max-w-2xl p-6 shadow-md animate-scaleIn my-auto">
+            <h2 className="text-2xl font-semibold mb-8">{editingMember ? 'Редактировать сотрудника' : 'Новый сотрудник'}</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
               <div className="space-y-4">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Основные данные</h3>
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Основные данные</h3>
                 <input name="name" defaultValue={editingMember?.name} placeholder="ФИО сотрудника" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
                 <input name="email" type="email" defaultValue={editingMember?.email || editingMember?.login} placeholder="Email (для входа)" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
                 <input name="password" type="password" placeholder={editingMember ? "Новый пароль (необязательно)" : "Пароль"} required={!editingMember} className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
@@ -190,7 +190,7 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onAdd, onUpdate, onDelete,
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest mb-4">Права доступа</h3>
+                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Права доступа</h3>
 
                 <div className="bg-slate-50 p-1 rounded-2xl space-y-1">
                   <ToggleItem
@@ -237,7 +237,7 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onAdd, onUpdate, onDelete,
 
             <div className="flex gap-4">
               <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl font-bold text-slate-600 transition-all hover:bg-slate-200">Отмена</button>
-              <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-xl shadow-blue-500/20 transition-all hover:bg-blue-700">Сохранить</button>
+              <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-md transition-all hover:bg-blue-700">Сохранить</button>
             </div>
           </form>
         </div>

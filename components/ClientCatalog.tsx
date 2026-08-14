@@ -240,10 +240,10 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
     const monthName = viewDate.toLocaleString('ru-RU', { month: 'long', year: 'numeric' });
 
     return (
-      <div className="bg-slate-50 p-4 rounded-[2rem] select-none border border-slate-100">
+      <div className="bg-slate-50 p-4 rounded-2xl select-none border border-slate-100">
         <div className="flex justify-between items-center mb-4 px-2">
           <button type="button" onClick={() => changeMonth(-1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-slate-400 hover:text-slate-900 shadow-sm"><i className="fas fa-chevron-left"></i></button>
-          <div className="font-black text-slate-900 capitalize text-sm">{monthName}</div>
+          <div className="font-semibold text-slate-900 capitalize text-sm">{monthName}</div>
           <button type="button" onClick={() => changeMonth(1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-slate-400 hover:text-slate-900 shadow-sm"><i className="fas fa-chevron-right"></i></button>
         </div>
         <div className="grid grid-cols-7 gap-1 md:gap-2 text-center mb-2">
@@ -268,7 +268,7 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
                 className += "bg-slate-100 text-slate-300 cursor-not-allowed";
                 if (busy) className += " line-through opacity-50 bg-rose-50 text-rose-300";
             } else if (isStart || isEnd) {
-                className += "bg-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105 z-10";
+                className += "bg-blue-600 text-white shadow-lg scale-105 z-10";
             } else if (inRange) {
                 className += "bg-blue-100 text-blue-600";
             } else {
@@ -304,11 +304,11 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
   };
 
   return (
-    <div className="max-w-[1600px] mx-auto space-y-8 animate-fadeIn pb-24 md:pb-0 p-4">
+    <div className="max-w-[1600px] mx-auto space-y-5 animate-fadeIn pb-24 md:pb-0 p-4">
       {/* Public Header */}
-      <div className="bg-white p-8 md:p-12 rounded-[3rem] shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
+      <div className="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
-          <h2 className="text-4xl font-black text-slate-900 mb-2 tracking-tight">
+          <h2 className="text-4xl font-semibold text-slate-900 mb-2 tracking-tight">
             {fleetOwner?.publicBrandName || 'Наш автопарк'}
           </h2>
           <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.2em]">
@@ -318,55 +318,55 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
         {!currentUser && (
           <button
             onClick={() => setShowAuthModal(true)}
-            className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:bg-blue-600 transition-all shadow-xl shadow-slate-200"
+            className="px-8 py-4 bg-slate-900 text-white rounded-2xl font-semibold text-sm uppercase tracking-wide hover:bg-blue-600 transition-all shadow-md"
           >
             Войти в личный кабинет
           </button>
         )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-5 gap-4">
         {visibleCars.map(car => {
           const avail = getCarAvailability(car);
           // Allow booking even if BUSY, but not if REPAIR
           const isBookable = avail.status !== 'REPAIR';
 
           return (
-            <div key={car.id} className="bg-white rounded-[2.5rem] overflow-hidden shadow-xl shadow-slate-200/40 border border-slate-50 group hover:-translate-y-2 transition-all duration-300">
+            <div key={car.id} className="bg-white rounded-2xl overflow-hidden shadow-md border border-slate-50 group hover:-translate-y-2 transition-all duration-300">
               {/* Reduced height from h-48 to h-44 for better compactness */}
               <div className="h-44 relative overflow-hidden">
                 <img src={car.images[0]} className={`w-full h-full object-cover transition-transform duration-700 ${isBookable ? 'group-hover:scale-110' : 'grayscale opacity-80'}`} alt={car.model} />
 
                 <div className="absolute top-4 left-4 flex gap-2">
-                  <div className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-black text-blue-600 shadow-sm uppercase tracking-widest">
+                  <div className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-semibold text-blue-600 shadow-sm uppercase tracking-wide">
                     {car.category}
                   </div>
                 </div>
 
-                <div className={`absolute bottom-3 right-3 px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-white shadow-lg ${avail.color}`}>
+                <div className={`absolute bottom-3 right-3 px-3 py-1.5 rounded-xl text-[9px] font-semibold uppercase tracking-wide text-white shadow-lg ${avail.color}`}>
                   {avail.label} {avail.until && <span className="block text-[8px] normal-case opacity-90">до {avail.until}</span>}
                 </div>
               </div>
 
-              <div className="p-6">
+              <div className="p-4">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-lg font-black text-slate-900">{car.brand} {car.model}</h3>
-                    <p className="text-slate-400 font-bold uppercase text-[9px] tracking-widest mt-0.5">{car.year} г.в. • {car.transmission}</p>
+                    <h3 className="text-lg font-semibold text-slate-900">{car.brand} {car.model}</h3>
+                    <p className="text-slate-400 font-bold uppercase text-[9px] tracking-wide mt-0.5">{car.year} г.в. • {car.transmission}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-xl font-black text-blue-600">{car.pricePerDay} ₽</div>
-                    <div className="text-[9px] text-slate-400 uppercase font-black tracking-widest">в сутки</div>
+                    <div className="text-xl font-bold text-blue-600">{car.pricePerDay} ₽</div>
+                    <div className="text-[9px] text-slate-400 uppercase font-semibold tracking-wide">в сутки</div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-6">
                    <div className="bg-slate-50 p-2 rounded-xl text-center">
-                      <div className="text-[8px] font-black text-slate-400 uppercase mb-0.5">Топливо</div>
+                      <div className="text-[8px] font-semibold text-slate-400 uppercase mb-0.5">Топливо</div>
                       <div className="text-[10px] font-bold">{car.fuel}</div>
                    </div>
                    <div className="bg-slate-50 p-2 rounded-xl text-center">
-                      <div className="text-[8px] font-black text-slate-400 uppercase mb-0.5">Пробег</div>
+                      <div className="text-[8px] font-semibold text-slate-400 uppercase mb-0.5">Пробег</div>
                       <div className="text-[10px] font-bold">{car.mileage.toLocaleString()} км</div>
                    </div>
                 </div>
@@ -374,7 +374,7 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
                 <button
                   onClick={() => handleRequestClick(car)}
                   disabled={!isBookable}
-                  className={`w-full py-4 rounded-xl font-black uppercase tracking-widest text-[10px] transition-all shadow-lg active:scale-95 ${isBookable ? 'bg-slate-900 text-white hover:bg-blue-600' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+                  className={`w-full py-4 rounded-xl font-semibold uppercase tracking-wide text-[10px] transition-all shadow-lg active:scale-95 ${isBookable ? 'bg-slate-900 text-white hover:bg-blue-600' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
                 >
                   {avail.status === 'BUSY' ? 'Забронировать на будущее' : (isBookable ? 'Забронировать' : 'В ремонте')}
                 </button>
@@ -384,10 +384,10 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
         })}
         {visibleCars.length === 0 && (
           <div className="col-span-full py-32 text-center">
-            <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300 text-3xl">
+            <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300 text-3xl">
               <i className="fas fa-car-side"></i>
             </div>
-            <p className="text-slate-400 font-bold uppercase tracking-widest text-sm">К сожалению, доступных авто сейчас нет.</p>
+            <p className="text-slate-400 font-bold uppercase tracking-wide text-sm">К сожалению, доступных авто сейчас нет.</p>
           </div>
         )}
       </div>
@@ -395,14 +395,14 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
       {/* Booking Modal */}
       {selectedCar && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
-          <form onSubmit={handleFinalSubmit} className="bg-white rounded-[3rem] w-full max-w-lg p-10 shadow-2xl animate-scaleIn my-auto">
-            <h2 className="text-3xl font-black mb-2 text-slate-900 tracking-tight">Заявка на бронь</h2>
-            <p className="text-blue-600 mb-8 font-black uppercase text-[10px] tracking-widest">{selectedCar.brand} {selectedCar.model}</p>
+          <form onSubmit={handleFinalSubmit} className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn my-auto">
+            <h2 className="text-3xl font-semibold mb-2 text-slate-900 tracking-tight">Заявка на бронь</h2>
+            <p className="text-blue-600 mb-8 font-semibold uppercase text-[10px] tracking-wide">{selectedCar.brand} {selectedCar.model}</p>
 
-            <div className="space-y-6 mb-10">
+            <div className="space-y-4 mb-10">
               {/* Personal Data Section */}
-              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 space-y-4">
-                 <h4 className="text-xs font-black uppercase text-slate-400 tracking-widest">Личные данные</h4>
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-4">
+                 <h4 className="text-xs font-semibold uppercase text-slate-400 tracking-wide">Личные данные</h4>
                  <input
                    required placeholder="ФИО полностью"
                    value={bookingForm.name} onChange={e => setBookingForm({...bookingForm, name: e.target.value})}
@@ -429,7 +429,7 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
               {/* Calendar Section */}
               <div>
                 <div className="flex justify-between items-end mb-2">
-                   <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Выберите даты аренды (МСК)</div>
+                   <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2">Выберите даты аренды (МСК)</div>
                    <div className="text-xs font-bold text-blue-600">
                       {new Date(bookingForm.start).toLocaleDateString()}
                       {bookingForm.end ? ` — ${new Date(bookingForm.end).toLocaleDateString()}` : ''}
@@ -462,7 +462,7 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
               <button type="button" onClick={() => setSelectedCar(null)} className="flex-1 py-5 bg-slate-100 rounded-2xl font-bold text-slate-600 hover:bg-slate-200 transition-all">
                 Отмена
               </button>
-              <button type="submit" className="flex-1 py-5 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-blue-700 transition-all shadow-xl shadow-blue-500/20">
+              <button type="submit" className="flex-1 py-5 bg-blue-600 text-white rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-blue-700 transition-all shadow-md">
                 Отправить
               </button>
             </div>
@@ -473,21 +473,21 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
       {/* Success Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
-          <div className="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl animate-scaleIn text-center">
-            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-lg">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn text-center">
+            <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-lg">
               <i className="fas fa-check"></i>
             </div>
-            <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tight">Заявка принята!</h2>
+            <h2 className="text-2xl font-semibold text-slate-900 mb-2 uppercase tracking-tight">Заявка принята!</h2>
             <p className="text-slate-500 font-medium mb-8">
               Менеджер скоро свяжется с вами для подтверждения.
             </p>
 
             {!currentUser && (
-               <div className="bg-blue-50 p-6 rounded-3xl mb-8 border border-blue-100">
+               <div className="bg-blue-50 p-4 rounded-xl mb-8 border border-blue-100">
                   <p className="text-sm font-bold text-blue-800 mb-3">Хотите отслеживать статус?</p>
                   <button
                     onClick={() => { setShowSuccessModal(false); setShowAuthModal(true); }}
-                    className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold uppercase text-[10px] tracking-widest hover:bg-blue-700"
+                    className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold uppercase text-[10px] tracking-wide hover:bg-blue-700"
                   >
                     Зарегистрироваться
                   </button>
@@ -496,7 +496,7 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
 
             <button
               onClick={() => setShowSuccessModal(false)}
-              className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all"
+              className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-slate-200 transition-all"
             >
               Закрыть
             </button>
@@ -507,9 +507,9 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
       {/* Auth Prompt Modal */}
       {showAuthModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
-          <div className="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl animate-scaleIn my-auto">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn my-auto">
             <div className="flex justify-between items-center mb-8">
-               <h2 className="text-2xl font-black text-slate-900 tracking-tight">
+               <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">
                  {authMode === 'REGISTER' ? 'Регистрация' : 'Вход'}
                </h2>
                <button onClick={() => setShowAuthModal(false)} className="text-slate-300 hover:text-slate-900"><i className="fas fa-times"></i></button>
@@ -531,7 +531,7 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
               <button
                 type="submit"
                 disabled={isAuthLoading}
-                className="w-full py-5 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs shadow-xl shadow-blue-500/20 mt-4 flex items-center justify-center"
+                className="w-full py-5 bg-blue-600 text-white rounded-2xl font-semibold uppercase tracking-wide text-xs shadow-md mt-4 flex items-center justify-center"
               >
                 {isAuthLoading ? <i className="fas fa-circle-notch animate-spin mr-2"></i> : null}
                 {authMode === 'REGISTER' ? 'Зарегистрироваться' : 'Войти'}

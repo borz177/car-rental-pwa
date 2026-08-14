@@ -33,9 +33,9 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
 
   if (!canCreateBooking) {
     return (
-      <div className="p-20 text-center text-rose-500 bg-rose-50 rounded-3xl border-2 border-dashed border-rose-100">
+      <div className="p-20 text-center text-rose-500 bg-rose-50 rounded-xl border-2 border-dashed border-rose-100">
         <i className="fas fa-lock text-4xl mb-4"></i>
-        <h3 className="text-xl font-black">Доступ запрещен</h3>
+        <h3 className="text-xl font-semibold">Доступ запрещен</h3>
         <p className="text-sm font-medium">У вас нет прав на оформление сделок.</p>
       </div>
     );
@@ -219,31 +219,31 @@ ${rental.prepayment ? `💸 *Предоплата:* ${rental.prepayment.toLocale
 
   return (
     <div className="max-w-4xl mx-auto animate-fadeIn pb-24 md:pb-0">
-      <div className="bg-white p-6 md:p-12 rounded-[2.5rem] shadow-xl border border-slate-100">
-        <h2 className="text-3xl font-black text-slate-900 mb-8">{isReservation ? 'Бронирование' : 'Выдача автомобиля'}</h2>
+      <div className="bg-white p-4 md:p-8 rounded-2xl shadow-md border border-slate-100">
+        <h2 className="text-3xl font-semibold text-slate-900 mb-8">{isReservation ? 'Бронирование' : 'Выдача автомобиля'}</h2>
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Режим</label>
+                  <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2 ml-2">Режим</label>
                   <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl">
-                    <button type="button" onClick={() => setIsReservation(false)} className={`py-3 rounded-xl font-black text-[9px] uppercase transition-all ${!isReservation ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>Выдача</button>
-                    <button type="button" onClick={() => setIsReservation(true)} className={`py-3 rounded-xl font-black text-[9px] uppercase transition-all ${isReservation ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-400'}`}>Бронь</button>
+                    <button type="button" onClick={() => setIsReservation(false)} className={`py-3 rounded-xl font-semibold text-[9px] uppercase transition-all ${!isReservation ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400'}`}>Выдача</button>
+                    <button type="button" onClick={() => setIsReservation(true)} className={`py-3 rounded-xl font-semibold text-[9px] uppercase transition-all ${isReservation ? 'bg-white text-amber-600 shadow-sm' : 'text-slate-400'}`}>Бронь</button>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Тип аренды</label>
+                  <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2 ml-2">Тип аренды</label>
                   <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl">
-                    <button type="button" onClick={() => setBookingType('DAILY')} className={`py-3 rounded-xl font-black text-[9px] uppercase transition-all ${bookingType === 'DAILY' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>Сутки</button>
-                    <button type="button" onClick={() => setBookingType('HOURLY')} className={`py-3 rounded-xl font-black text-[9px] uppercase transition-all ${bookingType === 'HOURLY' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>Часы</button>
+                    <button type="button" onClick={() => setBookingType('DAILY')} className={`py-3 rounded-xl font-semibold text-[9px] uppercase transition-all ${bookingType === 'DAILY' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>Сутки</button>
+                    <button type="button" onClick={() => setBookingType('HOURLY')} className={`py-3 rounded-xl font-semibold text-[9px] uppercase transition-all ${bookingType === 'HOURLY' ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-400'}`}>Часы</button>
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Автомобиль</label>
+                <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2 ml-2">Автомобиль</label>
                 <select required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" value={formData.carId} onChange={e => setFormData({...formData, carId: e.target.value})}>
                   <option value="">-- Выберите машину --</option>
                   {cars.map(c => <option key={c.id} value={c.id}>{c.brand} {c.model} — {c.plate}</option>)}
@@ -251,7 +251,7 @@ ${rental.prepayment ? `💸 *Предоплата:* ${rental.prepayment.toLocale
               </div>
 
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Клиент</label>
+                <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2 ml-2">Клиент</label>
                 <div onClick={() => setShowClientSearch(true)} className="w-full p-4 bg-slate-50 rounded-2xl font-bold cursor-pointer flex justify-between items-center hover:bg-slate-100 border-2 border-transparent">
                   <span className={formData.clientName ? 'text-slate-900' : 'text-slate-400'}>{formData.clientName || 'Выбрать клиента'}</span>
                   <i className="fas fa-search text-slate-300"></i>
@@ -260,10 +260,10 @@ ${rental.prepayment ? `💸 *Предоплата:* ${rental.prepayment.toLocale
 
               {!isReservation ? (
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Оплата</label>
+                  <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2 ml-2">Оплата</label>
                   <div className="grid grid-cols-2 gap-2 p-1 bg-slate-100 rounded-2xl">
-                    <button type="button" onClick={() => setPaymentMode('PAID')} className={`py-3 rounded-xl font-black text-[10px] uppercase transition-all ${paymentMode === 'PAID' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>Оплачено</button>
-                    <button type="button" onClick={() => setPaymentMode('DEBT')} className={`py-3 rounded-xl font-black text-[10px] uppercase transition-all ${paymentMode === 'DEBT' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-400'}`}>Не оплачено</button>
+                    <button type="button" onClick={() => setPaymentMode('PAID')} className={`py-3 rounded-xl font-semibold text-[10px] uppercase transition-all ${paymentMode === 'PAID' ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}>Оплачено</button>
+                    <button type="button" onClick={() => setPaymentMode('DEBT')} className={`py-3 rounded-xl font-semibold text-[10px] uppercase transition-all ${paymentMode === 'DEBT' ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-400'}`}>Не оплачено</button>
                   </div>
                   {formData.prepayment > 0 && (
                      <div className="mt-2 text-xs font-bold text-slate-500 pl-2">
@@ -273,31 +273,31 @@ ${rental.prepayment ? `💸 *Предоплата:* ${rental.prepayment.toLocale
                 </div>
               ) : (
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 ml-2">Предоплата (₽)</label>
-                  <input type="number" placeholder="0" className="w-full p-4 bg-amber-50 rounded-2xl font-black text-amber-700 outline-none border-2 border-amber-100" value={formData.prepayment || ''} onChange={e => setFormData({...formData, prepayment: Number(e.target.value)})} />
+                  <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2 ml-2">Предоплата (₽)</label>
+                  <input type="number" placeholder="0" className="w-full p-4 bg-amber-50 rounded-2xl font-semibold text-amber-700 outline-none border-2 border-amber-100" value={formData.prepayment || ''} onChange={e => setFormData({...formData, prepayment: Number(e.target.value)})} />
                 </div>
               )}
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2 text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Начало (МСК)</div>
+                <div className="col-span-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2">Начало (МСК)</div>
                 <input type="date" required className="p-4 bg-slate-50 rounded-2xl font-bold" value={formData.startDate} onChange={e => setFormData({...formData, startDate: e.target.value})} />
                 <input type="time" required className="p-4 bg-slate-50 rounded-2xl font-bold" value={formData.startTime} onChange={e => setFormData({...formData, startTime: e.target.value})} />
-                <div className="col-span-2 text-[10px] font-black text-slate-400 uppercase tracking-widest ml-2">Конец (МСК)</div>
+                <div className="col-span-2 text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2">Конец (МСК)</div>
                 <input type="date" required className="p-4 bg-slate-50 rounded-2xl font-bold" value={formData.endDate} onChange={e => setFormData({...formData, endDate: e.target.value})} />
                 <input type="time" required className="p-4 bg-slate-50 rounded-2xl font-bold" value={formData.endTime} onChange={e => setFormData({...formData, endTime: e.target.value})} />
               </div>
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 ml-2">Итоговая сумма (₽)</label>
+                <label className="block text-[10px] font-semibold text-slate-400 uppercase mb-2 ml-2">Итоговая сумма (₽)</label>
                 <div className="relative">
-                  <input type="number" required className="w-full p-5 bg-blue-50 rounded-2xl font-black text-2xl text-blue-700 outline-none border-2 border-blue-100" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} />
-                  <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[8px] font-black text-blue-400 uppercase">Авторасчет</div>
+                  <input type="number" required className="w-full p-5 bg-blue-50 rounded-2xl font-bold text-2xl text-blue-700 outline-none border-2 border-blue-100" value={formData.price} onChange={e => setFormData({...formData, price: Number(e.target.value)})} />
+                  <div className="absolute right-6 top-1/2 -translate-y-1/2 text-[8px] font-semibold text-blue-400 uppercase">Авторасчет</div>
                 </div>
               </div>
             </div>
           </div>
-          <button type="submit" className={`w-full py-5 rounded-3xl font-black text-lg transition-all active:scale-95 shadow-xl ${isReservation ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white'}`}>
+          <button type="submit" className={`w-full py-5 rounded-xl font-semibold text-lg transition-all active:scale-95 shadow-md ${isReservation ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white'}`}>
             {isReservation ? 'Забронировать' : 'Оформить выдачу'}
           </button>
         </form>
@@ -305,9 +305,9 @@ ${rental.prepayment ? `💸 *Предоплата:* ${rental.prepayment.toLocale
 
       {showClientSearch && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-          <div className="bg-white rounded-[2.5rem] w-full max-w-lg p-8 shadow-2xl flex flex-col max-h-[80vh]">
+          <div className="bg-white rounded-2xl w-full max-w-lg p-8 shadow-md flex flex-col max-h-[80vh]">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-black uppercase">Выбор клиента</h3>
+              <h3 className="text-xl font-semibold uppercase">Выбор клиента</h3>
               <button onClick={() => setShowClientSearch(false)} className="text-slate-400"><i className="fas fa-times"></i></button>
             </div>
             <input autoFocus placeholder="Поиск..." className="w-full p-4 bg-slate-50 rounded-2xl mb-4 font-bold outline-none" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} />
@@ -326,8 +326,8 @@ ${rental.prepayment ? `💸 *Предоплата:* ${rental.prepayment.toLocale
 
       {showQuickAdd && (
         <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-          <form onSubmit={handleQuickAddClient} className="bg-white rounded-[2.5rem] w-full max-w-lg p-10 shadow-2xl animate-scaleIn">
-            <h3 className="text-2xl font-black mb-8">Быстрое добавление</h3>
+          <form onSubmit={handleQuickAddClient} className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn">
+            <h3 className="text-2xl font-semibold mb-8">Быстрое добавление</h3>
             <div className="space-y-4 mb-8">
               <input name="name" placeholder="ФИО" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold border-none" />
               <input name="phone" placeholder="Телефон" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold border-none" />
@@ -343,11 +343,11 @@ ${rental.prepayment ? `💸 *Предоплата:* ${rental.prepayment.toLocale
       {/* SUCCESS MODAL with WhatsApp */}
       {successData && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-sm">
-          <div className="bg-white rounded-[3rem] w-full max-w-md p-10 shadow-2xl animate-scaleIn text-center">
-            <div className="w-20 h-20 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-lg">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn text-center">
+            <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-lg">
               <i className="fas fa-check"></i>
             </div>
-            <h2 className="text-2xl font-black text-slate-900 mb-2 uppercase tracking-tight">Успешно!</h2>
+            <h2 className="text-2xl font-semibold text-slate-900 mb-2 uppercase tracking-tight">Успешно!</h2>
             <p className="text-slate-500 font-medium mb-8">
               {successData.rental.isReservation ? 'Бронь успешно создана.' : 'Договор аренды оформлен.'}
             </p>
@@ -355,7 +355,7 @@ ${rental.prepayment ? `💸 *Предоплата:* ${rental.prepayment.toLocale
             <div className="space-y-4">
               <button
                 onClick={handleWhatsAppShare}
-                className="w-full py-5 bg-[#25D366] text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center space-x-3 shadow-xl shadow-emerald-500/20 hover:bg-[#20b858] transition-all"
+                className="w-full py-5 bg-[#25D366] text-white rounded-2xl font-semibold uppercase tracking-wide text-xs flex items-center justify-center space-x-3 shadow-md hover:bg-[#20b858] transition-all"
               >
                 <i className="fab fa-whatsapp text-lg"></i>
                 <span>Отправить клиенту</span>
@@ -363,7 +363,7 @@ ${rental.prepayment ? `💸 *Предоплата:* ${rental.prepayment.toLocale
 
               <button
                 onClick={handleCloseSuccess}
-                className="w-full py-5 bg-slate-100 text-slate-600 rounded-2xl font-black uppercase tracking-widest text-xs hover:bg-slate-200 transition-all"
+                className="w-full py-5 bg-slate-100 text-slate-600 rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-slate-200 transition-all"
               >
                 Готово
               </button>
