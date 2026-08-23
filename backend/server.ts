@@ -842,6 +842,57 @@ app.patch('/api/fines/:id/pay', authenticateToken, async (req: any, res: any) =>
   } finally { db.release(); }
 });
 
-initDB().then(() => {
-  app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Сервер запущен на порту ${PORT}`));
-});
+// Суперадмин создаётся только отсюда: публичная регистрация роль SUPERADMIN
+// не выдаёт. Пароль (SUPERADMIN_PASSWORD) необязателен — если он не задан,
+// у существующей учётки только проверяется роль, пароль не трогается.
+const seedSuperadmin = async () => {
+  const email = process.env.SUPERADMIN_EMAIL;
+  const password = process.env.SUPERADMIN_PASSWORD;
+  if (!email) return;
+
+  try {
+    const { rows } = await pool.query('SELECT id, role FROM users WHERE email = $1', [email]);
+
+    if (rows.length === 0) {
+      if (!password) {
+        console.warn(`⚠️  SUPERADMIN_EMAIL задан, но пользователя нет и SUPERADMIN_PASSWORD не указан — учётка не создана`);
+        return;
+      }
+      const id = randomUUID();
+      const hash = await bcrypt.hash(password, 10);
+      await pool.query(
+        `INSERT INTO users (id, email, password_hash, name, role, email_verified)
+         VALUES ($1, $2, $3, $4, 'SUPERADMIN', TRUE)`,
+        [id, email, hash, 'Суперадмин']
+      );
+      console.log(`👑 Создан суперадмин: ${email}`);
+      return;
+    }
+
+    const user = rows[0];
+    const updates: string[] = [];
+
+    if (user.role !== 'SUPERADMIN') {
+      await pool.query(`UPDATE users SET role = 'SUPERADMIN' WHERE id = $1`, [user.id]);
+      updates.push('роль повышена до SUPERADMIN');
+    }
+    // Суперадмину подтверждение email не нужно — иначе он заперт на экране подтверждения.
+    await pool.query(`UPDATE users SET email_verified = TRUE WHERE id = $1 AND email_verified IS NOT TRUE`, [user.id]);
+
+    if (password) {
+      const hash = await bcrypt.hash(password, 10);
+      await pool.query(`UPDATE users SET password_hash = $1 WHERE id = $2`, [hash, user.id]);
+      updates.push('пароль синхронизирован с .env');
+    }
+
+    if (updates.length) console.log(`👑 Суперадмин ${email}: ${updates.join(', ')}`);
+  } catch (err: any) {
+    console.error('Ошибка создания суперадмина:', err.message);
+  }
+};
+
+initDB()
+  .then(seedSuperadmin)
+  .then(() => {
+    app.listen(PORT, '0.0.0.0', () => console.log(`🚀 Сервер запущен на порту ${PORT}`));
+  });
