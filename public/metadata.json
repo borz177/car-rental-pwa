@@ -2,6 +2,7 @@
   "name": "AutoPro AI",
   "short_name": "AutoPro",
   "description": "Система управления автопрокатом с ИИ аналитикой",
+  "id": "/",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
