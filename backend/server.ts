@@ -7,10 +7,15 @@ import express from 'express';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import cors from 'cors';
+import rateLimit from 'express-rate-limit';
 import { Pool } from 'pg';
-import { randomUUID } from 'crypto';
+import { randomUUID, randomBytes } from 'crypto';
+import { sendVerificationEmail, sendPasswordResetEmail } from './mailer';
 
 const app = express();
+// Nginx sits in front on the same host — trust its X-Forwarded-For so rate limiting
+// (and req.ip generally) keys off the real client IP, not nginx's loopback address.
+app.set('trust proxy', 1);
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'autopro_super_secret_2025';
 
@@ -176,6 +181,12 @@ const initDB = async () => {
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS permissions JSONB DEFAULT '{}'`);
     // CRITICAL FIX: Add created_at if missing
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP`);
+    // Email verification / password reset
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verify_token TEXT`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verify_expires TIMESTAMP`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token TEXT`);
+    await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires TIMESTAMP`);
 
     // Rentals migrations
     await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS extensions JSONB DEFAULT '[]'`);
@@ -208,6 +219,37 @@ const initDB = async () => {
 
 app.use(cors());
 app.use(express.json({ limit: '50mb' }) as any);
+
+// --- RATE LIMITING ---
+// Baseline for every API call: generous enough for a real admin session's parallel
+// loadData() calls, tight enough to blunt scraping/bot floods (we see plenty in the logs).
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Слишком много запросов. Попробуйте позже.' }
+});
+app.use('/api/', apiLimiter);
+
+// Tight limiter for login/register — the actual brute-force/credential-stuffing surface.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skipSuccessfulRequests: true,
+  message: { message: 'Слишком много попыток входа. Попробуйте через 15 минут.' }
+});
+
+// Moderate limiter for the unauthenticated guest-catalog endpoints (fleet lookup, booking requests).
+const publicLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Слишком много запросов. Попробуйте позже.' }
+});
 
 const authenticateToken = (req: any, res: any, next: any) => {
   const authHeader = req.headers['authorization'];
@@ -253,7 +295,7 @@ const isValidUUID = (uuid: string) => {
 
 // --- PUBLIC ROUTES ---
 
-app.get('/api/public/fleet/:slug', async (req: any, res: any) => {
+app.get('/api/public/fleet/:slug', publicLimiter, async (req: any, res: any) => {
   try {
     const { slug } = req.params;
     // Используем id::text для корректного сравнения UUID и slug
@@ -290,7 +332,7 @@ app.get('/api/public/fleet/:slug', async (req: any, res: any) => {
   }
 });
 
-app.post('/api/public/request', async (req: any, res: any) => {
+app.post('/api/public/request', publicLimiter, async (req: any, res: any) => {
   try {
     let { id, ownerId, carId, clientId, clientName, clientPhone, clientDob, startDate, startTime, endDate, endTime, status } = req.body;
 
@@ -314,8 +356,12 @@ app.post('/api/public/request', async (req: any, res: any) => {
 });
 
 // --- AUTH ---
-app.post('/api/auth/register', async (req: any, res: any) => {
-  const { email, password, name, role } = req.body;
+app.post('/api/auth/register', authLimiter, async (req: any, res: any) => {
+  const { email, password, name } = req.body;
+  // Public self-registration may only create ADMIN (new fleet owner) or CLIENT (guest catalog) accounts.
+  // SUPERADMIN/STAFF must never be assignable by the caller here.
+  const requestedRole = req.body.role;
+  const safeRole = requestedRole === 'CLIENT' ? 'CLIENT' : 'ADMIN';
   try {
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [email]);
     if (existing.rows.length > 0) {
@@ -324,18 +370,113 @@ app.post('/api/auth/register', async (req: any, res: any) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
     const id = randomUUID();
-    await pool.query('INSERT INTO users (id, email, password_hash, name, role) VALUES ($1, $2, $3, $4, $5)', [id, email, hashedPassword, name, role || 'ADMIN']);
+    // Clients don't need email verification (no fleet/admin access at stake); admins do.
+    const emailVerified = safeRole === 'CLIENT';
+    await pool.query(
+      'INSERT INTO users (id, email, password_hash, name, role, email_verified) VALUES ($1, $2, $3, $4, $5, $6)',
+      [id, email, hashedPassword, name, safeRole, emailVerified]
+    );
 
-    // New user is Admin/Superadmin, so they are their own owner
-    const token = jwt.sign({ id, role: role || 'ADMIN', ownerId: id }, JWT_SECRET);
-    res.status(201).json({ user: { id, email, name, role: role || 'ADMIN' }, token });
+    if (!emailVerified) {
+      const verifyToken = randomBytes(32).toString('hex');
+      await pool.query(
+        `UPDATE users SET email_verify_token = $1, email_verify_expires = NOW() + INTERVAL '24 hours' WHERE id = $2`,
+        [verifyToken, id]
+      );
+      sendVerificationEmail(email, name, verifyToken).catch(() => {});
+    }
+
+    // New user is Admin/Client, so they are their own owner
+    const token = jwt.sign({ id, role: safeRole, ownerId: id }, JWT_SECRET);
+    res.status(201).json({ user: { id, email, name, role: safeRole, emailVerified }, token });
   } catch (err: any) {
     console.error('Registration error:', err);
     res.status(400).json({ message: 'Ошибка регистрации: ' + err.message });
   }
 });
 
-app.post('/api/auth/login', async (req: any, res: any) => {
+app.get('/api/auth/verify-email', authLimiter, async (req: any, res: any) => {
+  const { token } = req.query;
+  if (!token) return res.status(400).json({ message: 'Не указан токен' });
+  try {
+    const { rows } = await pool.query(
+      `SELECT id FROM users WHERE email_verify_token = $1 AND email_verify_expires > NOW()`,
+      [token]
+    );
+    if (rows.length === 0) {
+      return res.status(400).json({ message: 'Ссылка недействительна или истекла' });
+    }
+    await pool.query(
+      `UPDATE users SET email_verified = TRUE, email_verify_token = NULL, email_verify_expires = NULL WHERE id = $1`,
+      [rows[0].id]
+    );
+    res.json({ message: 'Email подтверждён' });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/auth/resend-verification', authLimiter, authenticateToken, async (req: any, res: any) => {
+  try {
+    const { rows } = await pool.query('SELECT email, name, email_verified FROM users WHERE id = $1', [req.user.id]);
+    if (rows.length === 0) return res.status(404).json({ message: 'Пользователь не найден' });
+    if (rows[0].email_verified) return res.json({ message: 'Email уже подтверждён' });
+
+    const verifyToken = randomBytes(32).toString('hex');
+    await pool.query(
+      `UPDATE users SET email_verify_token = $1, email_verify_expires = NOW() + INTERVAL '24 hours' WHERE id = $2`,
+      [verifyToken, req.user.id]
+    );
+    await sendVerificationEmail(rows[0].email, rows[0].name, verifyToken);
+    res.json({ message: 'Письмо отправлено повторно' });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/auth/forgot-password', authLimiter, async (req: any, res: any) => {
+  const { email } = req.body;
+  const genericMessage = 'Если такой email зарегистрирован, письмо со ссылкой для сброса пароля отправлено';
+  try {
+    const { rows } = await pool.query('SELECT id, name FROM users WHERE email = $1', [email]);
+    if (rows.length > 0) {
+      const resetToken = randomBytes(32).toString('hex');
+      await pool.query(
+        `UPDATE users SET password_reset_token = $1, password_reset_expires = NOW() + INTERVAL '1 hour' WHERE id = $2`,
+        [resetToken, rows[0].id]
+      );
+      sendPasswordResetEmail(email, rows[0].name, resetToken).catch(() => {});
+    }
+    // Always the same response — never reveal whether the email exists.
+    res.json({ message: genericMessage });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/auth/reset-password', authLimiter, async (req: any, res: any) => {
+  const { token, password } = req.body;
+  if (!token || !password) return res.status(400).json({ message: 'Не хватает данных' });
+  try {
+    const { rows } = await pool.query(
+      `SELECT id FROM users WHERE password_reset_token = $1 AND password_reset_expires > NOW()`,
+      [token]
+    );
+    if (rows.length === 0) {
+      return res.status(400).json({ message: 'Ссылка недействительна или истекла' });
+    }
+    const hashedPassword = await bcrypt.hash(password, 10);
+    await pool.query(
+      `UPDATE users SET password_hash = $1, password_reset_token = NULL, password_reset_expires = NULL WHERE id = $2`,
+      [hashedPassword, rows[0].id]
+    );
+    res.json({ message: 'Пароль обновлён' });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/api/auth/login', authLimiter, async (req: any, res: any) => {
   const { email, password } = req.body;
   try {
     const { rows } = await pool.query('SELECT * FROM users WHERE email = $1', [email]);

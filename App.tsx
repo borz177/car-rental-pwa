@@ -19,6 +19,7 @@ import ContractList from './components/ContractList';
 import Cashbox from './components/Cashbox';
 import Reports from './components/Reports';
 import ClientDetails from './components/ClientDetails';
+import CarDetails from './components/CarDetails';
 import Tariffs from './components/Tariffs';
 import InvestorList from './components/InvestorList';
 import StaffList from './components/StaffList';
@@ -41,11 +42,20 @@ const App: React.FC = () => {
   const [fleetOwner, setFleetOwner] = useState<User | null>(null);
 
   // Auth State
-  const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER'>('LOGIN');
+  const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER' | 'FORGOT'>('LOGIN');
   const [authLoading, setAuthLoading] = useState(false);
+  const [authNotice, setAuthNotice] = useState<string | null>(null);
+  const [resendCooldown, setResendCooldown] = useState(0);
+
+  // Email verification link (?verifyEmail=) / password reset link (?resetPassword=) landing states
+  const [resetToken, setResetToken] = useState<string | null>(null);
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetDone, setResetDone] = useState(false);
 
   // Modal State
   const [completingRental, setCompletingRental] = useState<Rental | null>(null);
+  // Открыть форму редактирования авто сразу после возврата из карточки автомобиля
+  const [autoEditCarId, setAutoEditCarId] = useState<string | null>(null);
 
   // Access Control State
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
@@ -157,6 +167,27 @@ const App: React.FC = () => {
       const urlParams = new URLSearchParams(window.location.search);
       const fleetSlug = urlParams.get('fleet');
 
+      // Ссылка подтверждения email из письма
+      const verifyToken = urlParams.get('verifyEmail');
+      if (verifyToken) {
+        window.history.replaceState({}, '', window.location.pathname);
+        try {
+          await BackendAPI.verifyEmail(verifyToken);
+          setAuthNotice('Email подтверждён! Теперь можно войти.');
+        } catch (err) {
+          setAuthNotice('Ссылка подтверждения недействительна или истекла. Запросите новую после входа.');
+        }
+        setAuthMode('LOGIN');
+      }
+
+      // Ссылка сброса пароля из письма
+      const resetTokenParam = urlParams.get('resetPassword');
+      if (resetTokenParam) {
+        window.history.replaceState({}, '', window.location.pathname);
+        setResetToken(resetTokenParam);
+        setIsInitializing(false);
+        return;
+      }
 
       if (fleetSlug) {
         try {
@@ -234,12 +265,18 @@ useEffect(() => {
   const handleAuthSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setAuthLoading(true);
+    setAuthNotice(null);
     const fd = new FormData(e.currentTarget);
     const email = fd.get('email') as string;
     const password = fd.get('password') as string;
     const name = fd.get('name') as string;
 
     try {
+      if (authMode === 'FORGOT') {
+        const res = await BackendAPI.forgotPassword(email);
+        setAuthNotice(res.message);
+        return;
+      }
       let user;
       if (authMode === 'LOGIN') {
         user = await BackendAPI.login({ email, password });
@@ -252,6 +289,48 @@ useEffect(() => {
       alert(err.message || 'Ошибка авторизации');
     } finally {
       setAuthLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (resendCooldown > 0) return;
+    try {
+      const res = await BackendAPI.resendVerification();
+      setAuthNotice(res.message);
+      setResendCooldown(30);
+      const timer = setInterval(() => {
+        setResendCooldown((prev: number) => {
+          if (prev <= 1) { clearInterval(timer); return 0; }
+          return prev - 1;
+        });
+      }, 1000);
+    } catch (err: any) {
+      alert(err.message || 'Не удалось отправить письмо');
+    }
+  };
+
+  const handleRecheckVerification = async () => {
+    const user = await BackendAPI.getCurrentUser();
+    if (user) setCurrentUser(user);
+  };
+
+  const handleResetPasswordSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const fd = new FormData(e.currentTarget);
+    const password = fd.get('password') as string;
+    const confirm = fd.get('confirm') as string;
+    if (password !== confirm) {
+      alert('Пароли не совпадают');
+      return;
+    }
+    setResetLoading(true);
+    try {
+      await BackendAPI.resetPassword(resetToken!, password);
+      setResetDone(true);
+    } catch (err: any) {
+      alert(err.message || 'Не удалось сбросить пароль');
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -378,6 +457,61 @@ useEffect(() => {
   }
 
 
+  // Password reset landing (from email link) — takes priority over everything else
+  if (resetToken) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
+        <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn">
+          <div className="text-center mb-8">
+            <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-3xl shadow-lg mx-auto mb-4">
+              <i className="fas fa-key"></i>
+            </div>
+            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Новый пароль</h1>
+          </div>
+
+          {resetDone ? (
+            <div className="text-center space-y-4">
+              <p className="text-slate-500 text-sm font-medium">Пароль обновлён. Теперь можно войти с новым паролем.</p>
+              <button
+                onClick={() => { setResetToken(null); setResetDone(false); }}
+                className="w-full py-4 bg-blue-600 text-white rounded-2xl font-semibold uppercase tracking-wide text-xs shadow-md hover:bg-blue-700 active:scale-95 transition-all"
+              >
+                Войти
+              </button>
+            </div>
+          ) : (
+            <form onSubmit={handleResetPasswordSubmit} className="space-y-4">
+              <input
+                name="password"
+                type="password"
+                placeholder="Новый пароль"
+                required
+                minLength={6}
+                className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+              />
+              <input
+                name="confirm"
+                type="password"
+                placeholder="Повторите пароль"
+                required
+                minLength={6}
+                className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+              />
+              <button
+                type="submit"
+                disabled={resetLoading}
+                className="w-full py-4 bg-blue-600 text-white rounded-2xl font-semibold uppercase tracking-wide text-xs shadow-md hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center space-x-2"
+              >
+                {resetLoading && <i className="fas fa-circle-notch animate-spin"></i>}
+                <span>Сохранить пароль</span>
+              </button>
+            </form>
+          )}
+        </div>
+      </div>
+    );
+  }
+
   // Public Catalog View Wrapper
   if (!currentUser && currentView === 'CLIENT_CATALOG') {
     return (
@@ -417,8 +551,16 @@ useEffect(() => {
               <i className="fas fa-car-side"></i>
             </div>
             <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">AutoPro AI</h1>
-            <p className="text-slate-400 font-bold uppercase text-xs tracking-wide mt-2">Система управления автопарком</p>
+            <p className="text-slate-400 font-bold uppercase text-xs tracking-wide mt-2">
+              {authMode === 'FORGOT' ? 'Восстановление пароля' : 'Система управления автопарком'}
+            </p>
           </div>
+
+          {authNotice && (
+            <div className="mb-4 p-3 bg-blue-50 text-blue-700 text-xs font-semibold rounded-xl text-center">
+              {authNotice}
+            </div>
+          )}
 
           <form onSubmit={handleAuthSubmit} className="space-y-4">
             {authMode === 'REGISTER' && (
@@ -436,13 +578,27 @@ useEffect(() => {
               required
               className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
             />
-            <input
-              name="password"
-              type="password"
-              placeholder="Пароль"
-              required
-              className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
-            />
+            {authMode !== 'FORGOT' && (
+              <input
+                name="password"
+                type="password"
+                placeholder="Пароль"
+                required
+                className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+              />
+            )}
+
+            {authMode === 'LOGIN' && (
+              <div className="text-right -mt-2">
+                <button
+                  type="button"
+                  onClick={() => { setAuthMode('FORGOT'); setAuthNotice(null); }}
+                  className="text-slate-400 font-semibold text-xs hover:text-blue-600 transition-colors"
+                >
+                  Забыли пароль?
+                </button>
+              </div>
+            )}
 
             <button
               type="submit"
@@ -450,16 +606,62 @@ useEffect(() => {
               className="w-full py-4 bg-blue-600 text-white rounded-2xl font-semibold uppercase tracking-wide text-xs shadow-md hover:bg-blue-700 active:scale-95 transition-all flex items-center justify-center space-x-2"
             >
               {authLoading && <i className="fas fa-circle-notch animate-spin"></i>}
-              <span>{authMode === 'LOGIN' ? 'Войти' : 'Создать аккаунт'}</span>
+              <span>{authMode === 'LOGIN' ? 'Войти' : authMode === 'FORGOT' ? 'Отправить ссылку' : 'Создать аккаунт'}</span>
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <button
-              onClick={() => setAuthMode(authMode === 'LOGIN' ? 'REGISTER' : 'LOGIN')}
+              onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'REGISTER' : 'LOGIN'); setAuthNotice(null); }}
               className="text-slate-400 font-bold text-xs uppercase tracking-wide hover:text-blue-600 transition-colors"
             >
-              {authMode === 'LOGIN' ? 'Нет аккаунта? Регистрация' : 'Уже есть аккаунт? Войти'}
+              {authMode === 'LOGIN' ? 'Нет аккаунта? Регистрация' : authMode === 'FORGOT' ? 'Назад ко входу' : 'Уже есть аккаунт? Войти'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ADMIN accounts must verify their email before touching the fleet dashboard.
+  if (currentUser.role === UserRole.ADMIN && !currentUser.emailVerified) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
+        <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn text-center">
+          <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600 text-2xl mx-auto mb-4">
+            <i className="fas fa-envelope-circle-check"></i>
+          </div>
+          <h1 className="text-xl font-semibold text-slate-900">Подтвердите email</h1>
+          <p className="text-slate-500 text-sm font-medium mt-2">
+            Мы отправили письмо со ссылкой подтверждения на <span className="font-semibold text-slate-700">{currentUser.email}</span>.
+            Перейдите по ссылке, чтобы получить доступ к автопарку.
+          </p>
+
+          {authNotice && (
+            <div className="mt-4 p-3 bg-blue-50 text-blue-700 text-xs font-semibold rounded-xl">
+              {authNotice}
+            </div>
+          )}
+
+          <div className="mt-6 space-y-3">
+            <button
+              onClick={handleRecheckVerification}
+              className="w-full py-4 bg-blue-600 text-white rounded-2xl font-semibold uppercase tracking-wide text-xs shadow-md hover:bg-blue-700 active:scale-95 transition-all"
+            >
+              Я подтвердил, проверить
+            </button>
+            <button
+              onClick={handleResendVerification}
+              disabled={resendCooldown > 0}
+              className="w-full py-4 bg-slate-50 text-slate-500 rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-slate-100 transition-all disabled:opacity-50"
+            >
+              {resendCooldown > 0 ? `Отправить ещё раз (${resendCooldown}с)` : 'Отправить письмо ещё раз'}
+            </button>
+            <button
+              onClick={() => BackendAPI.logout()}
+              className="text-slate-400 font-semibold text-xs uppercase tracking-wide hover:text-blue-600 transition-colors"
+            >
+              Выйти
             </button>
           </div>
         </div>
@@ -563,11 +765,13 @@ useEffect(() => {
                   }}
                   onInfo={(id) => {
                     setSelectedEntityId(id);
-                    setCurrentView('REPORTS');
+                    setCurrentView('CAR_DETAILS');
                   }}
                   onComplete={setCompletingRental}
                   currentUser={currentUser}
                   planLimit={getPlanLimit()}
+                  autoEditCarId={autoEditCarId}
+                  onAutoEditHandled={() => setAutoEditCarId(null)}
               />
           )}
 
@@ -667,6 +871,21 @@ useEffect(() => {
                   onBack={() => setCurrentView('CLIENTS')}
                   onAddFine={apiAction(BackendAPI.saveFine)}
                   onPayFine={apiAction(BackendAPI.payFine)}
+              />
+          )}
+
+          {currentView === 'CAR_DETAILS' && cars.find(c => c.id === selectedEntityId) && (
+              <CarDetails
+                  car={cars.find(c => c.id === selectedEntityId)!}
+                  rentals={rentals}
+                  clients={clients}
+                  transactions={transactions}
+                  investors={investors}
+                  fines={fines}
+                  onBack={() => setCurrentView('CARS')}
+                  onUpdate={apiAction(BackendAPI.saveCar)}
+                  onEdit={() => { setAutoEditCarId(selectedEntityId); setCurrentView('CARS'); }}
+                  onViewReport={() => setCurrentView('REPORTS')}
               />
           )}
 

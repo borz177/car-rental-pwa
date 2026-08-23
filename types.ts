@@ -47,6 +47,7 @@ export interface User {
   permissions?: StaffPermissions; // Permissions for staff role
   createdAt?: string;
   login?: string; // Alias for email for backwards compatibility in some components
+  emailVerified?: boolean;
 }
 
 export interface Investor {
@@ -215,6 +216,7 @@ export type AppView =
   | 'CLIENT_CATALOG'
   | 'CLIENT_MY_BOOKINGS'
   | 'CLIENT_DETAILS'
+  | 'CAR_DETAILS'
   | 'STAFF_DETAILS'
   | 'INVESTOR_DETAILS'
   | 'TARIFFS'

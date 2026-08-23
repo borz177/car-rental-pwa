@@ -88,6 +88,37 @@ export default class BackendAPI {
      return resData.user;
   }
 
+  static async verifyEmail(token: string): Promise<{ message: string }> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/auth/verify-email?token=${encodeURIComponent(token)}`);
+      return BackendAPI.handleResponse(response);
+  }
+
+  static async resendVerification(): Promise<{ message: string }> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/auth/resend-verification`, {
+          method: 'POST',
+          headers: BackendAPI.getHeaders()
+      });
+      return BackendAPI.handleResponse(response);
+  }
+
+  static async forgotPassword(email: string): Promise<{ message: string }> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/auth/forgot-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+      });
+      return BackendAPI.handleResponse(response);
+  }
+
+  static async resetPassword(token: string, password: string): Promise<{ message: string }> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/auth/reset-password`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token, password })
+      });
+      return BackendAPI.handleResponse(response);
+  }
+
   static async logout(): Promise<void> {
       // Clear local token first
       localStorage.removeItem('token');

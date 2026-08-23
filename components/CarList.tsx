@@ -17,9 +17,18 @@ interface CarListProps {
   onComplete: (rental: Rental) => void;
   currentUser: User;
   planLimit?: number;
+  autoEditCarId?: string | null;
+  onAutoEditHandled?: () => void;
 }
 
 const OIL_CHANGE_WARNING_KM = 1000;
+
+const parseOptionalNumber = (value: FormDataEntryValue | null): number | undefined => {
+  const raw = ((value as string) ?? '').trim();
+  if (raw === '') return undefined;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : undefined;
+};
 
 const CarCard: React.FC<{
   car: Car,
@@ -30,12 +39,10 @@ const CarCard: React.FC<{
   onIssue: () => void,
   onReserve: () => void,
   onInfo: () => void,
-  onOilChange: () => void,
   onViewImages: (images: string[]) => void,
-  onShowInfo: () => void,
   onComplete: (rental: Rental) => void,
   currentUser: User;
-}> = ({ car, activeRental, clientPhone, onEdit, onDelete, onIssue, onReserve, onInfo, onOilChange, onViewImages, onShowInfo, onComplete, currentUser }) => {
+}> = ({ car, activeRental, clientPhone, onEdit, onDelete, onIssue, onReserve, onInfo, onViewImages, onComplete, currentUser }) => {
   const [showMenu, setShowMenu] = useState(false);
 
   const permissions = currentUser.permissions;
@@ -103,8 +110,8 @@ const CarCard: React.FC<{
 
       <div className="p-3">
         <div className="flex justify-between items-start mb-3">
-          <div>
-            <h3 className="text-base md:text-lg font-semibold text-slate-900 tracking-tight">{car.brand} {car.model}</h3>
+          <div onClick={onInfo} className="cursor-pointer min-w-0 pr-2 group/title">
+            <h3 className="text-base md:text-lg font-semibold text-slate-900 tracking-tight truncate group-hover/title:text-blue-600 transition-colors">{car.brand} {car.model}</h3>
             <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{car.plate} • {car.year} г.</p>
           </div>
           <div className="text-right">
@@ -135,10 +142,8 @@ const CarCard: React.FC<{
               <>
                 <div className="fixed inset-0 z-20" onClick={() => setShowMenu(false)}></div>
                 <div className="absolute bottom-14 right-0 w-48 bg-white rounded-2xl shadow-md border border-slate-50 z-30 py-1 animate-scaleIn">
-                  <button onClick={() => { onShowInfo(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600"><i className="fas fa-info-circle text-blue-500 w-4"></i><span>Инфо</span></button>
-                  <button onClick={() => { onInfo(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600"><i className="fas fa-chart-line text-indigo-500 w-4"></i><span>Отчет</span></button>
+                  <button onClick={() => { onInfo(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600"><i className="fas fa-circle-info text-blue-500 w-4"></i><span>Подробнее</span></button>
                   {canEdit && <button onClick={() => { onEdit(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-slate-50 flex items-center space-x-3 text-amber-500"><i className="fas fa-edit w-4"></i><span>Изменить</span></button>}
-                  {canEdit && <button onClick={() => { onOilChange(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-slate-50 flex items-center space-x-3 text-emerald-500"><i className="fas fa-oil-can w-4"></i><span>Заменить масло</span></button>}
                   {activeRental && !activeRental.isReservation && canCreateBooking && (
                     <button onClick={() => { onComplete(activeRental); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-blue-50 flex items-center space-x-3 text-blue-600"><i className="fas fa-check-circle w-4"></i><span>Завершить</span></button>
                   )}
@@ -154,16 +159,28 @@ const CarCard: React.FC<{
 };
 
 const CarList: React.FC<CarListProps> = ({
-  cars, investors, rentals, clients, onAdd, onUpdate, onDelete, onIssue, onReserve, onInfo, onComplete, currentUser, planLimit = 9999
+  cars, investors, rentals, clients, onAdd, onUpdate, onDelete, onIssue, onReserve, onInfo, onComplete, currentUser,
+  planLimit = 9999, autoEditCarId, onAutoEditHandled
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Car | null>(null);
   const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [search, setSearch] = useState('');
   const [tempImages, setTempImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [viewingImages, setViewingImages] = useState<string[] | null>(null);
-  const [confirmingOilChange, setConfirmingOilChange] = useState<Car | null>(null);
-  const [infoModalData, setInfoModalData] = useState<{car: Car, rental?: Rental, client?: Client} | null>(null);
+
+  // Возврат из карточки автомобиля по кнопке «Изменить» — сразу открываем форму.
+  useEffect(() => {
+    if (!autoEditCarId) return;
+    const target = cars.find(c => c.id === autoEditCarId);
+    if (target) {
+      setEditing(target);
+      setTempImages(target.images || []);
+      setIsModalOpen(true);
+    }
+    onAutoEditHandled?.();
+  }, [autoEditCarId, cars]);
 
   const permissions = currentUser.permissions;
   const isStaff = currentUser.role === UserRole.STAFF;
@@ -195,7 +212,12 @@ const CarList: React.FC<CarListProps> = ({
     };
   }, [cars, rentals]);
 
+  const query = search.trim().toLowerCase();
   const filteredCars = cars.filter(car => {
+    if (query) {
+      const haystack = `${car.brand} ${car.model} ${car.plate} ${car.category || ''}`.toLowerCase();
+      if (!haystack.includes(query)) return false;
+    }
     if (statusFilter === 'ALL') return true;
     if (statusFilter === 'MAINTENANCE') return car.status === CarStatus.MAINTENANCE;
     const rent = getActiveRental(car.id);
@@ -225,22 +247,36 @@ const CarList: React.FC<CarListProps> = ({
       images: tempImages.length > 0 ? tempImages : (editing?.images || []),
       investorId: (fd.get('investorId') as string) || undefined,
       investorShare: Number(fd.get('investorShare')) || 0,
-      lastOilChangeMileage: Number(fd.get('lastOilChangeMileage')) || undefined,
-      oilChangeInterval: Number(fd.get('oilChangeInterval')) || undefined
+      // Пустое поле -> undefined, но 0 — валидное значение (новое авто с нулевого пробега),
+      // поэтому `|| undefined` здесь использовать нельзя: он глушил учёт замены масла.
+      lastOilChangeMileage: parseOptionalNumber(fd.get('lastOilChangeMileage')),
+      oilChangeInterval: parseOptionalNumber(fd.get('oilChangeInterval'))
     };
     if (editing) onUpdate(car); else onAdd(car);
     setIsModalOpen(false); setEditing(null); setTempImages([]);
   };
 
-  const handleConfirmOilChange = () => {
-    if (!confirmingOilChange) return;
-    onUpdate({ ...confirmingOilChange, lastOilChangeMileage: confirmingOilChange.mileage });
-    setConfirmingOilChange(null);
-  };
-
   return (
     <div className="space-y-4 animate-fadeIn pb-24 md:pb-0">
       <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-4">
+        <div className="relative">
+          <i className="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Поиск по марке, модели или гос. номеру"
+            className="w-full pl-10 pr-10 py-3 bg-slate-50 rounded-xl font-semibold text-sm outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+          />
+          {search && (
+            <button
+              onClick={() => setSearch('')}
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg text-slate-300 hover:text-slate-600 transition-colors"
+            >
+              <i className="fas fa-xmark text-xs"></i>
+            </button>
+          )}
+        </div>
+
         <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
           <div className="flex-1">
             <div className="flex flex-wrap items-center gap-2">
@@ -293,32 +329,28 @@ const CarList: React.FC<CarListProps> = ({
               onIssue={() => onIssue(car.id)}
               onReserve={() => onReserve(car.id)}
               onInfo={() => onInfo(car.id)}
-              onOilChange={() => setConfirmingOilChange(car)}
               onViewImages={setViewingImages}
-              onShowInfo={() => setInfoModalData({ car, rental, client })}
               onComplete={onComplete}
             />
           );
         })}
       </div>
 
-      {viewingImages && <ImageViewerModal images={viewingImages} onClose={() => setViewingImages(null)} />}
-
-      {infoModalData && <CarInfoModal data={infoModalData} onClose={() => setInfoModalData(null)} />}
-
-      {confirmingOilChange && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm">
-          <div className="bg-white rounded-2xl p-8 w-full max-w-sm text-center animate-scaleIn">
-            <div className="w-12 h-12 bg-emerald-50 text-emerald-500 mx-auto rounded-2xl flex items-center justify-center text-2xl mb-4"><i className="fas fa-oil-can"></i></div>
-            <h3 className="font-semibold text-lg mb-2">Зафиксировать замену масла?</h3>
-            <p className="text-sm text-slate-500 mb-6">Пробег последней замены будет обновлен на текущий: <b className="text-slate-800">{confirmingOilChange.mileage.toLocaleString()} км</b>.</p>
-            <div className="flex gap-2">
-              <button onClick={() => setConfirmingOilChange(null)} className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-bold">Отмена</button>
-              <button onClick={handleConfirmOilChange} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-bold">Подтвердить</button>
-            </div>
+      {filteredCars.length === 0 && (
+        <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
+          <i className="fas fa-car-side text-3xl text-slate-200 mb-3"></i>
+          <div className="font-semibold text-slate-500">
+            {query ? 'Ничего не найдено' : 'В этой категории нет автомобилей'}
           </div>
+          {query && (
+            <button onClick={() => setSearch('')} className="mt-3 text-xs font-semibold text-blue-600 uppercase tracking-wide">
+              Сбросить поиск
+            </button>
+          )}
         </div>
       )}
+
+      {viewingImages && <ImageViewerModal images={viewingImages} onClose={() => setViewingImages(null)} />}
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm overflow-y-auto">
@@ -376,92 +408,6 @@ const CarList: React.FC<CarListProps> = ({
           </form>
         </div>
       )}
-    </div>
-  );
-};
-
-const CarInfoModal: React.FC<{data: {car: Car, rental?: Rental, client?: Client}, onClose: () => void}> = ({ data, onClose }) => {
-  const { car, rental, client } = data;
-
-  const overdueInfo = useMemo(() => {
-    if (!rental || rental.isReservation) return null;
-
-    const getMoscowCurrentTime = () => new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Moscow' }));
-    const moscowNow = getMoscowCurrentTime();
-
-    const rentEndDate = typeof rental.endDate === 'string' ? rental.endDate.split('T')[0] : rental.endDate;
-    const rentEnd = new Date(`${rentEndDate}T${rental.endTime}`);
-
-    const diff = moscowNow.getTime() - rentEnd.getTime();
-    if (diff <= 0) return null;
-
-    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-    let overdueText = '';
-    if (days > 0) overdueText = `${days}д ${hours}ч`;
-    else if (hours > 0) overdueText = `${hours}ч ${minutes}м`;
-    else overdueText = `${minutes}м`;
-
-    const overdueHours = Math.ceil(diff / (1000 * 60 * 60));
-    const pricePerHour = car.pricePerHour || Math.round(car.pricePerDay / 24);
-    const overdueAmount = overdueHours * pricePerHour;
-
-    return { text: overdueText, amount: overdueAmount };
-  }, [rental, car]);
-
-  return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md animate-fadeIn">
-      <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn relative">
-        <button onClick={onClose} className="absolute top-8 right-8 text-slate-300 hover:text-slate-900 transition-all">
-          <i className="fas fa-times"></i>
-        </button>
-        <h2 className="text-2xl font-semibold text-slate-900 mb-2">{car.brand} {car.model}</h2>
-        <p className="text-slate-400 font-bold uppercase text-[10px] tracking-wide">{car.plate}</p>
-
-        {rental ? (
-          <div className="mt-8 space-y-4">
-            <div className={`p-6 rounded-xl border-2 ${rental.isReservation ? 'bg-amber-50 border-amber-100' : 'bg-blue-50 border-blue-100'}`}>
-              <div className={`text-[10px] font-semibold uppercase tracking-wide mb-2 ${rental.isReservation ? 'text-amber-600' : 'text-blue-600'}`}>
-                {rental.isReservation ? 'Забронировано' : 'В аренде'}
-              </div>
-              <div className="text-xl font-semibold text-slate-900">{client?.name || 'Клиент не найден'}</div>
-              <div className="text-sm font-medium text-slate-400">{client?.phone}</div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="bg-slate-50 p-4 rounded-2xl">
-                 <div className="text-[9px] font-bold text-slate-400 uppercase">Начало</div>
-                 <div className="font-bold text-slate-800">{new Date(rental.startDate).toLocaleDateString()} {rental.startTime}</div>
-              </div>
-              <div className="bg-slate-50 p-4 rounded-2xl">
-                 <div className="text-[9px] font-bold text-slate-400 uppercase">Окончание</div>
-                 <div className="font-bold text-slate-800">{new Date(rental.endDate).toLocaleDateString()} {rental.endTime}</div>
-              </div>
-            </div>
-            {overdueInfo && (
-              <div className="p-5 bg-rose-50 border-2 border-rose-100 rounded-xl animate-pulse">
-                <div className="flex justify-between items-center">
-                  <div>
-                     <div className="text-xs font-semibold text-rose-600 uppercase">Просрочка</div>
-                     <div className="text-lg font-bold text-rose-800">{overdueInfo.text}</div>
-                  </div>
-                  <div className="text-right">
-                     <div className="text-xs font-semibold text-rose-600 uppercase">Долг</div>
-                     <div className="text-lg font-bold text-rose-800">{overdueInfo.amount.toLocaleString()} ₽</div>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        ) : (
-          <div className="mt-8 p-8 bg-emerald-50 border-2 border-emerald-100 rounded-xl text-center">
-            <i className="fas fa-check-circle text-3xl text-emerald-500 mb-3"></i>
-            <p className="font-semibold text-lg text-emerald-800">Автомобиль свободен</p>
-          </div>
-        )}
-        <button onClick={onClose} className="w-full mt-8 py-4 bg-slate-100 text-slate-500 rounded-2xl font-bold">Закрыть</button>
-      </div>
     </div>
   );
 };

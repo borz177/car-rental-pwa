@@ -108,6 +108,10 @@ export default class OfflineAPI {
   static login = BackendAPI.login;
   static register = BackendAPI.register;
   static logout = BackendAPI.logout;
+  static verifyEmail = BackendAPI.verifyEmail;
+  static resendVerification = BackendAPI.resendVerification;
+  static forgotPassword = BackendAPI.forgotPassword;
+  static resetPassword = BackendAPI.resetPassword;
   static getAllUsers = BackendAPI.getAllUsers;
   static updateGlobalUser = BackendAPI.updateGlobalUser;
   static deleteGlobalUser = BackendAPI.deleteGlobalUser;
