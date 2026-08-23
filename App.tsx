@@ -741,8 +741,12 @@ useEffect(() => {
                   cars={cars}
                   rentals={rentals}
                   clients={clients}
+                  transactions={transactions}
+                  fines={fines}
                   user={currentUser}
                   onCompleteRental={setCompletingRental}
+                  onNavigate={(view) => { setSelectedEntityId(null); setCurrentView(view); }}
+                  onSelectCar={(id) => { setSelectedEntityId(id); setCurrentView('CAR_DETAILS'); }}
               />
           }
 

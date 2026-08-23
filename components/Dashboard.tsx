@@ -1,206 +1,349 @@
 
-import React from 'react';
-import { Car, Rental, Client, User } from '../types';
+import React, { useMemo } from 'react';
+import { Car, CarStatus, Rental, Client, User, Transaction, TransactionType, Fine, FineStatus, AppView } from '../types';
 
 interface DashboardProps {
   cars: Car[];
   rentals: Rental[];
   clients: Client[];
+  transactions: Transaction[];
+  fines: Fine[];
   user?: User | null;
   onCompleteRental: (rental: Rental) => void;
+  onNavigate: (view: AppView) => void;
+  onSelectCar: (carId: string) => void;
 }
 
-interface StatCardProps {
-  title: string;
-  value: string | number;
-  icon: string;
-  color: string;
-}
+const OIL_CHANGE_WARNING_KM = 1000;
 
-const StatCard: React.FC<StatCardProps> = ({ title, value, icon, color }) => (
-  <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between group hover:border-slate-200 transition-all">
-    <div>
-      <span className="text-slate-400 text-[10px] font-semibold uppercase tracking-wide block mb-1">{title}</span>
-      <div className="text-2xl font-bold text-slate-900">{value}</div>
+// Приложение работает по московскому времени (сервер тоже выставляет TZ=Europe/Moscow).
+const getMoscowNow = () => {
+  const iso = new Date().toLocaleString('en-CA', {
+    timeZone: 'Europe/Moscow', hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  }).replace(', ', 'T');
+  return new Date(iso);
+};
+
+const dateOnly = (value: string) => String(value).split('T')[0];
+
+const Money: React.FC<{
+  label: string; value: number; hint?: string;
+  tone?: 'default' | 'emerald' | 'rose'; onClick?: () => void;
+}> = ({ label, value, hint, tone = 'default', onClick }) => (
+  <div
+    onClick={onClick}
+    className={`bg-white p-4 rounded-2xl border border-slate-100 ${onClick ? 'cursor-pointer hover:border-slate-300 transition-colors' : ''}`}
+  >
+    <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{label}</div>
+    <div className={`text-2xl font-bold mt-1 ${
+      tone === 'emerald' ? 'text-emerald-600' : tone === 'rose' ? 'text-rose-600' : 'text-slate-900'
+    }`}>
+      {value.toLocaleString()} ₽
     </div>
-    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl bg-${color}-50 text-${color}-500 group-hover:scale-110 transition-transform`}>
-      <i className={`fas ${icon}`}></i>
-    </div>
+    {hint && <div className="text-[10px] font-medium text-slate-400 mt-0.5">{hint}</div>}
   </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ cars, rentals, clients, user, onCompleteRental }) => {
-  const totalRevenue = rentals.reduce((sum, r) => sum + r.totalAmount, 0);
-  const utilizationRate = Math.round((cars.filter(c => c.status === 'В аренде').length / cars.length) * 100) || 0;
-
-  // Logic for Returns Today (and Overdue) in Moscow Time
-  const getMoscowCurrentTime = () => {
-    const now = new Date();
-    // Get formatted string in Moscow time: "YYYY-MM-DD, HH:mm:ss" (en-CA provides YYYY-MM-DD)
-    const isoString = now.toLocaleString('en-CA', {
-      timeZone: 'Europe/Moscow',
-      hour12: false,
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit'
-    }).replace(', ', 'T');
-
-    return new Date(isoString);
-  };
-
-  const moscowNow = getMoscowCurrentTime();
+const Dashboard: React.FC<DashboardProps> = ({
+  cars, rentals, clients, transactions, fines, user, onCompleteRental, onNavigate, onSelectCar
+}) => {
+  const moscowNow = getMoscowNow();
   const todayStr = moscowNow.toISOString().split('T')[0];
+  const monthPrefix = todayStr.slice(0, 7);
 
-  const returningRentals = rentals.filter(r => {
-    const rentEndDate = typeof r.endDate === 'string' ? r.endDate.split('T')[0] : r.endDate;
+  // --- Деньги: считаем по фактическим движениям кассы, а не по сумме договоров.
+  // Сумма всех договоров за всё время только растёт и ни о чём не говорит.
+  const money = useMemo(() => {
+    let incomeToday = 0, incomeMonth = 0, expenseMonth = 0;
+    transactions.forEach(t => {
+      const d = dateOnly(t.date);
+      if (t.type === TransactionType.INCOME) {
+        if (d === todayStr) incomeToday += t.amount;
+        if (d.startsWith(monthPrefix)) incomeMonth += t.amount;
+      } else if (t.type === TransactionType.EXPENSE && d.startsWith(monthPrefix)) {
+        expenseMonth += t.amount;
+      }
+    });
+    const debt = clients.reduce((s, c) => s + (c.debt || 0), 0);
+    return { incomeToday, incomeMonth, expenseMonth, netMonth: incomeMonth - expenseMonth, debt };
+  }, [transactions, clients, todayStr, monthPrefix]);
 
-    return r.status === 'ACTIVE' &&
-           !r.isReservation &&
-           rentEndDate <= todayStr; // Include past dates (overdue)
-  }).sort((a, b) => {
-      // Sort by end date/time ascending (most overdue first)
-      if (a.endDate !== b.endDate) return a.endDate.localeCompare(b.endDate);
-      return a.endTime.localeCompare(b.endTime);
-  });
+  // --- Автопарк: статус выводим из активных аренд, как в разделе «Автопарк».
+  // Поле car.status для этого не годится — оно расходится с реальными арендами.
+  const fleet = useMemo(() => {
+    const rentedIds = new Set(rentals.filter(r => r.status === 'ACTIVE' && !r.isReservation).map(r => r.carId));
+    const reservedIds = new Set(rentals.filter(r => r.status === 'ACTIVE' && r.isReservation).map(r => r.carId));
+    const maintenance = cars.filter(c => c.status === CarStatus.MAINTENANCE).length;
+    const rented = cars.filter(c => rentedIds.has(c.id) && c.status !== CarStatus.MAINTENANCE).length;
+    const reserved = cars.filter(c => reservedIds.has(c.id) && !rentedIds.has(c.id) && c.status !== CarStatus.MAINTENANCE).length;
+    const free = cars.length - rented - reserved - maintenance;
+    const utilization = cars.length ? Math.round((rented / cars.length) * 100) : 0;
+    return { total: cars.length, free, rented, reserved, maintenance, utilization };
+  }, [cars, rentals]);
 
-  const getOverdueText = (rental: Rental) => {
-      const rentEndDate = typeof rental.endDate === 'string' ? rental.endDate.split('T')[0] : rental.endDate;
-      const rentEnd = new Date(`${rentEndDate}T${rental.endTime}`);
-
-      const diff = moscowNow.getTime() - rentEnd.getTime();
-
-      if (diff <= 0) return null;
-
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-
-      if (days > 0) return `${days}д ${hours}ч`;
-      if (hours > 0) return `${hours}ч ${minutes}м`;
-      return `${minutes}м`;
+  const overdueOf = (rental: Rental) => {
+    const end = new Date(`${dateOnly(rental.endDate)}T${rental.endTime || '00:00'}`);
+    const diff = moscowNow.getTime() - end.getTime();
+    if (diff <= 0) return null;
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const minutes = Math.floor((diff % 3600000) / 60000);
+    return days > 0 ? `${days}д ${hours}ч` : hours > 0 ? `${hours}ч ${minutes}м` : `${minutes}м`;
   };
 
-  const handleWhatsAppRemind = (rental: Rental) => {
+  // Возвраты: сегодня и всё просроченное.
+  const returns = useMemo(() =>
+    rentals
+      .filter(r => r.status === 'ACTIVE' && !r.isReservation && dateOnly(r.endDate) <= todayStr)
+      .sort((a, b) => (a.endDate + a.endTime).localeCompare(b.endDate + b.endTime)),
+    [rentals, todayStr]
+  );
+
+  // Выдачи: брони, которые начинаются сегодня. Раньше их на главной не было вовсе,
+  // хотя это половина операционного дня.
+  const pickups = useMemo(() =>
+    rentals
+      .filter(r => r.status === 'ACTIVE' && r.isReservation && dateOnly(r.startDate) === todayStr)
+      .sort((a, b) => (a.startTime || '').localeCompare(b.startTime || '')),
+    [rentals, todayStr]
+  );
+
+  const alerts = useMemo(() => {
+    const items: { icon: string; text: string; tone: 'rose' | 'amber'; action: () => void }[] = [];
+
+    const unpaid = fines.filter(f => f.status === FineStatus.UNPAID);
+    if (unpaid.length) {
+      const sum = unpaid.reduce((s, f) => s + f.amount, 0);
+      items.push({
+        icon: 'fa-file-invoice-dollar', tone: 'amber',
+        text: `Неоплаченных штрафов: ${unpaid.length} на ${sum.toLocaleString()} ₽`,
+        action: () => onNavigate('CLIENTS')
+      });
+    }
+
+    const oilDue = cars.filter(c => {
+      if (typeof c.lastOilChangeMileage !== 'number' || !c.oilChangeInterval) return false;
+      return (c.mileage || 0) - c.lastOilChangeMileage >= c.oilChangeInterval - OIL_CHANGE_WARNING_KM;
+    });
+    if (oilDue.length) {
+      items.push({
+        icon: 'fa-oil-can', tone: 'amber',
+        text: `Требуется замена масла: ${oilDue.length} авто`,
+        action: () => onNavigate('CARS')
+      });
+    }
+
+    if (user?.subscriptionUntil) {
+      const left = Math.ceil((new Date(user.subscriptionUntil).getTime() - moscowNow.getTime()) / 86400000);
+      if (left <= 7) {
+        items.push({
+          icon: 'fa-crown', tone: left <= 0 ? 'rose' : 'amber',
+          text: left <= 0 ? 'Подписка истекла' : `Подписка заканчивается через ${left} дн.`,
+          action: () => onNavigate('TARIFFS')
+        });
+      }
+    }
+    return items;
+  }, [fines, cars, user, moscowNow, onNavigate]);
+
+  const whatsapp = (rental: Rental, kind: 'RETURN' | 'PICKUP') => {
     const client = clients.find(c => c.id === rental.clientId);
     const car = cars.find(c => c.id === rental.carId);
-
     if (!client || !car) return;
-
     let phone = client.phone.replace(/\D/g, '');
     if (phone.startsWith('8') && phone.length === 11) phone = '7' + phone.slice(1);
 
-    const overdue = getOverdueText(rental);
-    const overdueMsg = overdue ? ` Срок аренды истек (просрочка ${overdue}).` : '';
-
-    const text = `Здравствуйте, ${client.name}. Напоминаем, что до ${rental.endTime} ожидаем возврат автомобиля ${car.brand} ${car.model} (${car.plate}).${overdueMsg} Ждем вас!`;
+    const overdue = kind === 'RETURN' ? overdueOf(rental) : null;
+    const text = kind === 'RETURN'
+      ? `Здравствуйте, ${client.name}. Напоминаем, что до ${rental.endTime} ожидаем возврат автомобиля ${car.brand} ${car.model} (${car.plate}).${overdue ? ` Срок аренды истек (просрочка ${overdue}).` : ''} Ждем вас!`
+      : `Здравствуйте, ${client.name}. Напоминаем о брони автомобиля ${car.brand} ${car.model} (${car.plate}) сегодня в ${rental.startTime}. Ждем вас!`;
 
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(text)}`, '_blank');
   };
 
-  return (
-    <div className="space-y-5 animate-fadeIn">
+  const overdueCount = returns.filter(r => overdueOf(r)).length;
 
-      {/* Top Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard title="Выручка (₽)" value={totalRevenue.toLocaleString()} icon="fa-wallet" color="blue" />
-        <StatCard title="Загрузка" value={`${utilizationRate}%`} icon="fa-chart-line" color="emerald" />
-        <StatCard title="Клиенты" value={clients.length} icon="fa-users" color="purple" />
-        <StatCard title="Автопарк" value={cars.length} icon="fa-car" color="amber" />
-      </div>
+  const AgendaRow: React.FC<{ rental: Rental; kind: 'RETURN' | 'PICKUP' }> = ({ rental, kind }) => {
+    const car = cars.find(c => c.id === rental.carId);
+    const client = clients.find(c => c.id === rental.clientId);
+    if (!car || !client) return null;
+    const overdue = kind === 'RETURN' ? overdueOf(rental) : null;
 
-      {/* Returns Today Section */}
-      <div>
-        <div className="flex items-center space-x-3 mb-6 px-2">
-           <div className="w-10 h-10 bg-rose-100 rounded-xl flex items-center justify-center text-rose-600 shadow-sm">
-             <i className="fas fa-clock"></i>
-           </div>
-           <div>
-             <h3 className="text-2xl font-semibold text-slate-900">Возвраты и долги</h3>
-             <p className="text-slate-400 font-bold uppercase text-[10px] tracking-wide">Автомобили, ожидающие возврата</p>
-           </div>
+    return (
+      <div className={`p-3 rounded-xl border flex items-center gap-3 ${
+        overdue ? 'border-rose-200 bg-rose-50/50' : 'border-slate-100 hover:bg-slate-50'
+      } transition-colors`}>
+        <div
+          onClick={() => onSelectCar(car.id)}
+          className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 cursor-pointer"
+        >
+          <img src={car.images?.[0] || 'https://images.unsplash.com/photo-1494905998402-395d579af36f?q=80&w=200'} className="w-full h-full object-cover" alt="" />
         </div>
 
-        {returningRentals.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {returningRentals.map(rental => {
-              const car = cars.find(c => c.id === rental.carId);
-              const client = clients.find(c => c.id === rental.clientId);
+        <div className="flex-1 min-w-0">
+          <div className="font-semibold text-slate-900 text-sm truncate">{client.name}</div>
+          <div className="text-[11px] text-slate-400 font-medium truncate">
+            {car.brand} {car.model} • {car.plate}
+          </div>
+        </div>
 
-              if (!car || !client) return null;
+        <div className="text-right flex-shrink-0">
+          <div className={`text-xs font-bold ${overdue ? 'text-rose-600' : 'text-slate-700'}`}>
+            {kind === 'RETURN' ? rental.endTime : rental.startTime}
+          </div>
+          {overdue && <div className="text-[9px] font-bold text-rose-600 uppercase">+{overdue}</div>}
+        </div>
 
-              const overdue = getOverdueText(rental);
+        <div className="flex gap-1.5 flex-shrink-0">
+          <button
+            onClick={() => whatsapp(rental, kind)}
+            title="Написать в WhatsApp"
+            className="w-8 h-8 bg-[#25D366] text-white rounded-lg flex items-center justify-center hover:bg-[#20b858] active:scale-95 transition-all"
+          >
+            <i className="fab fa-whatsapp text-sm"></i>
+          </button>
+          {kind === 'RETURN' && (
+            <button
+              onClick={() => onCompleteRental(rental)}
+              title="Завершить аренду"
+              className="px-2.5 h-8 bg-blue-600 text-white rounded-lg flex items-center justify-center hover:bg-blue-700 active:scale-95 transition-all"
+            >
+              <i className="fas fa-check text-xs"></i>
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  };
 
-              return (
-                <div key={rental.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-lg transition-all group relative overflow-hidden">
-                  <div className="flex items-center gap-5">
-                    {/* Car Image */}
-                    <div className="w-20 h-20 bg-slate-100 rounded-2xl overflow-hidden flex-shrink-0 shadow-inner relative">
-                      <img src={car.images[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt={car.model} />
-                      {overdue && (
-                        <div className="absolute top-1 left-1 bg-white rounded-full p-1 shadow-md z-10">
-                           <div className="w-4 h-4 bg-rose-500 rounded-full flex items-center justify-center text-white text-[10px] animate-pulse">
-                             <i className="fas fa-exclamation"></i>
-                           </div>
-                        </div>
-                      )}
-                    </div>
+  const EmptyState: React.FC<{ icon: string; text: string }> = ({ icon, text }) => (
+    <div className="py-10 text-center">
+      <i className={`fas ${icon} text-2xl text-slate-200 mb-2`}></i>
+      <div className="text-xs font-semibold text-slate-400">{text}</div>
+    </div>
+  );
 
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h4 className="font-semibold text-slate-900 truncate pr-2">{client.name}</h4>
-                          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide bg-slate-50 inline-block px-2 py-0.5 rounded-md mt-1">{car.brand} {car.model} • {car.plate}</div>
-                        </div>
-                        <div className="text-right flex flex-col items-end">
-                           <div className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
-                             до {rental.endTime}
-                           </div>
-                           {overdue && (
-                             <div className="text-[9px] font-semibold text-white bg-rose-600 px-2 py-1 rounded-lg mt-1 shadow-sm animate-pulse flex items-center gap-1">
-                               <span>+{overdue}</span>
-                             </div>
-                           )}
-                        </div>
-                      </div>
+  return (
+    <div className="space-y-4 animate-fadeIn">
+      {/* Деньги */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <Money
+          label="Доход за месяц"
+          value={money.incomeMonth}
+          tone="emerald"
+          hint={money.expenseMonth > 0 ? `расходы ${money.expenseMonth.toLocaleString()} ₽ • чистыми ${money.netMonth.toLocaleString()} ₽` : 'расходов нет'}
+          onClick={() => onNavigate('REPORTS')}
+        />
+        <Money label="Доход сегодня" value={money.incomeToday} onClick={() => onNavigate('CASHBOX')} />
+        <Money
+          label="Долги клиентов"
+          value={money.debt}
+          tone={money.debt > 0 ? 'rose' : 'default'}
+          hint={money.debt > 0 ? 'требуют внимания' : 'все рассчитались'}
+          onClick={() => onNavigate('CLIENTS')}
+        />
+        <div className="bg-white p-4 rounded-2xl border border-slate-100">
+          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Загрузка автопарка</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1">{fleet.utilization}%</div>
+          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
+            <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${fleet.utilization}%` }}></div>
+          </div>
+        </div>
+      </div>
 
-                      <div className="mt-3 flex items-center justify-end gap-2">
-                        <div className="flex gap-2">
-                            <button
-                              onClick={() => handleWhatsAppRemind(rental)}
-                              className="bg-[#25D366] text-white w-8 h-8 rounded-xl hover:bg-[#20b858] transition-all shadow-lg flex items-center justify-center active:scale-95"
-                              title="Напомнить в WhatsApp"
-                            >
-                              <i className="fab fa-whatsapp"></i>
-                            </button>
-                            <button
-                              onClick={() => onCompleteRental(rental)}
-                              className="bg-blue-600 text-white px-3 h-8 rounded-xl hover:bg-blue-700 transition-all shadow-lg flex items-center justify-center gap-1 active:scale-95"
-                              title="Завершить аренду"
-                            >
-                              <i className="fas fa-check"></i>
-                              <span className="text-[10px] font-semibold uppercase">Завершить</span>
-                            </button>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+      {/* Автопарк */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-100">
+        <div className="flex items-center justify-between mb-3">
+          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Автопарк — {fleet.total} авто</div>
+          <button onClick={() => onNavigate('CARS')} className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide hover:text-blue-700">
+            Открыть <i className="fas fa-arrow-right ml-1"></i>
+          </button>
+        </div>
+        <div className="grid grid-cols-4 gap-2">
+          {[
+            { label: 'Свободны', value: fleet.free, color: 'text-emerald-600', bg: 'bg-emerald-50' },
+            { label: 'В аренде', value: fleet.rented, color: 'text-blue-600', bg: 'bg-blue-50' },
+            { label: 'Бронь', value: fleet.reserved, color: 'text-amber-600', bg: 'bg-amber-50' },
+            { label: 'Ремонт', value: fleet.maintenance, color: 'text-slate-600', bg: 'bg-slate-100' }
+          ].map(s => (
+            <button key={s.label} onClick={() => onNavigate('CARS')} className={`${s.bg} p-3 rounded-xl text-center hover:opacity-80 transition-opacity`}>
+              <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
+              <div className="text-[9px] font-semibold text-slate-500 uppercase tracking-wide mt-0.5">{s.label}</div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Оповещения */}
+      {alerts.length > 0 && (
+        <div className="space-y-2">
+          {alerts.map((a, i) => (
+            <button
+              key={i}
+              onClick={a.action}
+              className={`w-full p-3 rounded-xl border flex items-center gap-3 text-left transition-colors ${
+                a.tone === 'rose' ? 'bg-rose-50 border-rose-100 hover:bg-rose-100/60' : 'bg-amber-50 border-amber-100 hover:bg-amber-100/60'
+              }`}
+            >
+              <i className={`fas ${a.icon} ${a.tone === 'rose' ? 'text-rose-500' : 'text-amber-500'}`}></i>
+              <span className={`text-xs font-semibold flex-1 ${a.tone === 'rose' ? 'text-rose-700' : 'text-amber-700'}`}>{a.text}</span>
+              <i className={`fas fa-chevron-right text-[10px] ${a.tone === 'rose' ? 'text-rose-400' : 'text-amber-400'}`}></i>
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* План на день */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center">
+                <i className="fas fa-arrow-rotate-left text-xs"></i>
+              </div>
+              <div>
+                <div className="font-semibold text-slate-900 text-sm">Возвраты</div>
+                <div className="text-[10px] font-medium text-slate-400">
+                  {overdueCount > 0 ? `${returns.length} всего • ${overdueCount} просрочено` : 'на сегодня'}
                 </div>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="bg-white rounded-2xl p-8 text-center border border-slate-100 shadow-sm">
-            <div className="w-14 h-14 bg-emerald-50 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500 text-3xl">
-              <i className="fas fa-check-circle"></i>
+              </div>
             </div>
-            <h4 className="text-xl font-semibold text-slate-900">Возвратов не ожидается</h4>
-            <p className="text-slate-400 text-sm font-medium mt-1">Все активные аренды продолжаются или заканчиваются в другие дни.</p>
+            {returns.length > 0 && (
+              <span className={`px-2 py-1 rounded-lg text-xs font-bold ${overdueCount > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>
+                {returns.length}
+              </span>
+            )}
           </div>
-        )}
+          <div className="p-3 space-y-2 max-h-96 overflow-y-auto">
+            {returns.length > 0
+              ? returns.map(r => <AgendaRow key={r.id} rental={r} kind="RETURN" />)
+              : <EmptyState icon="fa-circle-check" text="Возвратов не ожидается" />}
+          </div>
+        </div>
+
+        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
+                <i className="fas fa-key text-xs"></i>
+              </div>
+              <div>
+                <div className="font-semibold text-slate-900 text-sm">Выдачи</div>
+                <div className="text-[10px] font-medium text-slate-400">брони на сегодня</div>
+              </div>
+            </div>
+            {pickups.length > 0 && (
+              <span className="px-2 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-700">{pickups.length}</span>
+            )}
+          </div>
+          <div className="p-3 space-y-2 max-h-96 overflow-y-auto">
+            {pickups.length > 0
+              ? pickups.map(r => <AgendaRow key={r.id} rental={r} kind="PICKUP" />)
+              : <EmptyState icon="fa-calendar-check" text="Выдач на сегодня нет" />}
+          </div>
+        </div>
       </div>
     </div>
   );
