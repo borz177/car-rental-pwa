@@ -1,8 +1,9 @@
-const CACHE_NAME = 'autopro-v2';
+// Версию поднимаем при изменениях воркера: на activate все остальные кеши
+// удаляются, что вычищает у пользователей устаревший index.html.
+const CACHE_NAME = 'autopro-v3';
 const APP_SHELL = [
   '/',
   '/index.html',
-  '/metadata.json',
   'https://cdn.tailwindcss.com',
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
 ];
@@ -37,8 +38,19 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     // SPA navigation: network-first, fall back to the cached shell offline.
+    // Успешный ответ обязательно кладём в кеш: иначе офлайн-фолбэк навсегда
+    // остаётся тем index.html, что был закеширован при установке, и после
+    // деплоя начинает ссылаться на уже удалённый бандл -> белый экран.
     event.respondWith(
-      fetch(request).catch(() => caches.match('/index.html'))
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put('/index.html', copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match('/index.html'))
     );
     return;
   }
