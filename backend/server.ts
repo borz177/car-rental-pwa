@@ -8,7 +8,7 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import cors from 'cors';
 import rateLimit from 'express-rate-limit';
-import { Pool } from 'pg';
+import { Pool, types as pgTypes } from 'pg';
 import { randomUUID, randomBytes } from 'crypto';
 import { sendVerificationEmail, sendPasswordResetEmail } from './mailer';
 
@@ -18,6 +18,13 @@ const app = express();
 app.set('trust proxy', 1);
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 5000;
 const JWT_SECRET = process.env.JWT_SECRET || 'autopro_super_secret_2025';
+
+// Postgres DATE (OID 1082) драйвер по умолчанию превращает в JS Date на полночь
+// в зоне сервера. При сериализации ответа в JSON дата уезжает в UTC и теряет сутки:
+// 2026-08-24 -> "2026-08-23T21:00:00.000Z". Из-за этого аренда считалась
+// просроченной на день раньше срока — фактически сразу после выдачи.
+// Календарной дате часовой пояс не нужен, поэтому отдаём её строкой YYYY-MM-DD как есть.
+pgTypes.setTypeParser(1082, (value: string) => value);
 
 // Используем пул соединений
 const pool = new Pool({
