@@ -1,108 +1,293 @@
 
-import React from 'react';
-import { Car, Rental, CarStatus } from '../types';
+import React, { useState, useMemo } from 'react';
+import { Car, CarStatus, Rental, Client } from '../types';
 
 interface BookingCalendarProps {
   cars: Car[];
   rentals: Rental[];
+  clients: Client[];
+  onSelectCar: (carId: string) => void;
+  onBookCar: (carId: string) => void;
 }
 
-const BookingCalendar: React.FC<BookingCalendarProps> = ({ cars, rentals }) => {
-  // Use Moscow time for "Today" calculation
-  const getMoscowDate = () => {
-    const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Moscow' }));
-    d.setHours(0, 0, 0, 0);
-    return d;
-  };
+const dateOnly = (v: string) => String(v).split('T')[0];
+const toKey = (d: Date) => d.toLocaleDateString('en-CA'); // YYYY-MM-DD без сдвига в UTC
 
-  const today = getMoscowDate();
+const getMoscowToday = () => {
+  const d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Moscow' }));
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
 
-  const days = Array.from({ length: 14 }, (_, i) => {
+type Segment =
+  | { kind: 'free'; span: number; startKey: string }
+  | { kind: 'maintenance'; span: number }
+  | { kind: 'rental'; span: number; rental: Rental; clipsLeft: boolean; clipsRight: boolean };
+
+const BookingCalendar: React.FC<BookingCalendarProps> = ({ cars, rentals, clients, onSelectCar, onBookCar }) => {
+  const today = getMoscowToday();
+  const [offset, setOffset] = useState(0);      // сдвиг периода в днях
+  const [rangeLength, setRangeLength] = useState(14);
+  const [search, setSearch] = useState('');
+
+  const days = useMemo(() => Array.from({ length: rangeLength }, (_, i) => {
     const d = new Date(today);
-    d.setDate(today.getDate() + i);
+    d.setDate(today.getDate() + offset + i);
     return d;
-  });
+  }), [today, offset, rangeLength]);
 
-  const getStatusForCarOnDay = (car: Car, date: Date) => {
-    if (car.status === CarStatus.MAINTENANCE) return { type: 'MAINTENANCE', label: 'Ремонт' };
+  const dayKeys = useMemo(() => days.map(toKey), [days]);
+  const todayKey = toKey(today);
 
-    const activeRental = rentals.find(r => {
-      if (r.carId !== car.id || r.status !== 'ACTIVE') return false;
-      const start = new Date(r.startDate); const end = new Date(r.endDate);
-      start.setHours(0,0,0,0); end.setHours(0,0,0,0);
-      const target = new Date(date); target.setHours(0,0,0,0);
-      return target >= start && target <= end;
-    });
+  const visibleCars = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return cars;
+    return cars.filter(c => `${c.brand} ${c.model} ${c.plate}`.toLowerCase().includes(q));
+  }, [cars, search]);
 
-    if (activeRental) {
-      return {
-        type: activeRental.isReservation ? 'RESERVED' : 'RENTED',
-        label: `${activeRental.isReservation ? 'Бронь' : 'Аренда'}: ${activeRental.contractNumber}`
-      };
+  const clientName = (id: string) => clients.find(c => c.id === id)?.name || 'Клиент удалён';
+
+  // Аренда, занимающая конкретный день (сравниваем строки дат — без часовых поясов).
+  const rentalOnDay = (carId: string, key: string) =>
+    rentals.find(r =>
+      r.carId === carId &&
+      r.status === 'ACTIVE' &&
+      dateOnly(r.startDate) <= key &&
+      key <= dateOnly(r.endDate)
+    );
+
+  // Собираем строку в отрезки: подряд идущие дни одной аренды становятся одной полосой,
+  // поэтому видно имя клиента и срок, а не набор одинаковых квадратов.
+  const buildRow = (car: Car): Segment[] => {
+    if (car.status === CarStatus.MAINTENANCE) {
+      return [{ kind: 'maintenance', span: dayKeys.length }];
     }
-
-    return { type: 'AVAILABLE', label: 'Свободен' };
+    const segments: Segment[] = [];
+    let i = 0;
+    while (i < dayKeys.length) {
+      const rental = rentalOnDay(car.id, dayKeys[i]);
+      if (!rental) {
+        segments.push({ kind: 'free', span: 1, startKey: dayKeys[i] });
+        i++;
+        continue;
+      }
+      let span = 1;
+      while (i + span < dayKeys.length && rentalOnDay(car.id, dayKeys[i + span])?.id === rental.id) span++;
+      segments.push({
+        kind: 'rental',
+        span,
+        rental,
+        // Полоса обрезана, если аренда началась раньше периода или заканчивается позже.
+        clipsLeft: dateOnly(rental.startDate) < dayKeys[i],
+        clipsRight: dateOnly(rental.endDate) > dayKeys[i + span - 1]
+      });
+      i += span;
+    }
+    return segments;
   };
+
+  const stats = useMemo(() => {
+    const busy = new Set(
+      rentals.filter(r => r.status === 'ACTIVE' && dateOnly(r.startDate) <= todayKey && todayKey <= dateOnly(r.endDate))
+        .map(r => r.carId)
+    );
+    const maintenance = cars.filter(c => c.status === CarStatus.MAINTENANCE).length;
+    const busyCount = cars.filter(c => busy.has(c.id) && c.status !== CarStatus.MAINTENANCE).length;
+    return { free: cars.length - busyCount - maintenance, busy: busyCount, maintenance };
+  }, [cars, rentals, todayKey]);
+
+  const periodLabel = `${days[0].toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' })} — ${days[days.length - 1].toLocaleDateString('ru-RU', { day: '2-digit', month: 'short', year: '2-digit' })}`;
+
+  const gridCols = { gridTemplateColumns: `170px repeat(${dayKeys.length}, minmax(44px, 1fr))` };
 
   return (
-    <div className="space-y-5 animate-fadeIn">
-      <div className="px-2">
-        <h2 className="text-3xl font-semibold text-slate-900">Календарь занятости</h2>
-        <p className="text-slate-400 font-bold mt-1 uppercase text-[10px] tracking-wide">Аренда (синий) и Бронирования (оранжевый)</p>
+    <div className="space-y-4 animate-fadeIn pb-24 md:pb-0">
+      {/* Панель управления периодом */}
+      <div className="bg-white p-4 rounded-2xl border border-slate-100 space-y-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setOffset(o => o - rangeLength)}
+              className="w-9 h-9 rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 transition-colors"
+              title="Предыдущий период"
+            >
+              <i className="fas fa-chevron-left text-xs"></i>
+            </button>
+            <button
+              onClick={() => setOffset(0)}
+              className={`px-3 h-9 rounded-xl text-[10px] font-semibold uppercase tracking-wide transition-colors ${
+                offset === 0 ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-500 hover:bg-slate-100'
+              }`}
+            >
+              Сегодня
+            </button>
+            <button
+              onClick={() => setOffset(o => o + rangeLength)}
+              className="w-9 h-9 rounded-xl bg-slate-50 text-slate-500 hover:bg-slate-100 transition-colors"
+              title="Следующий период"
+            >
+              <i className="fas fa-chevron-right text-xs"></i>
+            </button>
+            <span className="ml-2 text-sm font-semibold text-slate-700">{periodLabel}</span>
+          </div>
+
+          <div className="flex items-center gap-2">
+            {[7, 14, 30].map(n => (
+              <button
+                key={n}
+                onClick={() => { setRangeLength(n); setOffset(0); }}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors ${
+                  rangeLength === n ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                {n} дн.
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[200px]">
+            <i className="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Марка, модель или госномер"
+              className="w-full pl-9 pr-3 py-2 bg-slate-50 rounded-xl text-sm font-medium outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+            />
+          </div>
+          <div className="flex items-center gap-3 text-[11px] font-semibold">
+            <span className="text-emerald-600">Свободно сегодня: {stats.free}</span>
+            <span className="text-blue-600">Занято: {stats.busy}</span>
+            {stats.maintenance > 0 && <span className="text-slate-500">Ремонт: {stats.maintenance}</span>}
+          </div>
+        </div>
       </div>
 
-      <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
-        <div className="overflow-x-auto custom-scrollbar">
-          <div className="min-w-[1000px]">
-            <div className="grid grid-cols-[250px_repeat(14,1fr)] border-b border-slate-50 bg-slate-50/50">
-              <div className="p-4 font-semibold text-slate-400 text-[10px] uppercase tracking-wide border-r border-slate-100">Автомобиль</div>
-              {days.map(day => (
-                <div key={day.toString()} className="p-4 text-center border-r border-slate-100 last:border-r-0">
-                  <div className="text-[10px] text-slate-400 uppercase font-semibold tracking-tighter">{day.toLocaleDateString('ru-RU', { weekday: 'short' })}</div>
-                  <div className={`text-sm font-semibold mt-1 ${day.getTime() === today.getTime() ? 'text-blue-600 underline decoration-2' : 'text-slate-700'}`}>{day.getDate()}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="divide-y divide-slate-50">
-              {cars.map(car => (
-                <div key={car.id} className="grid grid-cols-[250px_repeat(14,1fr)] items-stretch group hover:bg-slate-50/30 transition-all">
-                  <div className="p-4 border-r border-slate-100 flex items-center space-x-4 bg-white sticky left-0 z-10 group-hover:bg-slate-50/50">
-                    <div className="w-10 h-10 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0">
-                       <img src={car.images[0]} className="w-full h-full object-cover" alt="" />
+      {/* Шахматка */}
+      <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <div className="min-w-max">
+            {/* Заголовок с датами */}
+            <div className="grid border-b border-slate-100 bg-slate-50/60" style={gridCols}>
+              <div className="p-3 text-[10px] font-semibold text-slate-400 uppercase tracking-wide border-r border-slate-100 sticky left-0 bg-slate-50 z-20">
+                Автомобиль
+              </div>
+              {days.map((day, i) => {
+                const key = dayKeys[i];
+                const isToday = key === todayKey;
+                const isWeekend = day.getDay() === 0 || day.getDay() === 6;
+                return (
+                  <div key={key} className={`py-2 text-center border-r border-slate-100 last:border-r-0 ${isToday ? 'bg-blue-50' : isWeekend ? 'bg-slate-100/60' : ''}`}>
+                    <div className={`text-[9px] uppercase font-semibold ${isToday ? 'text-blue-500' : 'text-slate-400'}`}>
+                      {day.toLocaleDateString('ru-RU', { weekday: 'short' })}
                     </div>
-                    <div className="overflow-hidden">
-                      <div className="font-bold text-slate-900 text-xs truncate">{car.brand} {car.model}</div>
-                      <div className="text-[9px] text-slate-400 font-semibold tracking-wide uppercase">{car.plate}</div>
+                    <div className={`text-sm font-bold ${isToday ? 'text-blue-600' : isWeekend ? 'text-slate-500' : 'text-slate-700'}`}>
+                      {day.getDate()}
                     </div>
                   </div>
-                  {days.map(day => {
-                    const status = getStatusForCarOnDay(car, day);
+                );
+              })}
+            </div>
+
+            {/* Строки автомобилей */}
+            <div className="divide-y divide-slate-100">
+              {visibleCars.map(car => (
+                <div key={car.id} className="grid items-stretch hover:bg-slate-50/40 transition-colors" style={gridCols}>
+                  <button
+                    onClick={() => onSelectCar(car.id)}
+                    className="p-2.5 border-r border-slate-100 flex items-center gap-2.5 bg-white hover:bg-slate-50 sticky left-0 z-10 text-left transition-colors"
+                  >
+                    <div className="w-9 h-9 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
+                      <img
+                        src={car.images?.[0] || 'https://images.unsplash.com/photo-1494905998402-395d579af36f?q=80&w=200'}
+                        className="w-full h-full object-cover"
+                        alt=""
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <div className="font-semibold text-slate-900 text-xs truncate">{car.brand} {car.model}</div>
+                      <div className="text-[9px] text-slate-400 font-semibold uppercase tracking-wide">{car.plate}</div>
+                    </div>
+                  </button>
+
+                  {buildRow(car).map((seg, idx) => {
+                    if (seg.kind === 'maintenance') {
+                      return (
+                        <div key={idx} style={{ gridColumn: `span ${seg.span}` }} className="p-1.5 flex items-center">
+                          <div className="w-full h-9 rounded-lg bg-slate-200 flex items-center justify-center gap-1.5 text-slate-500">
+                            <i className="fas fa-screwdriver-wrench text-[10px]"></i>
+                            <span className="text-[10px] font-semibold uppercase tracking-wide">В ремонте</span>
+                          </div>
+                        </div>
+                      );
+                    }
+
+                    if (seg.kind === 'free') {
+                      const isPast = seg.startKey < todayKey;
+                      return (
+                        <div key={idx} className="p-1.5 border-r border-slate-50 last:border-r-0">
+                          <button
+                            onClick={() => !isPast && onBookCar(car.id)}
+                            disabled={isPast}
+                            title={isPast ? '' : 'Оформить на этот автомобиль'}
+                            className={`w-full h-9 rounded-lg transition-colors ${
+                              isPast ? 'bg-slate-50' : 'bg-emerald-50 hover:bg-emerald-100 cursor-pointer'
+                            }`}
+                          ></button>
+                        </div>
+                      );
+                    }
+
+                    const { rental } = seg;
+                    const isReservation = rental.isReservation;
                     return (
-                      <div key={day.toString()} className="p-2 border-r border-slate-100 last:border-r-0 flex items-center justify-center">
-                        <div
-                          title={status.label}
-                          className={`w-full h-10 rounded-xl transition-all ${
-                            status.type === 'RENTED' ? 'bg-blue-600 shadow-lg' :
-                            status.type === 'RESERVED' ? 'bg-amber-500 shadow-lg' :
-                            status.type === 'MAINTENANCE' ? 'bg-slate-300' : 'bg-emerald-100/40 hover:bg-emerald-100'
-                          }`}
-                        ></div>
+                      <div key={idx} style={{ gridColumn: `span ${seg.span}` }} className="p-1.5">
+                        <button
+                          onClick={() => onSelectCar(car.id)}
+                          title={`${isReservation ? 'Бронь' : 'Аренда'} № ${rental.contractNumber || '—'} · ${clientName(rental.clientId)} · ${new Date(rental.startDate).toLocaleDateString('ru-RU')} — ${new Date(rental.endDate).toLocaleDateString('ru-RU')}`}
+                          className={`w-full h-9 flex items-center gap-1.5 px-2 overflow-hidden transition-opacity hover:opacity-90 ${
+                            isReservation ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white'
+                          } ${seg.clipsLeft ? 'rounded-l-none' : 'rounded-l-lg'} ${seg.clipsRight ? 'rounded-r-none' : 'rounded-r-lg'}`}
+                        >
+                          {seg.clipsLeft && <i className="fas fa-chevron-left text-[8px] opacity-70 flex-shrink-0"></i>}
+                          <span className="text-[10px] font-semibold truncate flex-1 text-left">
+                            {seg.span > 1 ? clientName(rental.clientId) : ''}
+                          </span>
+                          {seg.clipsRight && <i className="fas fa-chevron-right text-[8px] opacity-70 flex-shrink-0"></i>}
+                        </button>
                       </div>
                     );
                   })}
                 </div>
               ))}
+
+              {visibleCars.length === 0 && (
+                <div className="p-12 text-center">
+                  <i className="fas fa-car-side text-3xl text-slate-200 mb-3"></i>
+                  <div className="font-semibold text-slate-500">
+                    {search ? 'Ничего не найдено' : 'В автопарке нет автомобилей'}
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
       </div>
 
-      <div className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-wrap gap-8 items-center justify-center shadow-sm">
-        <div className="flex items-center space-x-3"><div className="w-5 h-5 rounded-lg bg-emerald-100 shadow-inner"></div><span className="text-[9px] font-semibold text-slate-500 uppercase">Свободен</span></div>
-        <div className="flex items-center space-x-3"><div className="w-5 h-5 rounded-lg bg-blue-600 shadow-lg"></div><span className="text-[9px] font-semibold text-slate-500 uppercase">Аренда</span></div>
-        <div className="flex items-center space-x-3"><div className="w-5 h-5 rounded-lg bg-amber-500 shadow-lg"></div><span className="text-[9px] font-semibold text-slate-500 uppercase">Бронь</span></div>
-        <div className="flex items-center space-x-3"><div className="w-5 h-5 rounded-lg bg-slate-300"></div><span className="text-[9px] font-semibold text-slate-500 uppercase">Ремонт</span></div>
+      {/* Легенда */}
+      <div className="bg-white p-3 rounded-2xl border border-slate-100 flex flex-wrap gap-5 items-center justify-center">
+        {[
+          { color: 'bg-emerald-50 border border-emerald-200', label: 'Свободен — нажмите, чтобы оформить' },
+          { color: 'bg-blue-600', label: 'Аренда' },
+          { color: 'bg-amber-500', label: 'Бронь' },
+          { color: 'bg-slate-200', label: 'Ремонт' }
+        ].map(item => (
+          <div key={item.label} className="flex items-center gap-2">
+            <div className={`w-4 h-4 rounded ${item.color}`}></div>
+            <span className="text-[10px] font-semibold text-slate-500">{item.label}</span>
+          </div>
+        ))}
       </div>
     </div>
   );

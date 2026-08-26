@@ -23,11 +23,76 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
   const [selectedCarId, setSelectedCarId] = useState('');
   const [showClientList, setShowClientList] = useState(false);
 
-  const balance = transactions.reduce((acc, t) =>
-    t.type === TransactionType.INCOME ? acc + t.amount : acc - t.amount, 0
+  // Фильтры истории
+  const [period, setPeriod] = useState<'TODAY' | 'WEEK' | 'MONTH' | 'ALL'>('MONTH');
+  const [typeFilter, setTypeFilter] = useState<'ALL' | TransactionType>('ALL');
+  const [historySearch, setHistorySearch] = useState('');
+
+  const dateOnly = (v: string) => String(v).split('T')[0];
+  const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Moscow' });
+
+  const periodStart = useMemo(() => {
+    if (period === 'ALL') return '';
+    if (period === 'TODAY') return todayStr;
+    const d = new Date(todayStr);
+    d.setDate(d.getDate() - (period === 'WEEK' ? 6 : 29));
+    return d.toLocaleDateString('en-CA');
+  }, [period, todayStr]);
+
+  const periodTransactions = useMemo(
+    () => transactions.filter(t => !periodStart || dateOnly(t.date) >= periodStart),
+    [transactions, periodStart]
   );
-  const incomeMonth = transactions.filter(t => t.type === TransactionType.INCOME).reduce((acc, t) => acc + t.amount, 0);
-  const expensesMonth = transactions.filter(t => t.type === TransactionType.EXPENSE).reduce((acc, t) => acc + t.amount, 0);
+
+  // Баланс — по всей истории: это остаток кассы, он не зависит от выбранного периода.
+  const balance = useMemo(() => transactions.reduce((acc, t) =>
+    t.type === TransactionType.INCOME ? acc + t.amount : acc - t.amount, 0
+  ), [transactions]);
+
+  // Раньше эти суммы были подписаны «(мес)», но считались по всем транзакциям
+  // за всё время — цифра не имела отношения к месяцу.
+  const periodIncome = useMemo(
+    () => periodTransactions.filter(t => t.type === TransactionType.INCOME).reduce((a, t) => a + t.amount, 0),
+    [periodTransactions]
+  );
+  const periodExpenses = useMemo(
+    () => periodTransactions.filter(t => t.type === TransactionType.EXPENSE).reduce((a, t) => a + t.amount, 0),
+    [periodTransactions]
+  );
+
+  const visibleTransactions = useMemo(() => {
+    const q = historySearch.trim().toLowerCase();
+    return periodTransactions
+      .filter(t => typeFilter === 'ALL' || t.type === typeFilter)
+      .filter(t => !q || `${t.description || ''} ${t.category || ''}`.toLowerCase().includes(q))
+      // Копия перед сортировкой: sort меняет массив на месте, а это пропс из состояния App.
+      .slice()
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  }, [periodTransactions, typeFilter, historySearch]);
+
+  const periodLabels = { TODAY: 'сегодня', WEEK: 'за 7 дней', MONTH: 'за 30 дней', ALL: 'за всё время' };
+
+  const exportCsv = () => {
+    const rows = [
+      ['Дата', 'Тип', 'Категория', 'Описание', 'Сумма'],
+      ...visibleTransactions.map(t => [
+        new Date(t.date).toLocaleDateString('ru-RU'),
+        t.type,
+        t.category || '',
+        (t.description || '').replace(/"/g, '""'),
+        String(t.amount)
+      ])
+    ];
+    const csv = rows.map(r => r.map(cell => `"${cell}"`).join(';')).join('\r\n');
+    // BOM, чтобы Excel открыл кириллицу без разбора кодировки
+    const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `kassa-${todayStr}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   const filteredClients = useMemo(() => {
     if (!searchClient) return clients;
@@ -109,63 +174,118 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-slate-900 p-5 rounded-2xl text-white shadow-md relative overflow-hidden">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+        <div className="bg-slate-900 p-4 rounded-2xl text-white relative overflow-hidden">
           <div className="relative z-10">
-            <div className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Общий баланс</div>
-            <div className="text-4xl font-bold">{balance.toLocaleString()} ₽</div>
+            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Баланс кассы</div>
+            <div className="text-2xl font-bold mt-1">{balance.toLocaleString()} ₽</div>
+            <div className="text-[10px] font-medium text-slate-500 mt-0.5">за всё время</div>
           </div>
-          <i className="fas fa-coins absolute -right-6 -bottom-6 text-7xl text-white/5 rotate-12"></i>
+          <i className="fas fa-coins absolute -right-5 -bottom-5 text-6xl text-white/5 rotate-12"></i>
         </div>
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-          <div className="text-xs font-semibold text-emerald-500 uppercase tracking-wide mb-2">Доход (мес)</div>
-          <div className="text-4xl font-bold text-emerald-600">+{incomeMonth.toLocaleString()} ₽</div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-100">
+          <div className="text-[10px] font-semibold text-emerald-500 uppercase tracking-wide">Доход</div>
+          <div className="text-2xl font-bold text-emerald-600 mt-1">+{periodIncome.toLocaleString()} ₽</div>
+          <div className="text-[10px] font-medium text-slate-400 mt-0.5">{periodLabels[period]}</div>
         </div>
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
-          <div className="text-xs font-semibold text-rose-500 uppercase tracking-wide mb-2">Расход (мес)</div>
-          <div className="text-4xl font-bold text-rose-600">-{expensesMonth.toLocaleString()} ₽</div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-100">
+          <div className="text-[10px] font-semibold text-rose-500 uppercase tracking-wide">Расход</div>
+          <div className="text-2xl font-bold text-rose-600 mt-1">-{periodExpenses.toLocaleString()} ₽</div>
+          <div className="text-[10px] font-medium text-slate-400 mt-0.5">{periodLabels[period]}</div>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-100">
+          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Прибыль</div>
+          <div className={`text-2xl font-bold mt-1 ${periodIncome - periodExpenses >= 0 ? 'text-slate-900' : 'text-rose-600'}`}>
+            {(periodIncome - periodExpenses).toLocaleString()} ₽
+          </div>
+          <div className="text-[10px] font-medium text-slate-400 mt-0.5">{periodLabels[period]}</div>
         </div>
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-5 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-          <h3 className="text-xl font-semibold text-slate-800">История транзакций</h3>
-          <button className="text-blue-600 font-bold text-sm hover:bg-blue-50 px-4 py-2 rounded-xl transition-all">Экспорт в CSV</button>
+        <div className="p-4 border-b border-slate-100 space-y-3">
+          <div className="flex justify-between items-center gap-3 flex-wrap">
+            <h3 className="text-lg font-semibold text-slate-800">
+              История операций
+              <span className="ml-2 text-xs font-medium text-slate-400">{visibleTransactions.length}</span>
+            </h3>
+            <button
+              onClick={exportCsv}
+              disabled={visibleTransactions.length === 0}
+              className="text-blue-600 font-semibold text-xs uppercase tracking-wide hover:bg-blue-50 px-3 py-2 rounded-xl transition-all disabled:opacity-40"
+            >
+              <i className="fas fa-file-arrow-down mr-1.5"></i>Экспорт в CSV
+            </button>
+          </div>
+
+          <div className="flex flex-wrap gap-2">
+            {([['TODAY','Сегодня'],['WEEK','7 дней'],['MONTH','30 дней'],['ALL','Всё время']] as const).map(([id, label]) => (
+              <button
+                key={id}
+                onClick={() => setPeriod(id)}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors ${
+                  period === id ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+            <span className="w-px bg-slate-200 mx-1"></span>
+            {([['ALL','Все'],[TransactionType.INCOME,'Доходы'],[TransactionType.EXPENSE,'Расходы']] as const).map(([id, label]) => (
+              <button
+                key={String(id)}
+                onClick={() => setTypeFilter(id as any)}
+                className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors ${
+                  typeFilter === id ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400 hover:text-slate-600'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="relative">
+            <i className="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+            <input
+              value={historySearch}
+              onChange={e => setHistorySearch(e.target.value)}
+              placeholder="Поиск по описанию или категории"
+              className="w-full pl-9 pr-3 py-2 bg-slate-50 rounded-xl text-sm font-medium outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+            />
+          </div>
         </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-slate-50/50">
-              <tr>
-                <th className="px-8 py-4 text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Дата</th>
-                <th className="px-8 py-4 text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Описание</th>
-                <th className="px-8 py-4 text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Категория</th>
-                <th className="px-8 py-4 text-[10px] font-semibold text-slate-400 uppercase tracking-wide text-right">Сумма</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
-              {transactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(t => (
-                <tr key={t.id} className="hover:bg-slate-50/50 transition-all group">
-                  <td className="px-8 py-5 text-sm text-slate-400 font-medium">{new Date(t.date).toLocaleDateString()}</td>
-                  <td className="px-8 py-5">
-                    <div className="font-bold text-slate-900">{t.description || <span className="text-slate-300 italic font-medium">Без описания</span>}</div>
-                  </td>
-                  <td className="px-8 py-5">
-                    <span className={`px-4 py-1.5 rounded-xl text-[10px] font-semibold uppercase tracking-tight ${
-                      t.type === TransactionType.INCOME ? 'bg-emerald-50 text-emerald-700' : 
-                      t.type === TransactionType.EXPENSE ? 'bg-rose-50 text-rose-700' : 'bg-indigo-50 text-indigo-700'
-                    }`}>
-                      {t.category}
-                    </span>
-                  </td>
-                  <td className={`px-8 py-5 text-right font-bold text-xl ${
-                    t.type === TransactionType.INCOME ? 'text-emerald-600' : 'text-rose-600'
-                  }`}>
-                    {t.type === TransactionType.INCOME ? '+' : '-'}{t.amount.toLocaleString()} ₽
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+
+        <div className="divide-y divide-slate-50">
+          {visibleTransactions.map(t => (
+            <div key={t.id} className="px-4 py-3 hover:bg-slate-50/50 transition-colors flex items-center gap-3">
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
+                t.type === TransactionType.INCOME ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
+              }`}>
+                <i className={`fas ${t.type === TransactionType.INCOME ? 'fa-arrow-down' : 'fa-arrow-up'} text-xs`}></i>
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-semibold text-slate-900 text-sm truncate">
+                  {t.description || <span className="text-slate-300 italic font-medium">Без описания</span>}
+                </div>
+                <div className="text-[11px] text-slate-400 font-medium">
+                  {new Date(t.date).toLocaleDateString('ru-RU')} • {t.category}
+                </div>
+              </div>
+              <div className={`font-bold flex-shrink-0 ${
+                t.type === TransactionType.INCOME ? 'text-emerald-600' : 'text-rose-600'
+              }`}>
+                {t.type === TransactionType.INCOME ? '+' : '−'}{t.amount.toLocaleString()} ₽
+              </div>
+            </div>
+          ))}
+          {visibleTransactions.length === 0 && (
+            <div className="p-12 text-center">
+              <i className="fas fa-receipt text-3xl text-slate-200 mb-3"></i>
+              <div className="font-semibold text-slate-500">
+                {historySearch || typeFilter !== 'ALL' ? 'Ничего не найдено' : `Нет операций ${periodLabels[period]}`}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

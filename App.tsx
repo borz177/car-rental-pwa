@@ -949,7 +949,15 @@ useEffect(() => {
               />
           )}
 
-          {currentView === 'CALENDAR' && <BookingCalendar cars={cars} rentals={rentals}/>}
+          {currentView === 'CALENDAR' && (
+              <BookingCalendar
+                  cars={cars}
+                  rentals={rentals}
+                  clients={clients}
+                  onSelectCar={(id) => { setSelectedEntityId(id); setCurrentView('CAR_DETAILS'); }}
+                  onBookCar={(id) => { setSelectedEntityId(id); setCurrentView('MANUAL_BOOKING'); }}
+              />
+          )}
 
           {currentView === 'REQUESTS' && (
               <BookingRequests
