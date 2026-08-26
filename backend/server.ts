@@ -203,6 +203,23 @@ const initDB = async () => {
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_token TEXT`);
     await client.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS password_reset_expires TIMESTAMP`);
 
+    // Договор и штраф — финансовые документы. При ON DELETE CASCADE удаление клиента
+    // или автомобиля молча стирало всю связанную историю аренд и штрафов.
+    // Меняем на SET NULL: документ остаётся, теряется только ссылка,
+    // а интерфейс показывает «клиент удалён» / «авто удалено».
+    // owner_id намеренно оставлен CASCADE — это граница арендатора системы.
+    for (const [table, column] of [
+      ['rentals', 'client_id'], ['rentals', 'car_id'],
+      ['fines', 'client_id'], ['fines', 'car_id']
+    ]) {
+      const target = column === 'client_id' ? 'clients' : 'cars';
+      await client.query(`ALTER TABLE ${table} DROP CONSTRAINT IF EXISTS ${table}_${column}_fkey`);
+      await client.query(
+        `ALTER TABLE ${table} ADD CONSTRAINT ${table}_${column}_fkey
+         FOREIGN KEY (${column}) REFERENCES ${target}(id) ON DELETE SET NULL`
+      );
+    }
+
     // Rentals migrations
     await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS extensions JSONB DEFAULT '[]'`);
     await client.query(`ALTER TABLE rentals ADD COLUMN IF NOT EXISTS prepayment INTEGER DEFAULT 0`);
@@ -785,6 +802,34 @@ const checkRentalConflict = async (req: any, res: any, next: any) => {
 
 app.post('/api/rentals', authenticateToken, checkRentalConflict);
 app.put('/api/rentals/:id', authenticateToken, checkRentalConflict);
+
+// Клиента и автомобиль нельзя удалить, пока за ними числятся договоры:
+// иначе из учёта пропадает то, на что ссылаются деньги в кассе.
+// Внешние ключи переведены на SET NULL как страховка, но нормальный путь —
+// сказать об этом вслух, а не терять связи молча.
+const blockDeleteWithContracts = (field: 'client_id' | 'car_id', label: string) =>
+  async (req: any, res: any, next: any) => {
+    try {
+      const { rows } = await pool.query(
+        `SELECT COUNT(*)::int AS count FROM rentals
+          WHERE ${field} = $1 AND (owner_id = $2 OR owner_id IS NULL)`,
+        [req.params.id, req.user.ownerId]
+      );
+      if (rows[0].count > 0) {
+        return res.status(409).json({
+          message: `Нельзя удалить: ${label} связан с договорами (${rows[0].count} шт.). `
+            + `Они содержат финансовую историю. Сначала удалите или завершите эти договоры.`
+        });
+      }
+      next();
+    } catch (err: any) {
+      console.error('Ошибка проверки связей перед удалением:', err.message);
+      next();
+    }
+  };
+
+app.delete('/api/clients/:id', authenticateToken, blockDeleteWithContracts('client_id', 'клиент'));
+app.delete('/api/cars/:id', authenticateToken, blockDeleteWithContracts('car_id', 'автомобиль'));
 
 setupCrud('cars', ['brand', 'model', 'year', 'plate', 'status', 'pricePerDay', 'pricePerHour', 'category', 'mileage', 'fuel', 'transmission', 'images', 'investorId', 'investorShare', 'lastOilChangeMileage', 'oilChangeInterval']);
 setupCrud('clients', ['name', 'phone', 'email', 'passport', 'driverLicense', 'debt']);

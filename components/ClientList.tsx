@@ -34,6 +34,47 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
     });
   }, [clients, searchQuery, showDebtorsOnly]);
 
+  // rentals и transactions передавались в компонент, но нигде не использовались —
+  // карточка показывала только долг и дату регистрации.
+  const statsByClient = useMemo(() => {
+    const map: Record<string, { total: number; active: boolean; spent: number }> = {};
+    clients.forEach(c => { map[c.id] = { total: 0, active: false, spent: 0 }; });
+    rentals.forEach(r => {
+      const s = map[r.clientId];
+      if (!s) return;
+      s.total++;
+      if (r.status === 'ACTIVE' && !r.isReservation) s.active = true;
+    });
+    transactions.forEach(t => {
+      if (t.type !== TransactionType.INCOME || !t.clientId) return;
+      const s = map[t.clientId];
+      if (s) s.spent += t.amount;
+    });
+    return map;
+  }, [clients, rentals, transactions]);
+
+  const summary = useMemo(() => ({
+    total: clients.length,
+    debtors: clients.filter(c => (c.debt || 0) > 0).length,
+    debtSum: clients.reduce((s, c) => s + (c.debt || 0), 0),
+    renting: Object.values(statsByClient).filter((s: { active: boolean }) => s.active).length
+  }), [clients, statsByClient]);
+
+  const handleDelete = (client: Client) => {
+    const stats = statsByClient[client.id];
+    if (stats?.total > 0) {
+      alert(
+        `Нельзя удалить клиента «${client.name}».\n\n`
+        + `За ним числится договоров: ${stats.total}. Они содержат финансовую историю.\n`
+        + `Сначала удалите или завершите эти договоры.`
+      );
+      return;
+    }
+    if (confirm(`Удалить клиента «${client.name}» (${client.phone})?\n\nДействие необратимо.`)) {
+      onDelete(client.id);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -72,6 +113,20 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
         </button>
       </div>
 
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: 'Всего клиентов', value: String(summary.total), tone: 'text-slate-900' },
+          { label: 'Сейчас в аренде', value: String(summary.renting), tone: 'text-blue-600' },
+          { label: 'Должников', value: String(summary.debtors), tone: summary.debtors ? 'text-rose-600' : 'text-slate-900' },
+          { label: 'Сумма долга', value: `${summary.debtSum.toLocaleString()} ₽`, tone: summary.debtSum ? 'text-rose-600' : 'text-slate-900' }
+        ].map(s => (
+          <div key={s.label} className="bg-white p-4 rounded-2xl border border-slate-100">
+            <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{s.label}</div>
+            <div className={`text-2xl font-bold mt-1 ${s.tone}`}>{s.value}</div>
+          </div>
+        ))}
+      </div>
+
       {/* Search and Filter Bar */}
       <div className="flex flex-col md:flex-row gap-4">
         <div className="relative flex-1">
@@ -96,12 +151,21 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
         {filteredClients.map(client => (
           <div key={client.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm relative group">
             <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center space-x-4">
-                <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-blue-600 text-lg font-semibold uppercase">
+              <div
+                onClick={() => onSelectClient(client.id)}
+                className="flex items-center space-x-4 cursor-pointer min-w-0 group/name"
+              >
+                <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-blue-600 text-lg font-semibold uppercase flex-shrink-0 relative">
                   {client.name.charAt(0)}
+                  {statsByClient[client.id]?.active && (
+                    <span
+                      title="Сейчас в аренде"
+                      className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-blue-500 rounded-full border-2 border-white"
+                    ></span>
+                  )}
                 </div>
-                <div>
-                  <h3 className="font-semibold text-slate-900 tracking-tight">{client.name}</h3>
+                <div className="min-w-0">
+                  <h3 className="font-semibold text-slate-900 tracking-tight truncate group-hover/name:text-blue-600 transition-colors">{client.name}</h3>
                   <p className="text-xs text-slate-400 font-bold">{client.phone}</p>
                 </div>
               </div>
@@ -124,7 +188,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
                       <button onClick={() => { setEditingClient(client); setIsModalOpen(true); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 border-b border-slate-50">
                         <i className="fas fa-edit w-4 text-amber-500"></i> <span>Изменить</span>
                       </button>
-                      <button onClick={() => { if(confirm('Удалить клиента?')) onDelete(client.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-rose-50 text-rose-500 flex items-center space-x-3">
+                      <button onClick={() => { handleDelete(client); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-rose-50 text-rose-500 flex items-center space-x-3">
                         <i className="fas fa-trash-alt w-4"></i> <span>Удалить</span>
                       </button>
                     </div>
@@ -133,9 +197,21 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
               </div>
             </div>
 
-            <div className="flex justify-between items-center text-[10px] font-semibold uppercase tracking-wide text-slate-400 pt-4 border-t border-slate-50">
-              <span>Долг: <span className={client.debt && client.debt > 0 ? 'text-rose-500' : 'text-emerald-500'}>{client.debt?.toLocaleString() || 0} ₽</span></span>
-              <span>{new Date(client.createdAt).toLocaleDateString()}</span>
+            <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-50">
+              <div>
+                <div className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">Аренд</div>
+                <div className="font-bold text-slate-800 text-sm">{statsByClient[client.id]?.total || 0}</div>
+              </div>
+              <div>
+                <div className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">Оплатил</div>
+                <div className="font-bold text-slate-800 text-sm">{(statsByClient[client.id]?.spent || 0).toLocaleString()} ₽</div>
+              </div>
+              <div>
+                <div className="text-[9px] font-semibold uppercase tracking-wide text-slate-400">Долг</div>
+                <div className={`font-bold text-sm ${client.debt && client.debt > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                  {client.debt?.toLocaleString() || 0} ₽
+                </div>
+              </div>
             </div>
           </div>
         ))}

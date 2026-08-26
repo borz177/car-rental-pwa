@@ -55,11 +55,14 @@ const Reports: React.FC<ReportsProps> = ({
   const filteredData = useMemo(() => {
     let base = activeCategory === 'FINES' ? fines : unifiedTransactions;
     return base.filter((t: any) => {
-      const date = new Date(t.date);
-      const start = filters.startDate ? new Date(filters.startDate) : null;
-      const end = filters.endDate ? new Date(filters.endDate) : null;
-      if (start && date < start) return false;
-      if (end && date > end) return false;
+      // Сравниваем календарные даты строками YYYY-MM-DD.
+      // Через new Date() было две ошибки: дата операции разбиралась как локальное
+      // время, а граница фильтра — как полночь UTC (для Москвы это 03:00, и утренние
+      // операции выпадали); и конечная дата бралась как её полночь, из-за чего
+      // весь последний день диапазона в отчёт не попадал.
+      const day = String(t.date).split('T')[0];
+      if (filters.startDate && day < filters.startDate) return false;
+      if (filters.endDate && day > filters.endDate) return false;
 
       if (activeCategory === 'INVESTORS') {
         if (filters.searchId) {
