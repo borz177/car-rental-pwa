@@ -13,6 +13,26 @@ interface ContractListProps {
   brandName?: string;
 }
 
+type StatusFilter = 'ALL' | 'PAID' | 'DEBT' | 'OVERDUE';
+
+// Приложение работает по московскому времени (сервер тоже выставляет TZ=Europe/Moscow).
+const getMoscowNow = () => {
+  const iso = new Date().toLocaleString('en-CA', {
+    timeZone: 'Europe/Moscow', hour12: false,
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit'
+  }).replace(', ', 'T');
+  return new Date(iso);
+};
+
+const dateOnly = (v: string) => String(v).split('T')[0];
+
+// Фактически полученные деньги по договору: у брони это предоплата,
+// у аренды в долг — тоже только предоплата, остальное висит долгом.
+const paidOf = (r: Rental) =>
+  r.isReservation || r.paymentStatus === 'DEBT' ? (r.prepayment || 0) : (r.totalAmount || 0);
+const debtOf = (r: Rental) => Math.max(0, (r.totalAmount || 0) - paidOf(r));
+
 const ContractList: React.FC<ContractListProps> = ({
   rentals, cars, clients, onUpdate, onDelete, onIssueFromBooking, onComplete,
   viewMode = 'CONTRACTS', brandName
@@ -24,27 +44,70 @@ const ContractList: React.FC<ContractListProps> = ({
   const [printingRental, setPrintingRental] = useState<Rental | null>(null);
   const [selectedRental, setSelectedRental] = useState<Rental | null>(null);
 
-  const [searchName, setSearchName] = useState('');
+  const [search, setSearch] = useState('');
   const [searchDate, setSearchDate] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+
+  const moscowNow = getMoscowNow();
 
   const getCar = (id: string) => cars.find(c => c.id === id);
   const getClient = (id: string) => clients.find(c => c.id === id);
 
+  // Просрочка: только для выданных авто (не броней) в активном статусе.
+  const overdueOf = (rent: Rental) => {
+    if (rent.isReservation || rent.status !== 'ACTIVE') return null;
+    const end = new Date(`${dateOnly(rent.endDate)}T${rent.endTime || '00:00'}`);
+    const diff = moscowNow.getTime() - end.getTime();
+    if (diff <= 0) return null;
+    const days = Math.floor(diff / 86400000);
+    const hours = Math.floor((diff % 86400000) / 3600000);
+    const minutes = Math.floor((diff % 3600000) / 60000);
+    return days > 0 ? `${days}д ${hours}ч` : hours > 0 ? `${hours}ч ${minutes}м` : `${minutes}м`;
+  };
+
+  const scopedRentals = useMemo(() => rentals.filter(rent => {
+    if (viewMode === 'BOOKINGS') return rent.isReservation && rent.status === 'ACTIVE';
+    if (viewMode === 'ARCHIVE') return rent.status === 'COMPLETED' || rent.status === 'CANCELLED';
+    return !rent.isReservation && rent.status === 'ACTIVE';
+  }), [rentals, viewMode]);
+
   const filteredRentals = useMemo(() => {
-    return rentals.filter(rent => {
-      let isCorrectType = false;
-      if (viewMode === 'BOOKINGS') isCorrectType = rent.isReservation && rent.status === 'ACTIVE';
-      else if (viewMode === 'ARCHIVE') isCorrectType = rent.status === 'COMPLETED' || rent.status === 'CANCELLED';
-      else isCorrectType = !rent.isReservation && rent.status === 'ACTIVE';
+    const q = search.trim().toLowerCase();
+    return scopedRentals.filter(rent => {
+      if (q) {
+        const client = getClient(rent.clientId);
+        const car = getCar(rent.carId);
+        // Ищем по ФИО, номеру договора и госномеру — именно так договор обычно и разыскивают.
+        // Договоры с удалённым клиентом раньше выпадали из списка целиком: undefined из
+        // client?.name делал условие ложным, и найти их было невозможно.
+        const haystack = [
+          client?.name, rent.contractNumber, car?.plate, car?.brand, car?.model, client?.phone
+        ].filter(Boolean).join(' ').toLowerCase();
+        if (!haystack.includes(q)) return false;
+      }
+      if (searchDate && !(dateOnly(rent.startDate) <= searchDate && searchDate <= dateOnly(rent.endDate))) return false;
 
-      if (!isCorrectType) return false;
+      if (statusFilter === 'PAID' && debtOf(rent) > 0) return false;
+      if (statusFilter === 'DEBT' && debtOf(rent) === 0) return false;
+      if (statusFilter === 'OVERDUE' && !overdueOf(rent)) return false;
+      return true;
+    }).sort((a, b) => {
+      // Просроченные — наверх, дальше по дате возврата: сначала то, что горит.
+      const aOver = overdueOf(a) ? 1 : 0;
+      const bOver = overdueOf(b) ? 1 : 0;
+      if (aOver !== bOver) return bOver - aOver;
+      if (viewMode === 'ARCHIVE') return new Date(b.endDate).getTime() - new Date(a.endDate).getTime();
+      return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
+    });
+  }, [scopedRentals, search, searchDate, statusFilter, clients, cars, viewMode]);
 
-      const client = getClient(rent.clientId);
-      const nameMatch = client?.name.toLowerCase().includes(searchName.toLowerCase());
-      const dateMatch = !searchDate || rent.startDate.startsWith(searchDate) || rent.endDate.startsWith(searchDate);
-      return nameMatch && dateMatch;
-    }).sort((a, b) => new Date(b.startDate).getTime() - new Date(a.startDate).getTime());
-  }, [rentals, viewMode, searchName, searchDate, clients]);
+  const summary = useMemo(() => {
+    const total = filteredRentals.reduce((s, r) => s + (r.totalAmount || 0), 0);
+    const paid = filteredRentals.reduce((s, r) => s + paidOf(r), 0);
+    const debt = filteredRentals.reduce((s, r) => s + debtOf(r), 0);
+    const overdue = filteredRentals.filter(r => overdueOf(r)).length;
+    return { total, paid, debt, overdue, count: filteredRentals.length };
+  }, [filteredRentals]);
 
   // Расчет стоимости продления
   useEffect(() => {
@@ -65,9 +128,19 @@ const ContractList: React.FC<ContractListProps> = ({
     }
   }, [extensionData.endDate, extensionData.endTime, extendingRental, cars]);
 
+  const extensionIsValid = useMemo(() => {
+    if (!extendingRental || !extensionData.endDate || !extensionData.endTime) return false;
+    const currentEnd = new Date(`${dateOnly(extendingRental.endDate)}T${extendingRental.endTime}`);
+    const newEnd = new Date(`${extensionData.endDate}T${extensionData.endTime}`);
+    return newEnd.getTime() > currentEnd.getTime();
+  }, [extendingRental, extensionData.endDate, extensionData.endTime]);
+
   const handleExtendSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!extendingRental) return;
+    // Без этой проверки можно было выбрать более раннее время: доплата выходила 0,
+    // а срок аренды молча сокращался.
+    if (!extensionIsValid) return;
     const newExtension: RentalExtension = {
       endDate: extensionData.endDate,
       endTime: extensionData.endTime,
@@ -92,83 +165,100 @@ const ContractList: React.FC<ContractListProps> = ({
     setTimeout(() => { window.print(); setPrintingRental(null); }, 300);
   };
 
-  const formatMoney = (n: number) => n.toLocaleString('ru-RU') + ' ₽';
-  const formatDate = (d: string) => new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' });
+  const handleDelete = (rent: Rental) => {
+    const client = getClient(rent.clientId);
+    const car = getCar(rent.carId);
+    // Договор — финансовый документ, поэтому в подтверждении показываем, что именно удаляем.
+    const ok = confirm(
+      `Удалить договор № ${rent.contractNumber || '—'}?\n\n` +
+      `Клиент: ${client?.name || 'удалён'}\n` +
+      `Авто: ${car ? `${car.brand} ${car.model} (${car.plate})` : 'удалено'}\n` +
+      `Сумма: ${(rent.totalAmount || 0).toLocaleString('ru-RU')} ₽\n\n` +
+      `Действие необратимо.`
+    );
+    if (ok) onDelete(rent.id);
+  };
 
-  // 🎯 Компактная карточка (мобильная)
-  const ContractCard = ({ rent }: { rent: Rental }) => {
+  const formatMoney = (n: number) => n.toLocaleString('ru-RU') + ' ₽';
+  // Год обязателен: в архиве без него не отличить прошлогодний договор от свежего.
+  const formatDate = (d: string) =>
+    new Date(d).toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: '2-digit' });
+
+  const titles = { BOOKINGS: 'Бронирования', ARCHIVE: 'Архив договоров', CONTRACTS: 'Действующие договоры' };
+
+  const ContractRow: React.FC<{ rent: Rental }> = ({ rent }) => {
     const car = getCar(rent.carId);
     const client = getClient(rent.clientId);
+    const overdue = overdueOf(rent);
+    const debt = debtOf(rent);
     const extensionSum = (rent.extensions || []).reduce((s, e) => s + (e.amount || 0), 0);
 
     return (
       <div
-        className="bg-white rounded-2xl border border-slate-100 p-4 transition-all hover:shadow-md active:scale-[0.99]"
         onClick={() => setSelectedRental(rent)}
+        className={`bg-white rounded-2xl border p-3 cursor-pointer transition-all hover:shadow-sm relative ${
+          overdue ? 'border-rose-200 bg-rose-50/40' : 'border-slate-100'
+        }`}
       >
-        {/* Шапка карточки */}
-        <div className="flex items-start justify-between gap-3 mb-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-              rent.isReservation ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'
-            }`}>
-              <i className={`fas ${rent.isReservation ? 'fa-calendar-check' : 'fa-file-contract'} text-sm`}></i>
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
+            overdue ? 'bg-rose-100 text-rose-600'
+              : rent.isReservation ? 'bg-amber-50 text-amber-600'
+              : rent.status === 'ACTIVE' ? 'bg-blue-50 text-blue-600'
+              : 'bg-slate-100 text-slate-500'
+          }`}>
+            <i className={`fas ${rent.isReservation ? 'fa-calendar-check' : 'fa-file-contract'} text-sm`}></i>
+          </div>
+
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-slate-900 truncate">
+                {client?.name || <span className="text-slate-400 italic">клиент удалён</span>}
+              </span>
+              <span className="text-[10px] font-semibold text-slate-400 flex-shrink-0">
+                № {rent.contractNumber || '—'}
+              </span>
             </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h4 className="font-semibold text-slate-900 truncate">{client?.name}</h4>
-                {rent.isReservation && (
-                  <span className="px-2 py-0.5 bg-amber-100 text-amber-700 text-[10px] font-medium rounded-full">Бронь</span>
-                )}
-              </div>
-              <p className="text-sm text-slate-500 truncate">{car?.brand} {car?.model} • {car?.plate}</p>
+            <div className="text-[11px] text-slate-500 font-medium truncate">
+              {car ? `${car.brand} ${car.model} • ${car.plate}` : 'авто удалено'}
+            </div>
+            <div className="text-[11px] text-slate-400 font-medium mt-0.5">
+              {formatDate(rent.startDate)} {rent.startTime} → {formatDate(rent.endDate)} {rent.endTime}
             </div>
           </div>
 
-          {/* Кнопка действий */}
+          <div className="text-right flex-shrink-0">
+            <div className="font-bold text-slate-900">{formatMoney(rent.totalAmount || 0)}</div>
+            {debt > 0
+              ? <div className="text-[11px] font-semibold text-rose-600">долг {formatMoney(debt)}</div>
+              : <div className="text-[11px] font-semibold text-emerald-600">оплачено</div>}
+            {extensionSum > 0 && (
+              <div className="text-[10px] font-medium text-blue-500">+{formatMoney(extensionSum)} продления</div>
+            )}
+          </div>
+
           <button
             onClick={(e) => { e.stopPropagation(); setShowActions(showActions === rent.id ? null : rent.id); }}
-            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400"
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400 flex-shrink-0"
           >
             <i className="fas fa-ellipsis-vertical"></i>
           </button>
         </div>
 
-        {/* Даты и статус */}
-        <div className="flex items-center justify-between text-sm mb-3">
-          <div className="flex items-center gap-1.5 text-slate-600">
-            <span>{formatDate(rent.startDate)}</span>
-            <i className="fas fa-arrow-right text-[10px] text-slate-300"></i>
-            <span>{formatDate(rent.endDate)}</span>
+        {overdue && (
+          <div className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-rose-600">
+            <i className="fas fa-triangle-exclamation"></i>
+            <span>Просрочка {overdue}</span>
           </div>
-          <span className={`px-2.5 py-1 rounded-lg text-[11px] font-medium ${
-            rent.status === 'COMPLETED' ? 'bg-slate-100 text-slate-600' :
-            rent.paymentStatus === 'DEBT' ? 'bg-rose-50 text-rose-600' :
-            'bg-emerald-50 text-emerald-600'
-          }`}>
-            {rent.status === 'COMPLETED' ? 'Завершён' : rent.paymentStatus === 'DEBT' ? 'Долг' : 'Оплачено'}
-          </span>
-        </div>
+        )}
 
-        {/* Сумма */}
-        <div className="flex items-end justify-between">
-          <div>
-            <div className="text-lg font-bold text-slate-900">{formatMoney(rent.totalAmount || 0)}</div>
-            {extensionSum > 0 && <div className="text-[11px] text-blue-600">+{formatMoney(extensionSum)} продления</div>}
-          </div>
-          {rent.isReservation ? (
-            <div className="text-right">
-              <div className="text-[11px] text-slate-400">Предоплата</div>
-              <div className="font-semibold text-amber-600">{formatMoney(rent.prepayment || 0)}</div>
-            </div>
-          ) : null}
-        </div>
-
-        {/* Меню действий (bottom sheet на мобильных) */}
         {showActions === rent.id && (
           <>
-            <div className="fixed inset-0 z-40 md:absolute md:inset-auto" onClick={() => setShowActions(null)} />
-            <div className="fixed bottom-0 left-0 right-0 md:absolute md:bottom-auto md:left-auto md:right-0 md:top-full md:w-56 bg-white rounded-t-xl md:rounded-2xl shadow-md border border-slate-100 z-50 overflow-hidden animate-slideUp">
+            <div className="fixed inset-0 z-40 md:absolute md:inset-auto" onClick={(e) => { e.stopPropagation(); setShowActions(null); }} />
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="fixed bottom-0 left-0 right-0 md:absolute md:bottom-auto md:left-auto md:right-0 md:top-full md:w-56 bg-white rounded-t-xl md:rounded-2xl shadow-md border border-slate-100 z-50 overflow-hidden animate-slideUp"
+            >
               <div className="md:hidden p-4 border-b border-slate-100 flex items-center justify-between">
                 <span className="font-semibold">Действия</span>
                 <button onClick={() => setShowActions(null)} className="p-2 text-slate-400"><i className="fas fa-xmark"></i></button>
@@ -184,7 +274,7 @@ const ContractList: React.FC<ContractListProps> = ({
                 )}
                 {!rent.isReservation && rent.status === 'ACTIVE' && (
                   <>
-                    <button onClick={() => { setExtendingRental(rent); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-amber-600 hover:bg-amber-50">
+                    <button onClick={() => { setExtendingRental(rent); setExtensionData({ endDate: '', endTime: '', extraPrice: 0 }); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-amber-600 hover:bg-amber-50">
                       <i className="fas fa-calendar-plus w-4"></i> Продлить
                     </button>
                     <button onClick={() => { onComplete(rent); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-blue-600 hover:bg-blue-50">
@@ -192,7 +282,7 @@ const ContractList: React.FC<ContractListProps> = ({
                     </button>
                   </>
                 )}
-                <button onClick={() => { if(confirm('Удалить?')) { onDelete(rent.id); setShowActions(null); } }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-rose-600 hover:bg-rose-50">
+                <button onClick={() => { handleDelete(rent); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-rose-600 hover:bg-rose-50">
                   <i className="fas fa-trash w-4"></i> Удалить
                 </button>
               </div>
@@ -203,66 +293,113 @@ const ContractList: React.FC<ContractListProps> = ({
     );
   };
 
-  // 🎯 Детальный вид (мобильный)
-  const RentalDetail = ({ rent }: { rent: Rental }) => {
+  const RentalDetail: React.FC<{ rent: Rental }> = ({ rent }) => {
     const car = getCar(rent.carId);
     const client = getClient(rent.clientId);
+    const overdue = overdueOf(rent);
+    const debt = debtOf(rent);
 
     return (
       <div className="fixed inset-0 z-50 bg-white overflow-y-auto animate-slideUp">
-        <div className="sticky top-0 bg-white/80 backdrop-blur-sm border-b border-slate-100 px-4 py-3 flex items-center justify-between">
+        <div className="sticky top-0 bg-white/90 backdrop-blur-sm border-b border-slate-100 px-4 py-3 flex items-center justify-between">
           <button onClick={() => setSelectedRental(null)} className="p-2 -ml-2 text-slate-400"><i className="fas fa-arrow-left"></i></button>
-          <h2 className="font-semibold">{rent.contractNumber}</h2>
+          <h2 className="font-semibold">Договор № {rent.contractNumber || '—'}</h2>
           <button onClick={() => handlePrint(rent)} className="p-2 text-slate-400"><i className="fas fa-print"></i></button>
         </div>
-        <div className="p-4 space-y-4">
+
+        <div className="p-4 space-y-3 max-w-2xl mx-auto">
+          {overdue && (
+            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-2">
+              <i className="fas fa-triangle-exclamation text-rose-500"></i>
+              <span className="text-sm font-semibold text-rose-700">Просрочка возврата: {overdue}</span>
+            </div>
+          )}
+
           <div className="bg-slate-50 rounded-2xl p-4">
             <div className="flex items-center gap-3 mb-4">
               <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600"><i className="fas fa-user"></i></div>
-              <div>
-                <div className="font-semibold">{client?.name}</div>
-                <div className="text-sm text-slate-500">{client?.phone}</div>
+              <div className="min-w-0">
+                <div className="font-semibold truncate">{client?.name || 'Клиент удалён'}</div>
+                <div className="text-sm text-slate-500">{client?.phone || '—'}</div>
               </div>
+              {client?.phone && (
+                <a
+                  href={`https://wa.me/${client.phone.replace(/\D/g, '').replace(/^8/, '7')}`}
+                  target="_blank" rel="noreferrer"
+                  className="ml-auto w-10 h-10 bg-[#25D366] text-white rounded-xl flex items-center justify-center"
+                >
+                  <i className="fab fa-whatsapp"></i>
+                </a>
+              )}
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><div className="text-[11px] text-slate-400 uppercase">Авто</div><div className="font-medium">{car?.brand} {car?.model}</div></div>
-              <div><div className="text-[11px] text-slate-400 uppercase">Номер</div><div className="font-medium">{car?.plate}</div></div>
+              <div><div className="text-[11px] text-slate-400 uppercase">Авто</div><div className="font-medium">{car ? `${car.brand} ${car.model}` : '—'}</div></div>
+              <div><div className="text-[11px] text-slate-400 uppercase">Номер</div><div className="font-medium">{car?.plate || '—'}</div></div>
               <div><div className="text-[11px] text-slate-400 uppercase">Начало</div><div className="font-medium">{formatDate(rent.startDate)} {rent.startTime}</div></div>
               <div><div className="text-[11px] text-slate-400 uppercase">Окончание</div><div className="font-medium">{formatDate(rent.endDate)} {rent.endTime}</div></div>
             </div>
           </div>
+
           <div className="bg-white border border-slate-100 rounded-2xl p-4">
             <h4 className="font-semibold mb-3">Оплата</h4>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-slate-500">Сумма</span><span className="font-semibold">{formatMoney(rent.totalAmount || 0)}</span></div>
-              {rent.prepayment && rent.prepayment > 0 && (
-                <div className="flex justify-between"><span className="text-slate-500">Предоплата</span><span className="text-amber-600">-{formatMoney(rent.prepayment)}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500">Сумма договора</span><span className="font-semibold">{formatMoney(rent.totalAmount || 0)}</span></div>
+              {!!rent.prepayment && rent.prepayment > 0 && (
+                <div className="flex justify-between"><span className="text-slate-500">Предоплата</span><span className="text-amber-600">{formatMoney(rent.prepayment)}</span></div>
               )}
               <div className="flex justify-between pt-2 border-t border-slate-100">
-                <span className="font-medium">К оплате</span>
-                <span className="font-bold">{formatMoney(Math.max(0, (rent.totalAmount||0) - (rent.prepayment||0)))}</span>
+                <span className="font-medium">{debt > 0 ? 'Осталось получить' : 'Получено полностью'}</span>
+                <span className={`font-bold ${debt > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{formatMoney(debt > 0 ? debt : (rent.totalAmount || 0))}</span>
               </div>
             </div>
           </div>
-          <div className="grid grid-cols-2 gap-3">
+
+          {!!rent.extensions?.length && (
+            <div className="bg-white border border-slate-100 rounded-2xl p-4">
+              <h4 className="font-semibold mb-3">Продления</h4>
+              <div className="space-y-2">
+                {rent.extensions.map((ext, i) => (
+                  <div key={i} className="flex items-center justify-between text-sm py-2 border-b border-slate-50 last:border-0">
+                    <div>
+                      <div className="font-medium text-slate-700">до {formatDate(ext.endDate)} {ext.endTime}</div>
+                      <div className="text-[11px] text-slate-400">{new Date(ext.date).toLocaleDateString('ru-RU')}</div>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-semibold">{formatMoney(ext.amount || 0)}</div>
+                      <div className={`text-[10px] font-semibold uppercase ${ext.paymentStatus === 'DEBT' ? 'text-rose-500' : 'text-emerald-500'}`}>
+                        {ext.paymentStatus === 'DEBT' ? 'в долг' : 'оплачено'}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-2 pb-6">
+            {rent.isReservation && onIssueFromBooking && (
+              <button onClick={() => { onIssueFromBooking(rent.id); setSelectedRental(null); }} className="py-3 bg-emerald-100 text-emerald-700 rounded-xl font-semibold text-sm col-span-2">
+                <i className="fas fa-key mr-1"></i> Выдать авто
+              </button>
+            )}
             {!rent.isReservation && rent.status === 'ACTIVE' && (
               <>
-                <button onClick={() => setExtendingRental(rent)} className="py-3 bg-amber-100 text-amber-700 rounded-xl font-medium"><i className="fas fa-calendar-plus mr-1"></i> Продлить</button>
-                <button onClick={() => onComplete(rent)} className="py-3 bg-blue-100 text-blue-700 rounded-xl font-medium"><i className="fas fa-check-circle mr-1"></i> Завершить</button>
+                <button onClick={() => { setExtendingRental(rent); setExtensionData({ endDate: '', endTime: '', extraPrice: 0 }); }} className="py-3 bg-amber-100 text-amber-700 rounded-xl font-semibold text-sm"><i className="fas fa-calendar-plus mr-1"></i> Продлить</button>
+                <button onClick={() => { onComplete(rent); setSelectedRental(null); }} className="py-3 bg-blue-100 text-blue-700 rounded-xl font-semibold text-sm"><i className="fas fa-check-circle mr-1"></i> Завершить</button>
               </>
             )}
-            <button onClick={() => handlePrint(rent)} className="py-3 bg-slate-100 text-slate-700 rounded-xl font-medium col-span-2"><i className="fas fa-print mr-1"></i> Печать</button>
+            <button onClick={() => handlePrint(rent)} className="py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold text-sm col-span-2"><i className="fas fa-print mr-1"></i> Печать</button>
           </div>
         </div>
       </div>
     );
   };
 
-  // 🎯 Модальное окно продления
   const ExtensionModal = () => {
     if (!extendingRental) return null;
+    const car = getCar(extendingRental.carId);
     return (
-      <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
+      <div className="fixed inset-0 z-[60] bg-slate-900/50 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
         <form onSubmit={handleExtendSubmit} className="bg-white w-full md:max-w-md md:rounded-xl rounded-t-xl max-h-[90vh] overflow-y-auto animate-slideUp">
           <div className="sticky top-0 bg-white px-4 py-3 border-b border-slate-100 flex items-center justify-between">
             <h3 className="font-semibold">Продление аренды</h3>
@@ -270,13 +407,13 @@ const ContractList: React.FC<ContractListProps> = ({
           </div>
           <div className="p-4 space-y-4">
             <div className="bg-slate-50 rounded-xl p-3 text-sm">
-              <div className="font-medium">{getCar(extendingRental.carId)?.brand} {getCar(extendingRental.carId)?.model}</div>
-              <div className="text-slate-500">до {formatDate(extendingRental.endDate)} {extendingRental.endTime}</div>
+              <div className="font-medium">{car ? `${car.brand} ${car.model}` : '—'}</div>
+              <div className="text-slate-500">сейчас до {formatDate(extendingRental.endDate)} {extendingRental.endTime}</div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-[11px] font-medium text-slate-400 uppercase mb-1 block">Новая дата</label>
-                <input type="date" value={extensionData.endDate} onChange={e => setExtensionData(d => ({ ...d, endDate: e.target.value }))} required min={extendingRental.endDate.split('T')[0]} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm" />
+                <input type="date" value={extensionData.endDate} onChange={e => setExtensionData(d => ({ ...d, endDate: e.target.value }))} required min={dateOnly(extendingRental.endDate)} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm" />
               </div>
               <div>
                 <label className="text-[11px] font-medium text-slate-400 uppercase mb-1 block">Время</label>
@@ -293,23 +430,39 @@ const ContractList: React.FC<ContractListProps> = ({
                 ))}
               </div>
             </div>
-            <div className="bg-emerald-50 rounded-xl p-4 flex items-center justify-between">
-              <div><div className="text-[11px] text-emerald-600 font-medium uppercase">Доплата</div><div className="text-xl font-bold text-emerald-700">+{formatMoney(extensionData.extraPrice)}</div></div>
-              <i className="fas fa-calculator text-emerald-300 text-xl"></i>
-            </div>
+            {extensionData.endDate && extensionData.endTime && !extensionIsValid ? (
+              <div className="bg-rose-50 rounded-xl p-4 text-sm font-semibold text-rose-700">
+                <i className="fas fa-triangle-exclamation mr-1"></i>
+                Новый срок должен быть позже текущего окончания аренды
+              </div>
+            ) : (
+              <div className="bg-emerald-50 rounded-xl p-4 flex items-center justify-between">
+                <div>
+                  <div className="text-[11px] text-emerald-600 font-medium uppercase">Доплата</div>
+                  <div className="text-xl font-bold text-emerald-700">+{formatMoney(extensionData.extraPrice)}</div>
+                </div>
+                <i className="fas fa-calculator text-emerald-300 text-xl"></i>
+              </div>
+            )}
           </div>
           <div className="sticky bottom-0 bg-white px-4 py-3 border-t border-slate-100 flex gap-2">
             <button type="button" onClick={() => setExtendingRental(null)} className="flex-1 py-3 text-slate-500 font-medium">Отмена</button>
-            <button type="submit" className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-semibold">Сохранить</button>
+            <button type="submit" disabled={!extensionIsValid} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-semibold disabled:opacity-40 disabled:cursor-not-allowed">Сохранить</button>
           </div>
         </form>
       </div>
     );
   };
 
+  const filters: { id: StatusFilter; label: string }[] = [
+    { id: 'ALL', label: 'Все' },
+    { id: 'DEBT', label: 'С долгом' },
+    { id: 'PAID', label: 'Оплачены' },
+    ...(viewMode === 'CONTRACTS' ? [{ id: 'OVERDUE' as StatusFilter, label: 'Просрочены' }] : [])
+  ];
+
   return (
-    <div className="max-w-4xl mx-auto py-4 px-4">
-      {/* Стили для печати и анимаций */}
+    <div className="space-y-4 animate-fadeIn pb-24 md:pb-0">
       <style>{`
         @media print {
           @page { size: A4; margin: 10mm; }
@@ -329,61 +482,99 @@ const ContractList: React.FC<ContractListProps> = ({
           .print-table th, .print-table td { border: 1px solid black; padding: 4px; text-align: left; }
         }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
-        @keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
         .animate-slideUp { animation: slideUp 0.3s ease-out; }
-        .animate-scaleIn { animation: scaleIn 0.2s ease-out; }
-        .scrollbar-hide::-webkit-scrollbar { display: none; }
-        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
 
-      {/* Заголовок и фильтры */}
-      <div className="px-2 no-print mb-4">
-        <h2 className="text-xl font-bold text-slate-900">
-          {viewMode === 'BOOKINGS' ? 'Бронирования' : (viewMode === 'ARCHIVE' ? 'Архив' : 'Договоры')}
-        </h2>
-        <p className="text-sm text-slate-400">{filteredRentals.length} записей</p>
-      </div>
-
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 px-2 no-print mb-4">
-        <div className="relative">
-          <i className="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
-          <input
-            value={searchName}
-            onChange={e => setSearchName(e.target.value)}
-            placeholder="Поиск по ФИО..."
-            className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-slate-300"
-            style={{ minHeight: '44px' }}
-          />
+      {/* Итоги: для учётной страницы это главное, раньше их не было вовсе */}
+      <div className="no-print grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="bg-white p-4 rounded-2xl border border-slate-100">
+          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{titles[viewMode]}</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1">{summary.count}</div>
         </div>
-        <div className="relative">
-          <i className="fas fa-calendar absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-sm"></i>
-          <input
-            type="date"
-            value={searchDate}
-            onChange={e => setSearchDate(e.target.value)}
-            className="w-full pl-9 pr-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm outline-none focus:border-slate-300"
-            style={{ minHeight: '44px' }}
-          />
+        <div className="bg-white p-4 rounded-2xl border border-slate-100">
+          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Сумма</div>
+          <div className="text-2xl font-bold text-slate-900 mt-1">{summary.total.toLocaleString('ru-RU')} ₽</div>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-100">
+          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Получено</div>
+          <div className="text-2xl font-bold text-emerald-600 mt-1">{summary.paid.toLocaleString('ru-RU')} ₽</div>
+        </div>
+        <div className="bg-white p-4 rounded-2xl border border-slate-100">
+          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Долг</div>
+          <div className={`text-2xl font-bold mt-1 ${summary.debt > 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+            {summary.debt.toLocaleString('ru-RU')} ₽
+          </div>
+          {summary.overdue > 0 && (
+            <div className="text-[10px] font-semibold text-rose-500 mt-0.5">просрочено: {summary.overdue}</div>
+          )}
         </div>
       </div>
 
-      {/* Список договоров */}
-      <div className="grid gap-3 px-2 no-print">
-        {filteredRentals.map(rent => (
-          <ContractCard key={rent.id} rent={rent} />
-        ))}
+      {/* Поиск и фильтры */}
+      <div className="no-print bg-white p-4 rounded-2xl border border-slate-100 space-y-3">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
+          <div className="relative">
+            <i className="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="ФИО, номер договора, госномер, телефон"
+              className="w-full pl-9 pr-9 py-2.5 bg-slate-50 rounded-xl text-sm font-medium outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+            />
+            {search && (
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600">
+                <i className="fas fa-xmark text-xs"></i>
+              </button>
+            )}
+          </div>
+          <div className="relative">
+            <input
+              type="date"
+              value={searchDate}
+              onChange={e => setSearchDate(e.target.value)}
+              title="Договоры, действующие в этот день"
+              className="w-full sm:w-44 px-3 py-2.5 bg-slate-50 rounded-xl text-sm font-medium outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+            />
+          </div>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {filters.map(f => (
+            <button
+              key={f.id}
+              onClick={() => setStatusFilter(f.id)}
+              className={`px-3.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-all ${
+                statusFilter === f.id ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400 hover:text-slate-600'
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+          {(search || searchDate || statusFilter !== 'ALL') && (
+            <button
+              onClick={() => { setSearch(''); setSearchDate(''); setStatusFilter('ALL'); }}
+              className="px-3.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide text-blue-600 hover:bg-blue-50"
+            >
+              Сбросить
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Список */}
+      <div className="no-print grid gap-2">
+        {filteredRentals.map(rent => <ContractRow key={rent.id} rent={rent} />)}
         {filteredRentals.length === 0 && (
-          <div className="p-8 text-center text-slate-400 bg-slate-50 rounded-2xl">
-            <i className="fas fa-file-contract text-3xl mb-2 opacity-30"></i>
-            <p>Нет договоров</p>
+          <div className="p-12 text-center bg-white rounded-2xl border border-slate-100">
+            <i className="fas fa-file-contract text-3xl text-slate-200 mb-3"></i>
+            <div className="font-semibold text-slate-500">
+              {search || searchDate || statusFilter !== 'ALL' ? 'Ничего не найдено' : `Нет записей в разделе «${titles[viewMode]}»`}
+            </div>
           </div>
         )}
       </div>
 
-      {/* Детальный вид (мобильный) */}
       {selectedRental && <RentalDetail rent={selectedRental} />}
-
-      {/* Модальное продление */}
       {extendingRental && <ExtensionModal />}
 
       {/* 🔥 ТВОЙ ОРИГИНАЛЬНЫЙ ШАБЛОН ПЕЧАТИ — БЕЗ ИЗМЕНЕНИЙ 🔥 */}
