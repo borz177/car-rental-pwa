@@ -26,6 +26,14 @@ const JWT_SECRET = process.env.JWT_SECRET || 'autopro_super_secret_2025';
 // Календарной дате часовой пояс не нужен, поэтому отдаём её строкой YYYY-MM-DD как есть.
 pgTypes.setTypeParser(1082, (value: string) => value);
 
+// TIMESTAMP WITHOUT TIME ZONE (OID 1114) — та же беда: значение хранится как
+// «стенные часы» по Москве, но драйвер делает из него момент времени, и в JSON
+// оно уезжает на 3 часа назад. Операция, проведённая в 01:30, попадала
+// во вчерашний день — касса и отчёты врали на стыке суток.
+// Отдаём как есть, заменив пробел на 'T', чтобы строка осталась валидной датой
+// для JS и разбиралась как локальное время.
+pgTypes.setTypeParser(1114, (value: string) => (value ? value.replace(' ', 'T') : value));
+
 // Используем пул соединений
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
@@ -441,6 +449,28 @@ app.post('/api/auth/resend-verification', authLimiter, authenticateToken, async 
   }
 });
 
+app.post('/api/auth/change-password', authLimiter, authenticateToken, async (req: any, res: any) => {
+  const { currentPassword, newPassword } = req.body;
+  if (!currentPassword || !newPassword) return res.status(400).json({ message: 'Не хватает данных' });
+  if (String(newPassword).length < 6) {
+    return res.status(400).json({ message: 'Новый пароль должен быть не короче 6 символов' });
+  }
+  try {
+    const { rows } = await pool.query('SELECT password_hash FROM users WHERE id = $1', [req.user.id]);
+    if (rows.length === 0) return res.status(404).json({ message: 'Пользователь не найден' });
+    // Текущий пароль обязателен: иначе перехваченная сессия позволила бы
+    // сменить пароль и полностью увести аккаунт.
+    if (!await bcrypt.compare(currentPassword, rows[0].password_hash)) {
+      return res.status(401).json({ message: 'Текущий пароль указан неверно' });
+    }
+    const hash = await bcrypt.hash(newPassword, 10);
+    await pool.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, req.user.id]);
+    res.json({ message: 'Пароль изменён' });
+  } catch (err: any) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
 app.post('/api/auth/forgot-password', authLimiter, async (req: any, res: any) => {
   const { email } = req.body;
   const genericMessage = 'Если такой email зарегистрирован, письмо со ссылкой для сброса пароля отправлено';
@@ -707,6 +737,54 @@ const setupCrud = (resource: string, fields: string[]) => {
     } catch (err: any) { res.status(500).json({ message: err.message }); }
   });
 };
+
+// Одна машина не может быть сдана двум клиентам на пересекающиеся даты.
+// Проверка обязана жить на сервере: интерфейс можно обойти прямым запросом к API.
+// Регистрируется до setupCrud('rentals'), поэтому срабатывает раньше generic-обработчика.
+const checkRentalConflict = async (req: any, res: any, next: any) => {
+  const { carId, startDate, startTime, endDate, endTime, status } = req.body;
+
+  // Отменённые и завершённые аренды машину не занимают.
+  if (status && status !== 'ACTIVE') return next();
+  if (!carId || !startDate || !endDate) return next();
+
+  try {
+    const { rows } = await pool.query(
+      `SELECT r.id, r.contract_number, r.start_date, r.start_time, r.end_date, r.end_time,
+              c.name AS client_name
+         FROM rentals r
+         LEFT JOIN clients c ON c.id = r.client_id
+        WHERE r.car_id = $1
+          AND r.status = 'ACTIVE'
+          AND ($2::uuid IS NULL OR r.id <> $2::uuid)
+          AND (r.owner_id = $3 OR r.owner_id IS NULL)
+          -- пересечение отрезков: начало одного строго раньше конца другого и наоборот
+          AND (r.start_date + COALESCE(NULLIF(r.start_time, ''), '00:00')::time)
+              < ($6::date + COALESCE(NULLIF($7, ''), '00:00')::time)
+          AND ($4::date + COALESCE(NULLIF($5, ''), '00:00')::time)
+              < (r.end_date + COALESCE(NULLIF(r.end_time, ''), '00:00')::time)
+        LIMIT 1`,
+      [carId, req.params.id || null, req.user.ownerId, startDate, startTime, endDate, endTime]
+    );
+
+    if (rows.length > 0) {
+      const busy = rows[0];
+      const until = `${new Date(busy.end_date).toLocaleDateString('ru-RU')} ${busy.end_time || ''}`.trim();
+      return res.status(409).json({
+        message: `Автомобиль уже занят по договору № ${busy.contract_number || '—'}`
+          + (busy.client_name ? ` (${busy.client_name})` : '')
+          + ` до ${until}. Выберите другое авто или другие даты.`
+      });
+    }
+    next();
+  } catch (err: any) {
+    console.error('Ошибка проверки пересечения аренд:', err.message);
+    next();
+  }
+};
+
+app.post('/api/rentals', authenticateToken, checkRentalConflict);
+app.put('/api/rentals/:id', authenticateToken, checkRentalConflict);
 
 setupCrud('cars', ['brand', 'model', 'year', 'plate', 'status', 'pricePerDay', 'pricePerHour', 'category', 'mileage', 'fuel', 'transmission', 'images', 'investorId', 'investorShare', 'lastOilChangeMileage', 'oilChangeInterval']);
 setupCrud('clients', ['name', 'phone', 'email', 'passport', 'driverLicense', 'debt']);

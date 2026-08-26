@@ -12,11 +12,9 @@ export default defineConfig(({ mode }) => {
     },
     plugins: [react()],
 
-    // ✅ Определяем переменные окружения для браузера
-    define: {
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY)
-    },
+    // Раньше здесь GEMINI_API_KEY вшивался прямо в браузерный бандл — ключ
+    // мог достать любой, открыв исходник страницы. ИИ-советник удалён,
+    // секретам в клиентской сборке не место.
 
     // ✅ Правильный alias для ESM
     resolve: {

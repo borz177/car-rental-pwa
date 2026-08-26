@@ -21,7 +21,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, userRole, onNavigate
 
   const menuItems = NAVIGATION_ITEMS.filter(item =>
     item.roles.includes(userRole) &&
-    !['DASHBOARD', 'CARS', 'REQUESTS', 'SETTINGS', 'CONTRACTS', 'CONTRACTS_ARCHIVE', 'AI_ADVISOR'].includes(item.id) &&
+    !['DASHBOARD', 'CARS', 'REQUESTS', 'SETTINGS', 'CONTRACTS', 'CONTRACTS_ARCHIVE'].includes(item.id) &&
     item.id !== 'CLIENT_CATALOG' &&
     item.id !== 'CLIENT_MY_BOOKINGS'
   );

@@ -1,13 +1,13 @@
 
-import { UserRole, FuelType, Transmission, CarStatus } from './types';
+import { UserRole, FuelType, Transmission } from './types';
 
 export const CAR_CATEGORIES = ['Эконом', 'Комфорт', 'Бизнес', 'Внедорожник', 'Спорт', 'Минивэн'];
-export enum FuelType {
-  PETROL = 'petrol',
-  DIESEL = 'diesel',
-  ELECTRIC = 'electric',
-  HYBRID = 'hybrid'
-}
+
+// Единственный источник значений — types.ts. Раньше здесь объявлялся свой enum
+// FuelType со значениями 'petrol'/'diesel', который перекрывал импортированный
+// с русскими значениями. В базе и в интерфейсе используются русские, так что
+// любое использование локального варианта дало бы расхождение данных.
+export const FUEL_TYPES = Object.values(FuelType);
 export const TRANSMISSIONS = Object.values(Transmission);
 
 export const NAVIGATION_ITEMS = [
@@ -31,14 +31,4 @@ export const NAVIGATION_ITEMS = [
   // Клиент-панель
   { id: 'CLIENT_CATALOG', label: 'Каталог', icon: 'fa-search', roles: [UserRole.CLIENT] },
   { id: 'CLIENT_MY_BOOKINGS', label: 'Мои брони', icon: 'fa-calendar-check', roles: [UserRole.CLIENT] },
-];
-
-export const INITIAL_CARS = [
-  { 
-    id: '1', brand: 'BMW', model: '5 Series', year: 2022, plate: 'А123БВ77', 
-    status: CarStatus.AVAILABLE, pricePerDay: 8500, pricePerHour: 500, category: 'Бизнес', 
-    mileage: 45000, fuel: FuelType.PETROL, transmission: Transmission.AUTO,
-    images: ['https://images.unsplash.com/photo-1555215695-3004980ad54e?auto=format&fit=crop&q=80&w=400'],
-    investorShare: 50
-  }
 ];

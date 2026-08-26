@@ -31,6 +31,7 @@ import SubscriptionExpiredModal from './components/SubscriptionExpiredModal';
 import CompleteRentalModal from './components/CompleteRentalModal';
 import BackendAPI from './services/offlineApi';
 import { flushQueue } from './services/offlineSync';
+import ToastContainer, { ToastMessage } from './components/Toast';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -51,6 +52,13 @@ const App: React.FC = () => {
   const [resetToken, setResetToken] = useState<string | null>(null);
   const [resetLoading, setResetLoading] = useState(false);
   const [resetDone, setResetDone] = useState(false);
+
+  // Уведомления вместо alert(): браузерное окно блокирует интерфейс
+  // и особенно мешает на телефоне.
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+  const notify = (text: string, kind: ToastMessage['kind'] = 'error') =>
+    setToasts(prev => [...prev, { id: Date.now() + Math.random(), text, kind }]);
+  const dismissToast = (id: number) => setToasts(prev => prev.filter(t => t.id !== id));
 
   // Modal State
   const [completingRental, setCompletingRental] = useState<Rental | null>(null);
@@ -286,7 +294,7 @@ useEffect(() => {
       setCurrentUser(user);
       await loadData();
     } catch (err: any) {
-      alert(err.message || 'Ошибка авторизации');
+      notify(err.message || 'Ошибка авторизации');
     } finally {
       setAuthLoading(false);
     }
@@ -305,7 +313,7 @@ useEffect(() => {
         });
       }, 1000);
     } catch (err: any) {
-      alert(err.message || 'Не удалось отправить письмо');
+      notify(err.message || 'Не удалось отправить письмо');
     }
   };
 
@@ -320,7 +328,7 @@ useEffect(() => {
     const password = fd.get('password') as string;
     const confirm = fd.get('confirm') as string;
     if (password !== confirm) {
-      alert('Пароли не совпадают');
+      notify('Пароли не совпадают');
       return;
     }
     setResetLoading(true);
@@ -328,7 +336,7 @@ useEffect(() => {
       await BackendAPI.resetPassword(resetToken!, password);
       setResetDone(true);
     } catch (err: any) {
-      alert(err.message || 'Не удалось сбросить пароль');
+      notify(err.message || 'Не удалось сбросить пароль');
     } finally {
       setResetLoading(false);
     }
@@ -368,7 +376,7 @@ useEffect(() => {
       await loadData();
       // Убрали автоматический переход, теперь этим управляет ManualBooking через onNavigate
     } catch (e: any) {
-      alert(e.message);
+      notify(e.message);
     } finally {
       setIsGlobalLoading(false);
     }
@@ -405,7 +413,7 @@ useEffect(() => {
       await loadData();
       setCompletingRental(null); // Close the modal
     } catch (e: any) {
-      alert('Ошибка при завершении аренды: ' + e.message);
+      notify('Ошибка при завершении аренды: ' + e.message);
     } finally {
       setIsGlobalLoading(false);
     }
@@ -417,7 +425,7 @@ useEffect(() => {
       await fn(...args);
       await loadData();
     } catch (e: any) {
-      alert(e.message);
+      notify(e.message);
     } finally {
       setIsGlobalLoading(false);
     }
@@ -461,6 +469,7 @@ useEffect(() => {
   if (resetToken) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
+        <ToastContainer toasts={toasts} onClose={dismissToast} />
         <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn">
           <div className="text-center mb-8">
             <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-3xl shadow-lg mx-auto mb-4">
@@ -516,6 +525,7 @@ useEffect(() => {
   if (!currentUser && currentView === 'CLIENT_CATALOG') {
     return (
       <div className="min-h-screen bg-slate-50 relative overflow-y-auto">
+        <ToastContainer toasts={toasts} onClose={dismissToast} />
         <ClientCatalog
           cars={cars}
           rentals={rentals}
@@ -523,7 +533,7 @@ useEffect(() => {
           onSubmitRequest={async (req) => {
              // Use public endpoint for guest requests
              await BackendAPI.submitBookingRequest(req);
-             alert('Заявка отправлена!');
+             notify('Заявка отправлена!', 'success');
           }}
           fleetOwner={fleetOwner}
           onAuthRequest={() => window.location.reload()}
@@ -545,6 +555,7 @@ useEffect(() => {
   if (!currentUser) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
+        <ToastContainer toasts={toasts} onClose={dismissToast} />
         <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn">
           <div className="text-center mb-8">
             <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-3xl shadow-lg mx-auto mb-4">
@@ -627,6 +638,7 @@ useEffect(() => {
   if (currentUser.role === UserRole.ADMIN && !currentUser.emailVerified) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
+        <ToastContainer toasts={toasts} onClose={dismissToast} />
         <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn text-center">
           <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600 text-2xl mx-auto mb-4">
             <i className="fas fa-envelope-circle-check"></i>
@@ -709,6 +721,8 @@ useEffect(() => {
           <div className="w-14 h-14 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
+
+      <ToastContainer toasts={toasts} onClose={dismissToast} />
 
       {!isOnline && (
         <div className="fixed top-0 inset-x-0 z-[90] bg-amber-500 text-white text-xs font-semibold text-center py-1.5 px-4 flex items-center justify-center gap-2">

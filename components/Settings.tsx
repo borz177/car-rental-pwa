@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { User, AppView, UserRole } from '../types';
+import BackendAPI from '../services/offlineApi';
 
 interface SettingsProps {
   user: User | null;
@@ -18,6 +19,34 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
 
   const [brandName, setBrandName] = useState(user?.publicBrandName || '');
   const [slug, setSlug] = useState(user?.publicSlug || '');
+
+  // Смена пароля
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [passwordSaving, setPasswordSaving] = useState(false);
+  const [passwordMessage, setPasswordMessage] = useState<{ ok: boolean; text: string } | null>(null);
+
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setPasswordMessage(null);
+    if (newPassword !== confirmPassword) {
+      setPasswordMessage({ ok: false, text: 'Новые пароли не совпадают' });
+      return;
+    }
+    setPasswordSaving(true);
+    try {
+      const res = await BackendAPI.changePassword(currentPassword, newPassword);
+      setPasswordMessage({ ok: true, text: res.message || 'Пароль изменён' });
+      setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+      setTimeout(() => { setShowPasswordForm(false); setPasswordMessage(null); }, 2000);
+    } catch (err: any) {
+      setPasswordMessage({ ok: false, text: err.message || 'Не удалось сменить пароль' });
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
 
   useEffect(() => {
     if (user) {
@@ -206,6 +235,55 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Email аккаунта</div>
                <div className="font-bold text-slate-900 truncate">{user.email}</div>
             </div>
+
+            {!showPasswordForm ? (
+              <button
+                onClick={() => setShowPasswordForm(true)}
+                className="w-full mt-3 py-3 bg-slate-50 text-slate-600 rounded-2xl font-semibold text-xs uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-slate-100 transition-all border border-slate-100"
+              >
+                <i className="fas fa-key"></i>
+                <span>Сменить пароль</span>
+              </button>
+            ) : (
+              <form onSubmit={handleChangePassword} className="mt-3 p-4 bg-slate-50 rounded-2xl border border-slate-100 space-y-2">
+                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Смена пароля</div>
+                <input
+                  type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)}
+                  placeholder="Текущий пароль" required autoComplete="current-password"
+                  className="w-full p-3 bg-white rounded-xl font-medium text-sm outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+                />
+                <input
+                  type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)}
+                  placeholder="Новый пароль (от 6 символов)" required minLength={6} autoComplete="new-password"
+                  className="w-full p-3 bg-white rounded-xl font-medium text-sm outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+                />
+                <input
+                  type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
+                  placeholder="Повторите новый пароль" required autoComplete="new-password"
+                  className="w-full p-3 bg-white rounded-xl font-medium text-sm outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+                />
+                {passwordMessage && (
+                  <div className={`text-xs font-semibold px-1 ${passwordMessage.ok ? 'text-emerald-600' : 'text-rose-600'}`}>
+                    {passwordMessage.text}
+                  </div>
+                )}
+                <div className="flex gap-2 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => { setShowPasswordForm(false); setPasswordMessage(null); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); }}
+                    className="flex-1 py-2.5 bg-white text-slate-500 rounded-xl font-semibold text-xs uppercase tracking-wide"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    type="submit" disabled={passwordSaving}
+                    className="flex-1 py-2.5 bg-blue-600 text-white rounded-xl font-semibold text-xs uppercase tracking-wide disabled:opacity-50"
+                  >
+                    {passwordSaving ? 'Сохранение…' : 'Сохранить'}
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
 
           <button

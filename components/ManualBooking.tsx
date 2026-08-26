@@ -126,9 +126,48 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
     return clients.filter(c => c.name.toLowerCase().includes(searchQuery.toLowerCase()) || c.phone.includes(searchQuery));
   }, [clients, searchQuery]);
 
+  // --- Занятость авто ---
+  // Отрезки пересекаются, если начало одного строго раньше конца другого и наоборот.
+  const conflictFor = (carId: string) => {
+    if (!carId || !formData.startDate || !formData.endDate) return null;
+    const wantStart = new Date(`${formData.startDate}T${formData.startTime || '00:00'}`).getTime();
+    const wantEnd = new Date(`${formData.endDate}T${formData.endTime || '00:00'}`).getTime();
+    if (!(wantEnd > wantStart)) return null;
+
+    return rentals.find(r => {
+      if (r.carId !== carId || r.status !== 'ACTIVE') return false;
+      if (preSelectedRentalId && r.id === preSelectedRentalId) return false;
+      const rStart = new Date(`${String(r.startDate).split('T')[0]}T${r.startTime || '00:00'}`).getTime();
+      const rEnd = new Date(`${String(r.endDate).split('T')[0]}T${r.endTime || '00:00'}`).getTime();
+      return rStart < wantEnd && wantStart < rEnd;
+    }) || null;
+  };
+
+  const busyCarIds = useMemo(() => {
+    const set = new Set<string>();
+    cars.forEach(c => { if (conflictFor(c.id)) set.add(c.id); });
+    return set;
+  }, [cars, rentals, formData.startDate, formData.startTime, formData.endDate, formData.endTime, preSelectedRentalId]);
+
+  const selectedConflict = formData.carId ? conflictFor(formData.carId) : null;
+  const conflictClientName = selectedConflict
+    ? clients.find(c => c.id === selectedConflict.clientId)?.name
+    : null;
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.carId || !formData.clientId) { alert('Выберите авто и клиента'); return; }
+    // Сервер эту же проверку делает независимо — здесь она нужна, чтобы
+    // сказать об этом до отправки, а не показывать ошибку после.
+    if (selectedConflict) {
+      alert(
+        `Автомобиль занят по договору № ${selectedConflict.contractNumber || '—'}`
+        + (conflictClientName ? ` (${conflictClientName})` : '')
+        + ` с ${new Date(selectedConflict.startDate).toLocaleDateString('ru-RU')} ${selectedConflict.startTime}`
+        + ` до ${new Date(selectedConflict.endDate).toLocaleDateString('ru-RU')} ${selectedConflict.endTime}.`
+      );
+      return;
+    }
 
     const rental: Rental = {
       id: preSelectedRentalId || '',
@@ -243,11 +282,42 @@ ${rental.prepayment ? `💸 *Предоплата:* ${rental.prepayment.toLocale
               </div>
 
               <div>
-                <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2 ml-2">Автомобиль</label>
-                <select required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" value={formData.carId} onChange={e => setFormData({...formData, carId: e.target.value})}>
+                <label className="block text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-2 ml-2">
+                  Автомобиль
+                  {busyCarIds.size > 0 && (
+                    <span className="ml-2 text-rose-400 normal-case tracking-normal">
+                      занято на эти даты: {busyCarIds.size}
+                    </span>
+                  )}
+                </label>
+                <select
+                  required
+                  className={`w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 transition-colors ${
+                    selectedConflict ? 'border-rose-400' : 'border-transparent focus:border-blue-500'
+                  }`}
+                  value={formData.carId}
+                  onChange={e => setFormData({...formData, carId: e.target.value})}
+                >
                   <option value="">-- Выберите машину --</option>
-                  {cars.map(c => <option key={c.id} value={c.id}>{c.brand} {c.model} — {c.plate}</option>)}
+                  {cars.map(c => (
+                    <option key={c.id} value={c.id} disabled={busyCarIds.has(c.id)}>
+                      {busyCarIds.has(c.id) ? '● занято — ' : ''}{c.brand} {c.model} — {c.plate}
+                    </option>
+                  ))}
                 </select>
+
+                {selectedConflict && (
+                  <div className="mt-2 p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-start gap-2">
+                    <i className="fas fa-triangle-exclamation text-rose-500 mt-0.5"></i>
+                    <div className="text-xs font-semibold text-rose-700 leading-relaxed">
+                      Автомобиль занят по договору № {selectedConflict.contractNumber || '—'}
+                      {conflictClientName ? ` (${conflictClientName})` : ''}
+                      <br />
+                      с {new Date(selectedConflict.startDate).toLocaleDateString('ru-RU')} {selectedConflict.startTime}
+                      {' '}до {new Date(selectedConflict.endDate).toLocaleDateString('ru-RU')} {selectedConflict.endTime}
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div>
@@ -297,8 +367,12 @@ ${rental.prepayment ? `💸 *Предоплата:* ${rental.prepayment.toLocale
               </div>
             </div>
           </div>
-          <button type="submit" className={`w-full py-5 rounded-xl font-semibold text-lg transition-all active:scale-95 shadow-md ${isReservation ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white'}`}>
-            {isReservation ? 'Забронировать' : 'Оформить выдачу'}
+          <button
+            type="submit"
+            disabled={!!selectedConflict}
+            className={`w-full py-5 rounded-xl font-semibold text-lg transition-all active:scale-95 shadow-md disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100 ${isReservation ? 'bg-amber-500 text-white' : 'bg-blue-600 text-white'}`}
+          >
+            {selectedConflict ? 'Автомобиль занят' : isReservation ? 'Забронировать' : 'Оформить выдачу'}
           </button>
         </form>
       </div>

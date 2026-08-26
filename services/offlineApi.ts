@@ -111,6 +111,7 @@ export default class OfflineAPI {
   static verifyEmail = BackendAPI.verifyEmail;
   static resendVerification = BackendAPI.resendVerification;
   static forgotPassword = BackendAPI.forgotPassword;
+  static changePassword = BackendAPI.changePassword;
   static resetPassword = BackendAPI.resetPassword;
   static getAllUsers = BackendAPI.getAllUsers;
   static updateGlobalUser = BackendAPI.updateGlobalUser;

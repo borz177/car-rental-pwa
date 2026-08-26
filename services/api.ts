@@ -101,6 +101,15 @@ export default class BackendAPI {
       return BackendAPI.handleResponse(response);
   }
 
+  static async changePassword(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/auth/change-password`, {
+          method: 'POST',
+          headers: BackendAPI.getHeaders(),
+          body: JSON.stringify({ currentPassword, newPassword })
+      });
+      return BackendAPI.handleResponse(response);
+  }
+
   static async forgotPassword(email: string): Promise<{ message: string }> {
       const response = await fetch(`${BackendAPI.BASE_URL}/auth/forgot-password`, {
           method: 'POST',
