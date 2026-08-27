@@ -331,26 +331,23 @@ const authenticateToken = (req: any, res: any, next: any) => {
   jwt.verify(token, JWT_SECRET, async (err: any, user: any) => {
     if (err) return res.status(403).json({ message: 'Сессия истекла' });
 
-    // Robust Owner ID Resolution for Staff
-    // If the token doesn't have ownerId (old token) or role is STAFF, ensure we have the correct context
-    if (!user.ownerId) {
-       if (user.role === 'STAFF') {
-          // Fallback: Fetch from DB if missing in token
-          try {
-             const { rows } = await pool.query('SELECT owner_id FROM users WHERE id = $1', [user.id]);
-             if (rows.length > 0 && rows[0].owner_id) {
-                user.ownerId = rows[0].owner_id;
-             } else {
-                user.ownerId = user.id; // Fallback to self if orphan
-             }
-          } catch(e) {
-             console.error('Error fetching owner_id for staff', e);
-             user.ownerId = user.id;
-          }
-       } else {
-          // Admin/Client/Superadmin owns their data (or client specific logic)
-          user.ownerId = user.id;
-       }
+    if (user.role === 'STAFF') {
+      // Права и владельца читаем из базы при КАЖДОМ запросе, а не из токена:
+      // токен не переиздаётся при изменении прав в StaffList, и без этого
+      // админ мог бы отключить сотруднику canDelete, а тот продолжал бы
+      // удалять записи вплоть до следующего входа в систему.
+      try {
+        const { rows } = await pool.query('SELECT owner_id, permissions FROM users WHERE id = $1', [user.id]);
+        user.ownerId = (rows[0]?.owner_id) || user.id; // orphan-страховка
+        user.permissions = rows[0]?.permissions || {};
+      } catch (e) {
+        console.error('Error fetching staff context', e);
+        user.ownerId = user.id;
+        user.permissions = {};
+      }
+    } else if (!user.ownerId) {
+      // Admin/Client/Superadmin owns their data (or client specific logic)
+      user.ownerId = user.id;
     }
 
     req.user = user;
@@ -388,6 +385,76 @@ const notifyOwnerTeam = async (ownerId: string, n: NotificationInput) => {
     [ownerId]
   );
   await Promise.all(rows.map(r => notifyUser(r.id, n)));
+};
+
+// Номер договора/брони: атомарный счётчик на владельца, а не случайное число
+// с клиента (могло повториться, не давало предсказуемой нумерации). У каждого
+// аккаунта отсчёт начинается с 1, независимо от других. INSERT..ON CONFLICT —
+// один атомарный запрос, безопасен при одновременном создании нескольких аренд.
+const assignContractNumber = async (ownerId: string, isReservation: boolean): Promise<string> => {
+  const prefix = isReservation ? 'Б' : 'Д';
+  const { rows } = await pool.query(
+    `INSERT INTO contract_counters (owner_id, next_number) VALUES ($1, 1)
+     ON CONFLICT (owner_id) DO UPDATE SET next_number = contract_counters.next_number + 1
+     RETURNING next_number`,
+    [ownerId]
+  );
+  return `${prefix}-${rows[0].next_number}`;
+};
+
+// --- ПОДПИСКА И ЛИМИТЫ ТАРИФА ---
+// Раньше единственной защитой был checkAccess() на фронтенде (App.tsx) — лимит
+// машин и блокировка при истёкшей подписке полностью обходились прямым запросом
+// к API (консоль браузера, curl). Логика — точная копия фронтенда, но здесь
+// это уже настоящая граница, а не просьба вести себя хорошо.
+const getPlanLimit = (owner: { active_plan?: string; is_trial?: boolean } | undefined): number => {
+  const plan = (owner?.active_plan || (owner?.is_trial ? 'Premium' : 'Start')).toUpperCase();
+  if (plan.includes('БИЗНЕС') || plan.includes('BUSINESS')) return 20;
+  if (plan.includes('ПРЕМИУМ') || plan.includes('PREMIUM')) return 9999;
+  return 5;
+};
+
+const checkSubscriptionAndLimit = async (
+  ownerId: string, resource: 'cars' | 'rentals'
+): Promise<{ ok: boolean; message?: string }> => {
+  const { rows } = await pool.query(
+    'SELECT role, subscription_until, is_trial, active_plan FROM users WHERE id = $1',
+    [ownerId]
+  );
+  const owner = rows[0];
+  if (!owner || owner.role === 'SUPERADMIN') return { ok: true };
+
+  const isActive = owner.subscription_until && new Date(owner.subscription_until) > new Date();
+  if (!isActive) {
+    return { ok: false, message: 'Подписка истекла. Продлите тариф, чтобы добавлять новые записи.' };
+  }
+
+  if (resource === 'cars') {
+    const limit = getPlanLimit(owner);
+    const { rows: countRows } = await pool.query('SELECT COUNT(*)::int AS count FROM cars WHERE owner_id = $1', [ownerId]);
+    if (countRows[0].count >= limit) {
+      return { ok: false, message: `Лимит тарифа исчерпан: до ${limit} автомобилей. Обновите тариф для расширения автопарка.` };
+    }
+  }
+  return { ok: true };
+};
+
+// --- ПРАВА СОТРУДНИКОВ ---
+// Раньше canEdit/canDelete/canAddCar/canCreateBooking проверялись только
+// в интерфейсе (скрытая кнопка) — сотрудник с выключенным правом всё равно мог
+// вызвать API напрямую. currentUser.role !== STAFF здесь всегда true — ограничение
+// касается только сотрудников, у ADMIN/SUPERADMIN/CLIENT свои отдельные правила
+// доступа (проверка владельца записи, роль на публичных маршрутах и т.д.).
+type StaffAction = 'edit' | 'delete' | 'addCar' | 'createBooking';
+const hasStaffPermission = (req: any, action: StaffAction): boolean => {
+  if (req.user.role !== 'STAFF') return true;
+  const p = req.user.permissions || {};
+  if (p.fullAccess) return true;
+  if (action === 'edit') return !!p.canEdit;
+  if (action === 'delete') return !!p.canDelete;
+  if (action === 'addCar') return !!p.canAddCar;
+  if (action === 'createBooking') return !!p.canCreateBooking;
+  return false;
 };
 
 // --- PUBLIC ROUTES ---
@@ -807,7 +874,17 @@ app.patch('/api/support/messages/read', authenticateToken, async (req: any, res:
 
 // --- STAFF MANAGEMENT (Stored in Users Table) ---
 
-app.get('/api/staff', authenticateToken, async (req: any, res: any) => {
+// Раздел «Сотрудники» в интерфейсе для роли STAFF скрыт полностью (Sidebar.tsx),
+// но сервер это никак не проверял. Сотрудник мог вызвать PUT /api/staff/<свой id>
+// с {"permissions":{"fullAccess":true}} и выдать себе полный доступ — owner_id
+// у его собственной записи совпадает с req.user.ownerId, так что проверка
+// владельца проходила. Управлять сотрудниками может только ADMIN/SUPERADMIN.
+const blockStaffRole = (req: any, res: any, next: any) => {
+  if (req.user.role === 'STAFF') return res.status(403).json({ message: 'Доступ запрещён' });
+  next();
+};
+
+app.get('/api/staff', authenticateToken, blockStaffRole, async (req: any, res: any) => {
   try {
     // Get users who are staff AND owned by current admin (req.user.ownerId should be correct)
     const { rows } = await pool.query(
@@ -818,7 +895,7 @@ app.get('/api/staff', authenticateToken, async (req: any, res: any) => {
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 });
 
-app.post('/api/staff', authenticateToken, async (req: any, res: any) => {
+app.post('/api/staff', authenticateToken, blockStaffRole, async (req: any, res: any) => {
   const { name, email, password, role, permissions } = req.body;
 
   // Use email as login if login provided, or vice versa.
@@ -843,7 +920,7 @@ app.post('/api/staff', authenticateToken, async (req: any, res: any) => {
   }
 });
 
-app.put('/api/staff/:id', authenticateToken, async (req: any, res: any) => {
+app.put('/api/staff/:id', authenticateToken, blockStaffRole, async (req: any, res: any) => {
   const { name, email, password, permissions } = req.body;
   const userEmail = email || req.body.login;
 
@@ -866,7 +943,7 @@ app.put('/api/staff/:id', authenticateToken, async (req: any, res: any) => {
   }
 });
 
-app.delete('/api/staff/:id', authenticateToken, async (req: any, res: any) => {
+app.delete('/api/staff/:id', authenticateToken, blockStaffRole, async (req: any, res: any) => {
   try {
     const result = await pool.query("DELETE FROM users WHERE id = $1 AND owner_id = $2 AND role = 'STAFF'", [req.params.id, req.user.ownerId]);
     if (result.rowCount === 0) return res.status(404).json({ message: 'Сотрудник не найден' });
@@ -929,20 +1006,23 @@ const setupCrud = (resource: string, fields: string[]) => {
 
     const data = req.body;
 
+    if (resource === 'cars' && !hasStaffPermission(req, 'addCar')) {
+      return res.status(403).json({ message: 'Нет прав на добавление автомобилей' });
+    }
+    if (resource === 'rentals' && !hasStaffPermission(req, 'createBooking')) {
+      return res.status(403).json({ message: 'Нет прав на оформление сделок' });
+    }
+
+    if (resource === 'cars' || resource === 'rentals') {
+      const check = await checkSubscriptionAndLimit(req.user.ownerId, resource);
+      if (!check.ok) return res.status(403).json({ message: check.message });
+    }
+
     if (resource === 'rentals') {
-      // Номер договора не доверяем клиенту — раньше это было случайное 4-значное
-      // число (могло повториться, не давало предсказуемой нумерации). Присваиваем
-      // атомарно через счётчик на владельца: у каждого аккаунта отсчёт договоров
-      // и броней начинается с 1, независимо от других аккаунтов. INSERT..ON CONFLICT
-      // — один атомарный запрос, безопасен при одновременном создании нескольких аренд.
-      const prefix = data.isReservation ? 'Б' : 'Д';
-      const { rows } = await pool.query(
-        `INSERT INTO contract_counters (owner_id, next_number) VALUES ($1, 1)
-         ON CONFLICT (owner_id) DO UPDATE SET next_number = contract_counters.next_number + 1
-         RETURNING next_number`,
-        [req.user.ownerId]
-      );
-      data.contractNumber = `${prefix}-${rows[0].next_number}`;
+      // Пересечение дат для этого пути уже проверено чуть раньше в стеке роутов —
+      // см. app.post('/api/rentals', authenticateToken, checkRentalConflict) ниже,
+      // она вызывает next() и передаёт управление сюда только если конфликта нет.
+      data.contractNumber = await assignContractNumber(req.user.ownerId, !!data.isReservation);
     }
 
     const columns = ['id', 'owner_id', ...snakeFields];
@@ -976,6 +1056,9 @@ const setupCrud = (resource: string, fields: string[]) => {
   });
 
   app.put(`/api/${resource}/:id`, authenticateToken, async (req: any, res: any) => {
+    if (!hasStaffPermission(req, 'edit')) {
+      return res.status(403).json({ message: 'Нет прав на редактирование' });
+    }
     const data = req.body;
     const setClause = snakeFields.map((f, i) => {
         const index = i + 1;
@@ -1010,6 +1093,9 @@ const setupCrud = (resource: string, fields: string[]) => {
   });
 
   app.delete(`/api/${resource}/:id`, authenticateToken, async (req: any, res: any) => {
+    if (!hasStaffPermission(req, 'delete')) {
+      return res.status(403).json({ message: 'Нет прав на удаление' });
+    }
     try {
       await pool.query(`DELETE FROM ${resource} WHERE id = $1 AND (owner_id = $2 OR owner_id IS NULL)`, [req.params.id, req.user.ownerId]);
       res.status(204).send();
@@ -1020,13 +1106,15 @@ const setupCrud = (resource: string, fields: string[]) => {
 // Одна машина не может быть сдана двум клиентам на пересекающиеся даты.
 // Проверка обязана жить на сервере: интерфейс можно обойти прямым запросом к API.
 // Регистрируется до setupCrud('rentals'), поэтому срабатывает раньше generic-обработчика.
-const checkRentalConflict = async (req: any, res: any, next: any) => {
-  const { carId, startDate, startTime, endDate, endTime, status } = req.body;
-
-  // Отменённые и завершённые аренды машину не занимают.
-  if (status && status !== 'ACTIVE') return next();
-  if (!carId || !startDate || !endDate) return next();
-
+// Вынесено в отдельную функцию, чтобы вызывать её и из одобрения заявки
+// (/api/requests/:id/status) — та тоже создаёт аренду в обход этой проверки,
+// собственной ручной вставкой в rentals.
+interface RentalConflictParams {
+  carId: string; startDate: string; startTime?: string; endDate: string; endTime?: string;
+  ownerId: string; excludeRentalId?: string | null;
+}
+const findRentalConflict = async (p: RentalConflictParams): Promise<string | null> => {
+  if (!p.carId || !p.startDate || !p.endDate) return null;
   try {
     const { rows } = await pool.query(
       `SELECT r.id, r.contract_number, r.start_date, r.start_time, r.end_date, r.end_time,
@@ -1043,23 +1131,31 @@ const checkRentalConflict = async (req: any, res: any, next: any) => {
           AND ($4::date + COALESCE(NULLIF($5, ''), '00:00')::time)
               < (r.end_date + COALESCE(NULLIF(r.end_time, ''), '00:00')::time)
         LIMIT 1`,
-      [carId, req.params.id || null, req.user.ownerId, startDate, startTime, endDate, endTime]
+      [p.carId, p.excludeRentalId || null, p.ownerId, p.startDate, p.startTime, p.endDate, p.endTime]
     );
-
-    if (rows.length > 0) {
-      const busy = rows[0];
-      const until = `${new Date(busy.end_date).toLocaleDateString('ru-RU')} ${busy.end_time || ''}`.trim();
-      return res.status(409).json({
-        message: `Автомобиль уже занят по договору № ${busy.contract_number || '—'}`
-          + (busy.client_name ? ` (${busy.client_name})` : '')
-          + ` до ${until}. Выберите другое авто или другие даты.`
-      });
-    }
-    next();
+    if (rows.length === 0) return null;
+    const busy = rows[0];
+    const until = `${new Date(busy.end_date).toLocaleDateString('ru-RU')} ${busy.end_time || ''}`.trim();
+    return `Автомобиль уже занят по договору № ${busy.contract_number || '—'}`
+      + (busy.client_name ? ` (${busy.client_name})` : '')
+      + ` до ${until}. Выберите другое авто или другие даты.`;
   } catch (err: any) {
     console.error('Ошибка проверки пересечения аренд:', err.message);
-    next();
+    return null; // не блокируем создание из-за сбоя самой проверки
   }
+};
+
+const checkRentalConflict = async (req: any, res: any, next: any) => {
+  const { carId, startDate, startTime, endDate, endTime, status } = req.body;
+  // Отменённые и завершённые аренды машину не занимают.
+  if (status && status !== 'ACTIVE') return next();
+
+  const conflictMessage = await findRentalConflict({
+    carId, startDate, startTime, endDate, endTime,
+    ownerId: req.user.ownerId, excludeRentalId: req.params.id
+  });
+  if (conflictMessage) return res.status(409).json({ message: conflictMessage });
+  next();
 };
 
 app.post('/api/rentals', authenticateToken, checkRentalConflict);
@@ -1169,6 +1265,22 @@ app.patch(`/api/requests/:id/status`, authenticateToken, async (req: any, res: a
         const request = requestRes.rows[0];
 
         if (status === 'APPROVED') {
+            // Одобрение создаёт аренду в обход общего пути POST /api/rentals — те же
+            // правила должны применяться и здесь: права сотрудника, действующая подписка,
+            // отсутствие пересечения по датам. Раньше ничего из этого не проверялось,
+            // и можно было одобрить две заявки на одну машину на одни даты.
+            if (!hasStaffPermission(req, 'createBooking')) {
+                return res.status(403).json({ message: 'Нет прав на оформление сделок' });
+            }
+            const subCheck = await checkSubscriptionAndLimit(ownerId, 'rentals');
+            if (!subCheck.ok) return res.status(403).json({ message: subCheck.message });
+
+            const conflictMessage = await findRentalConflict({
+                carId: request.car_id, startDate: request.start_date, startTime: request.start_time,
+                endDate: request.end_date, endTime: request.end_time, ownerId
+            });
+            if (conflictMessage) return res.status(409).json({ message: conflictMessage });
+
             let finalClientId = request.client_id;
             const requestPhone = request.client_phone || 'Не указан';
             const requestName = request.client_name || 'Гость';
@@ -1195,7 +1307,9 @@ app.patch(`/api/requests/:id/status`, authenticateToken, async (req: any, res: a
             }
 
             const rentalId = randomUUID();
-            const contractNumber = `RES-${Math.floor(1000 + Math.random() * 9000)}`;
+            // Раньше здесь был свой случайный номер (RES-XXXX) — третья, отдельная от
+            // Б-/Д- схема нумерации, выпадавшая из общего счётчика аккаунта.
+            const contractNumber = await assignContractNumber(ownerId, true);
             const startDate = request.start_date || new Date().toISOString().split('T')[0];
             const endDate = request.end_date || new Date().toISOString().split('T')[0];
 
@@ -1220,9 +1334,25 @@ app.patch('/api/fines/:id/pay', authenticateToken, async (req: any, res: any) =>
   const db = await pool.connect();
   try {
     await db.query('BEGIN');
-    const { rows } = await db.query('SELECT * FROM fines WHERE id = $1', [req.params.id]);
+    // AND (owner_id = ... OR owner_id IS NULL) — раньше отсутствовало: любой
+    // авторизованный пользователь, зная ID штрафа, мог "оплатить" чужой штраф
+    // из другого аккаунта. Долг списывался у ЧУЖОГО клиента, а доход
+    // записывался в СВОЮ кассу.
+    const { rows } = await db.query(
+      'SELECT * FROM fines WHERE id = $1 AND (owner_id = $2 OR owner_id IS NULL)',
+      [req.params.id, req.user.ownerId]
+    );
     if (rows.length === 0) throw new Error('Штраф не найден');
     const fine = rows[0];
+
+    // Идемпотентность: повторный вызов (двойной клик, повтор запроса) на уже
+    // оплаченном штрафе раньше списывал долг клиента и добавлял доход в кассу
+    // ЕЩЁ РАЗ за одну и ту же реальную оплату.
+    if (fine.status === 'Оплачен') {
+      await db.query('COMMIT');
+      return res.json({ success: true, alreadyPaid: true });
+    }
+
     await db.query('UPDATE fines SET status = $1 WHERE id = $2', ['Оплачен', req.params.id]);
     await db.query('UPDATE clients SET debt = debt - $1 WHERE id = $2', [fine.amount, fine.client_id]);
     await db.query('INSERT INTO transactions (id, owner_id, amount, type, category, description, client_id, car_id) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)', [randomUUID(), req.user.ownerId, fine.amount, 'Доход', 'Штраф', `Оплата штрафа: ${fine.description}`, fine.client_id, fine.car_id]);
