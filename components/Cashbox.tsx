@@ -135,8 +135,11 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, onNavigate }) => {
       </div>
 
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-100">
+        <div className="p-4 border-b border-slate-100 flex justify-between items-center gap-3">
           <h3 className="text-lg font-semibold text-slate-800">Последние операции</h3>
+          <button onClick={() => onNavigate('TRANSACTIONS')} className="text-blue-600 font-semibold text-xs uppercase tracking-wide hover:bg-blue-50 px-3 py-2 rounded-xl transition-all whitespace-nowrap">
+            Все операции <i className="fas fa-arrow-right ml-1"></i>
+          </button>
         </div>
         <div className="divide-y divide-slate-50">
           {recentActivity.map(t => (

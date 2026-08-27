@@ -18,6 +18,7 @@ import ManualBooking from './components/ManualBooking';
 import ContractList from './components/ContractList';
 import Cashbox from './components/Cashbox';
 import TransactionTypePage from './components/TransactionTypePage';
+import AllTransactions from './components/AllTransactions';
 import Reports from './components/Reports';
 import ClientDetails from './components/ClientDetails';
 import CarDetails from './components/CarDetails';
@@ -936,6 +937,18 @@ useEffect(() => {
                   investors={investors}
                   cars={cars}
                   onAddTransaction={apiAction(BackendAPI.saveTransaction)}
+                  onBack={() => setCurrentView('CASHBOX')}
+              />
+          )}
+
+          {currentView === 'TRANSACTIONS' && (!isStaff || permissions?.canViewDocs) && (
+              <AllTransactions
+                  transactions={transactions}
+                  cars={cars}
+                  investors={investors}
+                  staff={staff}
+                  onAddTransaction={apiAction(BackendAPI.saveTransaction)}
+                  onDeleteTransaction={apiAction(BackendAPI.deleteTransaction)}
                   onBack={() => setCurrentView('CASHBOX')}
               />
           )}

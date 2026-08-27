@@ -137,7 +137,8 @@ const initDB = async () => {
       date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       investor_id TEXT,
       client_id UUID,
-      car_id UUID
+      car_id UUID,
+      staff_id UUID
     );
 
     CREATE TABLE IF NOT EXISTS investors (
@@ -272,6 +273,9 @@ const initDB = async () => {
     await client.query(`ALTER TABLE cars ADD COLUMN IF NOT EXISTS oil_change_interval INTEGER`);
     // Нужна для определения, какие машины "лишние" при понижении тарифа (см. getBlockedCarIds).
     await client.query(`ALTER TABLE cars ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT NOW()`);
+    // Прямая связь зарплатной операции с сотрудником (раньше имя было только в description
+    // текстом) — нужна для фильтра "все операции по этому сотруднику" в журнале.
+    await client.query(`ALTER TABLE transactions ADD COLUMN IF NOT EXISTS staff_id UUID`);
 
     // Requests migrations
     await client.query(`ALTER TABLE requests ADD COLUMN IF NOT EXISTS client_phone TEXT`);
@@ -1280,7 +1284,7 @@ setupCrud('clients', ['name', 'phone', 'email', 'passport', 'driverLicense', 'de
 // REMOVED 'staff' from generic CRUD setup, as it is now handled by custom endpoints using 'users' table
 setupCrud('investors', ['name', 'phone', 'email', 'totalInvested', 'balance']);
 setupCrud('rentals', ['carId', 'clientId', 'startDate', 'startTime', 'endDate', 'endTime', 'totalAmount', 'prepayment', 'status', 'contractNumber', 'paymentStatus', 'isReservation', 'bookingType', 'extensions']);
-setupCrud('transactions', ['amount', 'type', 'category', 'description', 'date', 'investorId', 'clientId', 'carId']);
+setupCrud('transactions', ['amount', 'type', 'category', 'description', 'date', 'investorId', 'clientId', 'carId', 'staffId']);
 setupCrud('fines', ['clientId', 'carId', 'amount', 'description', 'date', 'status', 'source']);
 setupCrud('requests', ['carId', 'clientId', 'clientName', 'clientPhone', 'clientDob', 'startDate', 'startTime', 'endDate', 'endTime', 'status']);
 

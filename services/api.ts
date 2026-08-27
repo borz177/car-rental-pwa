@@ -261,6 +261,13 @@ export default class BackendAPI {
       });
       return BackendAPI.handleResponse(response);
   }
+  static async deleteTransaction(id: string): Promise<void> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/transactions/${id}`, {
+          method: 'DELETE',
+          headers: BackendAPI.getHeaders()
+      });
+      await BackendAPI.handleResponse(response);
+  }
 
   // --- INVESTORS ---
   static async getInvestors(): Promise<Investor[]> {

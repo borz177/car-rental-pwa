@@ -84,6 +84,7 @@ export interface Transaction {
   investorId?: string;
   clientId?: string;
   carId?: string;
+  staffId?: string;
 }
 
 export enum FineStatus {
@@ -242,6 +243,7 @@ export type AppView =
   | 'CASHBOX'
   | 'INCOME'
   | 'EXPENSE'
+  | 'TRANSACTIONS'
   | 'REPORTS'
   | 'STAFF'
   | 'SETTINGS'

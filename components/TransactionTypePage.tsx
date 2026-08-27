@@ -15,9 +15,9 @@ interface TransactionTypePageProps {
   onBack: () => void;
 }
 
-const INCOME_CATEGORIES = ['Аренда', 'Продажа', 'Бонус', 'Возврат долга', 'Прочее'];
-const EXPENSE_CATEGORIES = ['Мойка', 'Ремонт', 'Замена масла', 'Оклад', 'Инвестиции', 'Аренда', 'Прочее'];
-const CAR_RELATED_EXPENSE_CATEGORIES = ['Мойка', 'Ремонт', 'Замена масла'];
+export const INCOME_CATEGORIES = ['Аренда', 'Продажа', 'Бонус', 'Возврат долга', 'Прочее'];
+export const EXPENSE_CATEGORIES = ['Мойка', 'Ремонт', 'Замена масла', 'Оклад', 'Инвестиции', 'Аренда', 'Прочее'];
+export const CAR_RELATED_EXPENSE_CATEGORIES = ['Мойка', 'Ремонт', 'Замена масла'];
 
 // Единая страница для Приход/Расход — тип фиксирован пропсом (без переключателя внутри),
 // это и есть разделение на отдельные страницы. Общая механика (фильтры, история,
@@ -38,6 +38,7 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
   const [selectedClientId, setSelectedClientId] = useState('');
   const [selectedInvestorId, setSelectedInvestorId] = useState('');
   const [selectedCarId, setSelectedCarId] = useState('');
+  const [selectedStaffId, setSelectedStaffId] = useState('');
   const [showClientList, setShowClientList] = useState(false);
 
   const [period, setPeriod] = useState<'TODAY' | 'WEEK' | 'MONTH' | 'ALL'>('MONTH');
@@ -129,23 +130,28 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
 
   const resetModalState = () => {
     setSelectedClientId(''); setSearchClient(''); setSelectedCategory(''); setCustomCategory('');
-    setSelectedInvestorId(''); setSelectedCarId(''); setShowClientList(false);
+    setSelectedInvestorId(''); setSelectedCarId(''); setSelectedStaffId(''); setShowClientList(false);
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
     const amount = Number(fd.get('amount'));
+    const enteredDate = (fd.get('date') as string) || todayStr;
 
     let description = (fd.get('description') as string) || '';
     let invId = '';
+    let staffId = '';
     let category = (fd.get('category') || selectedCategory) as string;
     let carId = selectedCarId;
 
     if (!isIncome) {
       if (selectedCategory === 'Оклад') {
-        const staffName = fd.get('staff_name');
-        if (staffName) description = `Зарплата: ${staffName}${description ? ' - ' + description : ''}`;
+        const staffMember = staff.find(s => s.id === selectedStaffId);
+        if (staffMember) {
+          description = `Зарплата: ${staffMember.name}${description ? ' - ' + description : ''}`;
+          staffId = staffMember.id;
+        }
       } else if (selectedCategory === 'Инвестиции') {
         const investor = investors.find(i => i.id === selectedInvestorId);
         if (investor) {
@@ -166,9 +172,12 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
       type,
       category,
       description,
-      date: new Date().toISOString(),
+      // Полдень выбранной даты — чтобы конвертация в UTC при сохранении не сдвинула
+      // календарную дату при отображении (важно у границ суток по МСК).
+      date: new Date(`${enteredDate}T12:00:00`).toISOString(),
       investorId: invId || undefined,
-      carId: carId || undefined
+      carId: carId || undefined,
+      staffId: staffId || undefined
     }, selectedClientId || undefined);
 
     setIsModalOpen(false);
@@ -374,9 +383,15 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
                 </div>
               )}
 
-              <div>
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Сумма (₽)</label>
-                <input name="amount" type="number" required placeholder="0" className="w-full p-5 bg-slate-50 rounded-2xl font-bold text-3xl text-slate-900 outline-none border-2 border-transparent focus:border-blue-500" />
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Сумма (₽)</label>
+                  <input name="amount" type="number" required placeholder="0" className="w-full p-5 bg-slate-50 rounded-2xl font-bold text-2xl text-slate-900 outline-none border-2 border-transparent focus:border-blue-500" />
+                </div>
+                <div>
+                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Дата</label>
+                  <input name="date" type="date" required defaultValue={todayStr} max={todayStr} className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 text-slate-900" />
+                </div>
               </div>
 
               <div>
@@ -420,9 +435,14 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
                   {selectedCategory === 'Оклад' && (
                     <div>
                       <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Сотрудник</label>
-                      <select name="staff_name" required className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900">
+                      <select
+                        value={selectedStaffId}
+                        onChange={(e) => setSelectedStaffId(e.target.value)}
+                        required
+                        className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
+                      >
                         <option value="">-- Выберите сотрудника --</option>
-                        {staff.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                        {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
                       </select>
                     </div>
                   )}

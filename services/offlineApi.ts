@@ -170,10 +170,11 @@ export default class OfflineAPI {
   static saveRental = (rental: Rental) => saveEntity('rentals', 'saveRental', rental, () => BackendAPI.saveRental(rental));
   static deleteRental = (id: string) => deleteEntity('rentals', 'deleteRental', id, () => BackendAPI.deleteRental(id));
 
-  // --- Transactions (create-only ledger) ---
+  // --- Transactions (create-only ledger; a correction is a reversal + new entry, not an edit — see AllTransactions.tsx) ---
   static getTransactions = () => fetchAndCache<Transaction>('transactions', BackendAPI.getTransactions);
   static saveTransaction = (tx: Partial<Transaction>, clientId?: string) =>
     createEntity<Transaction>('transactions', 'saveTransaction', [tx, clientId], tx, () => BackendAPI.saveTransaction(tx, clientId));
+  static deleteTransaction = (id: string) => deleteEntity('transactions', 'deleteTransaction', id, () => BackendAPI.deleteTransaction(id));
 
   // --- Investors ---
   static getInvestors = () => fetchAndCache<Investor>('investors', BackendAPI.getInvestors);
