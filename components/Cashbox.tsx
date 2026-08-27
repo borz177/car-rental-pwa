@@ -1,6 +1,7 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Transaction, TransactionType, Client, Rental, User, Investor, Car, Staff } from '../types';
+import Pagination from './Pagination';
 
 interface CashboxProps {
   transactions: Transaction[];
@@ -27,6 +28,8 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
   const [period, setPeriod] = useState<'TODAY' | 'WEEK' | 'MONTH' | 'ALL'>('MONTH');
   const [typeFilter, setTypeFilter] = useState<'ALL' | TransactionType>('ALL');
   const [historySearch, setHistorySearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const dateOnly = (v: string) => String(v).split('T')[0];
   const todayStr = new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Moscow' });
@@ -69,6 +72,14 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
       .slice()
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [periodTransactions, typeFilter, historySearch]);
+
+  const pagedTransactions = useMemo(
+    () => visibleTransactions.slice((page - 1) * pageSize, page * pageSize),
+    [visibleTransactions, page, pageSize]
+  );
+
+  // Смена фильтра могла оставить на несуществующей странице с пустым списком.
+  useEffect(() => { setPage(1); }, [period, typeFilter, historySearch, pageSize]);
 
   const periodLabels = { TODAY: 'сегодня', WEEK: 'за 7 дней', MONTH: 'за 30 дней', ALL: 'за всё время' };
 
@@ -256,7 +267,7 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
         </div>
 
         <div className="divide-y divide-slate-50">
-          {visibleTransactions.map(t => (
+          {pagedTransactions.map(t => (
             <div key={t.id} className="px-4 py-3 hover:bg-slate-50/50 transition-colors flex items-center gap-3">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
                 t.type === TransactionType.INCOME ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'
@@ -287,6 +298,14 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, clients, rentals, staff
             </div>
           )}
         </div>
+
+        <Pagination
+          page={page}
+          pageSize={pageSize}
+          totalItems={visibleTransactions.length}
+          onPageChange={setPage}
+          onPageSizeChange={setPageSize}
+        />
       </div>
 
       {isModalOpen && (

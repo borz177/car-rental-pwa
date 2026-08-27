@@ -1,6 +1,7 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { Client, Rental, Transaction, TransactionType } from '../types';
+import Pagination from './Pagination';
 
 interface ClientListProps {
   clients: Client[];
@@ -20,6 +21,8 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
   // Search and Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [showDebtorsOnly, setShowDebtorsOnly] = useState(false);
+  const [page, setPage] = useState(1);
+  const pageSize = 24;
 
   const filteredClients = useMemo(() => {
     return clients.filter(c => {
@@ -74,6 +77,13 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
       onDelete(client.id);
     }
   };
+
+  const pagedClients = useMemo(
+    () => filteredClients.slice((page - 1) * pageSize, page * pageSize),
+    [filteredClients, page, pageSize]
+  );
+
+  useEffect(() => { setPage(1); }, [searchQuery, showDebtorsOnly]);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -148,7 +158,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredClients.map(client => (
+        {pagedClients.map(client => (
           <div key={client.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm relative group">
             <div className="flex items-start justify-between mb-4">
               <div
@@ -222,6 +232,17 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
           </div>
         )}
       </div>
+
+      {filteredClients.length > pageSize && (
+        <div className="bg-white rounded-2xl border border-slate-100">
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalItems={filteredClients.length}
+            onPageChange={setPage}
+          />
+        </div>
+      )}
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">

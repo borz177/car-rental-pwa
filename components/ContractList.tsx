@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Rental, Car, Client, RentalExtension } from '../types';
+import Pagination from './Pagination';
 
 interface ContractListProps {
   rentals: Rental[];
@@ -47,6 +48,8 @@ const ContractList: React.FC<ContractListProps> = ({
   const [search, setSearch] = useState('');
   const [searchDate, setSearchDate] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('ALL');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(20);
 
   const moscowNow = getMoscowNow();
 
@@ -100,6 +103,17 @@ const ContractList: React.FC<ContractListProps> = ({
       return new Date(a.endDate).getTime() - new Date(b.endDate).getTime();
     });
   }, [scopedRentals, search, searchDate, statusFilter, clients, cars, viewMode]);
+
+  // Страница отрисовки. Итоги ниже намеренно считаются по всей выборке,
+  // а не по странице: иначе суммы прыгали бы при листании.
+  const pagedRentals = useMemo(
+    () => filteredRentals.slice((page - 1) * pageSize, page * pageSize),
+    [filteredRentals, page, pageSize]
+  );
+
+  // Возврат на первую страницу при смене фильтров, иначе можно остаться
+  // на несуществующей странице и увидеть пустой список.
+  useEffect(() => { setPage(1); }, [search, searchDate, statusFilter, viewMode, pageSize]);
 
   const summary = useMemo(() => {
     const total = filteredRentals.reduce((s, r) => s + (r.totalAmount || 0), 0);
@@ -254,14 +268,16 @@ const ContractList: React.FC<ContractListProps> = ({
 
         {showActions === rent.id && (
           <>
-            <div className="fixed inset-0 z-40 md:absolute md:inset-auto" onClick={(e) => { e.stopPropagation(); setShowActions(null); }} />
+            {/* z-[59]/z-[60]: нижняя навигация занимает z-50, а её подменю z-[55],
+                и раньше лист действий уходил под них. pb-safe — под жест-бар телефона. */}
+            <div className="fixed inset-0 z-[59] bg-slate-900/20 md:bg-transparent md:absolute md:inset-auto" onClick={(e) => { e.stopPropagation(); setShowActions(null); }} />
             <div
               onClick={(e) => e.stopPropagation()}
-              className="fixed bottom-0 left-0 right-0 md:absolute md:bottom-auto md:left-auto md:right-0 md:top-full md:w-56 bg-white rounded-t-xl md:rounded-2xl shadow-md border border-slate-100 z-50 overflow-hidden animate-slideUp"
+              className="fixed bottom-0 left-0 right-0 pb-safe md:pb-0 md:absolute md:bottom-auto md:left-auto md:right-0 md:top-full md:w-56 bg-white rounded-t-2xl md:rounded-2xl shadow-lg border border-slate-100 z-[60] overflow-hidden animate-slideUp"
             >
-              <div className="md:hidden p-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="md:hidden px-4 pt-3 pb-2 border-b border-slate-100 flex items-center justify-between">
                 <span className="font-semibold">Действия</span>
-                <button onClick={() => setShowActions(null)} className="p-2 text-slate-400"><i className="fas fa-xmark"></i></button>
+                <button onClick={() => setShowActions(null)} className="p-2 -mr-2 text-slate-400"><i className="fas fa-xmark"></i></button>
               </div>
               <div className="p-2">
                 <button onClick={() => { handlePrint(rent); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm hover:bg-slate-50">
@@ -299,15 +315,18 @@ const ContractList: React.FC<ContractListProps> = ({
     const overdue = overdueOf(rent);
     const debt = debtOf(rent);
 
+    // z-[70] — выше нижней навигации (z-50) и её подменю (z-[55]).
+    // pt-safe в шапке: без него на телефонах с вырезом заголовок уезжал
+    // под системную строку и кнопка «назад» оказывалась под часами.
     return (
-      <div className="fixed inset-0 z-50 bg-white overflow-y-auto animate-slideUp">
-        <div className="sticky top-0 bg-white/90 backdrop-blur-sm border-b border-slate-100 px-4 py-3 flex items-center justify-between">
-          <button onClick={() => setSelectedRental(null)} className="p-2 -ml-2 text-slate-400"><i className="fas fa-arrow-left"></i></button>
-          <h2 className="font-semibold">Договор № {rent.contractNumber || '—'}</h2>
-          <button onClick={() => handlePrint(rent)} className="p-2 text-slate-400"><i className="fas fa-print"></i></button>
+      <div className="fixed inset-0 z-[70] bg-white overflow-y-auto animate-slideUp">
+        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-slate-100 pt-safe px-4 flex items-center justify-between">
+          <button onClick={() => setSelectedRental(null)} className="p-3 -ml-2 text-slate-400"><i className="fas fa-arrow-left"></i></button>
+          <h2 className="font-semibold text-sm truncate px-2">Договор № {rent.contractNumber || '—'}</h2>
+          <button onClick={() => handlePrint(rent)} className="p-3 -mr-2 text-slate-400"><i className="fas fa-print"></i></button>
         </div>
 
-        <div className="p-4 space-y-3 max-w-2xl mx-auto">
+        <div className="p-4 pb-24 space-y-3 max-w-2xl mx-auto">
           {overdue && (
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-2">
               <i className="fas fa-triangle-exclamation text-rose-500"></i>
@@ -399,8 +418,8 @@ const ContractList: React.FC<ContractListProps> = ({
     if (!extendingRental) return null;
     const car = getCar(extendingRental.carId);
     return (
-      <div className="fixed inset-0 z-[60] bg-slate-900/50 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
-        <form onSubmit={handleExtendSubmit} className="bg-white w-full md:max-w-md md:rounded-xl rounded-t-xl max-h-[90vh] overflow-y-auto animate-slideUp">
+      <div className="fixed inset-0 z-[80] bg-slate-900/50 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
+        <form onSubmit={handleExtendSubmit} className="bg-white w-full md:max-w-md md:rounded-xl rounded-t-2xl max-h-[90vh] overflow-y-auto animate-slideUp pb-safe md:pb-0">
           <div className="sticky top-0 bg-white px-4 py-3 border-b border-slate-100 flex items-center justify-between">
             <h3 className="font-semibold">Продление аренды</h3>
             <button type="button" onClick={() => setExtendingRental(null)} className="p-2 text-slate-400"><i className="fas fa-xmark"></i></button>
@@ -563,7 +582,7 @@ const ContractList: React.FC<ContractListProps> = ({
 
       {/* Список */}
       <div className="no-print grid gap-2">
-        {filteredRentals.map(rent => <ContractRow key={rent.id} rent={rent} />)}
+        {pagedRentals.map(rent => <ContractRow key={rent.id} rent={rent} />)}
         {filteredRentals.length === 0 && (
           <div className="p-12 text-center bg-white rounded-2xl border border-slate-100">
             <i className="fas fa-file-contract text-3xl text-slate-200 mb-3"></i>
@@ -573,6 +592,18 @@ const ContractList: React.FC<ContractListProps> = ({
           </div>
         )}
       </div>
+
+      {filteredRentals.length > 0 && (
+        <div className="no-print bg-white rounded-2xl border border-slate-100">
+          <Pagination
+            page={page}
+            pageSize={pageSize}
+            totalItems={filteredRentals.length}
+            onPageChange={setPage}
+            onPageSizeChange={setPageSize}
+          />
+        </div>
+      )}
 
       {selectedRental && <RentalDetail rent={selectedRental} />}
       {extendingRental && <ExtensionModal />}
