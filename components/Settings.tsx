@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, AppView, UserRole } from '../types';
 import BackendAPI from '../services/offlineApi';
+import { isPushSupported, getPushSubscriptionState, enablePush, disablePush } from '../services/push';
 
 interface SettingsProps {
   user: User | null;
@@ -54,6 +55,41 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
       setSlug(user.publicSlug || '');
     }
   }, [user]);
+
+  // Push-уведомления
+  const [pushEnabled, setPushEnabled] = useState(false);
+  const [pushSupported, setPushSupported] = useState<boolean | null>(null);
+  const [pushBusy, setPushBusy] = useState(false);
+
+  useEffect(() => {
+    if (!isPushSupported()) { setPushSupported(false); return; }
+    getPushSubscriptionState().then(state => {
+      setPushSupported(state !== 'unsupported');
+      setPushEnabled(state === 'subscribed');
+    });
+  }, []);
+
+  const handleTogglePush = async (next: boolean) => {
+    setPushBusy(true);
+    try {
+      if (next) {
+        const ok = await enablePush();
+        if (!ok) {
+          alert('Разрешите уведомления в браузере, чтобы включить эту функцию');
+          setPushEnabled(false);
+        } else {
+          setPushEnabled(true);
+        }
+      } else {
+        await disablePush();
+        setPushEnabled(false);
+      }
+    } catch {
+      alert('Не удалось изменить настройку push-уведомлений');
+    } finally {
+      setPushBusy(false);
+    }
+  };
 
   if (!user) {
     return (
@@ -284,6 +320,19 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
                 </div>
               </form>
             )}
+            {user.role !== UserRole.CLIENT && (
+              <SettingToggle
+                label="Push-уведомления"
+                description={
+                  pushSupported === false
+                    ? 'Браузер не поддерживает push-уведомления'
+                    : 'О новых заявках и сообщениях от поддержки — даже когда приложение закрыто'
+                }
+                enabled={pushEnabled}
+                disabled={pushSupported === false || pushBusy}
+                onToggle={handleTogglePush}
+              />
+            )}
           </div>
 
           <button
@@ -377,13 +426,17 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
   );
 };
 
-const SettingToggle: React.FC<{label: string, description: string, enabled: boolean, onToggle: (e: boolean) => void}> = ({ label, description, enabled, onToggle }) => (
-  <div className="flex justify-between items-center p-4 bg-slate-50 rounded-2xl">
+const SettingToggle: React.FC<{label: string, description: string, enabled: boolean, disabled?: boolean, onToggle: (e: boolean) => void}> = ({ label, description, enabled, disabled, onToggle }) => (
+  <div className={`flex justify-between items-center p-4 bg-slate-50 rounded-2xl ${disabled ? 'opacity-50' : ''}`}>
     <div>
       <div className="font-bold text-slate-800 text-sm">{label}</div>
       <div className="text-xs text-slate-400 mt-1">{description}</div>
     </div>
-    <button onClick={() => onToggle(!enabled)} className={`w-12 h-7 rounded-full p-1 flex items-center transition-colors ${enabled ? 'bg-blue-600 justify-end' : 'bg-slate-200 justify-start'}`}>
+    <button
+      onClick={() => !disabled && onToggle(!enabled)}
+      disabled={disabled}
+      className={`w-12 h-7 rounded-full p-1 flex items-center transition-colors ${enabled ? 'bg-blue-600 justify-end' : 'bg-slate-200 justify-start'} ${disabled ? 'cursor-not-allowed' : ''}`}
+    >
       <div className="w-5 h-5 bg-white rounded-full shadow-md"></div>
     </button>
   </div>

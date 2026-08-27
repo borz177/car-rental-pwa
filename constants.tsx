@@ -26,6 +26,7 @@ export const NAVIGATION_ITEMS = [
   { id: 'STAFF', label: 'Сотрудники', icon: 'fa-user-tie', roles: [UserRole.SUPERADMIN, UserRole.ADMIN] },
   { id: 'CLIENTS', label: 'Клиенты', icon: 'fa-users', roles: [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.STAFF] },
   { id: 'CALENDAR', label: 'Календарь', icon: 'fa-calendar-alt', roles: [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.STAFF] },
+  { id: 'SUPPORT_CHAT', label: 'Поддержка', icon: 'fa-headset', roles: [UserRole.SUPERADMIN, UserRole.ADMIN] },
   { id: 'SETTINGS', label: 'Настройки', icon: 'fa-cog', roles: [UserRole.SUPERADMIN, UserRole.ADMIN, UserRole.STAFF] },
   
   // Клиент-панель

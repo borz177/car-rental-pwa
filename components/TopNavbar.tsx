@@ -1,11 +1,17 @@
 
 import React from 'react';
+import { AppNotification, AppView } from '../types';
+import NotificationBell from './NotificationBell';
 
 interface TopNavbarProps {
   brandName: string;
+  notifications: AppNotification[];
+  onMarkNotificationRead: (id: string) => void;
+  onMarkAllNotificationsRead: () => void;
+  onNavigate: (view: AppView) => void;
 }
 
-const TopNavbar: React.FC<TopNavbarProps> = ({ brandName }) => {
+const TopNavbar: React.FC<TopNavbarProps> = ({ brandName, notifications, onMarkNotificationRead, onMarkAllNotificationsRead, onNavigate }) => {
   return (
     <div className="md:hidden fixed top-0 left-0 right-0 pt-safe min-h-[4.5rem] bg-white/80 backdrop-blur-xl border-b border-slate-200 z-40 px-6 flex items-center justify-between shadow-sm">
       <div className="flex items-center space-x-3 py-3">
@@ -16,10 +22,14 @@ const TopNavbar: React.FC<TopNavbarProps> = ({ brandName }) => {
           {brandName || 'AutoPro AI'}
         </span>
       </div>
-      <div className="flex items-center space-x-4 py-3">
-        <button className="text-slate-400 hover:text-blue-600 transition-colors p-2">
-          <i className="fas fa-bell"></i>
-        </button>
+      <div className="flex items-center space-x-1 py-3">
+        <NotificationBell
+          notifications={notifications}
+          onMarkRead={onMarkNotificationRead}
+          onMarkAllRead={onMarkAllNotificationsRead}
+          onNavigate={onNavigate}
+          dark
+        />
       </div>
     </div>
   );

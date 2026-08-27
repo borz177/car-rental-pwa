@@ -85,3 +85,37 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
+
+// Пуш приходит, даже когда вкладка с приложением закрыта — это и есть весь смысл
+// push-уведомлений, в отличие от опроса /api/notifications, который работает только
+// пока страница открыта.
+self.addEventListener('push', (event) => {
+  let data = {};
+  try { data = event.data ? event.data.json() : {}; } catch { /* не JSON — покажем как есть */ }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title || 'AutoPro', {
+      body: data.body || '',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
+      data: { link: data.link || '/' },
+      vibrate: [100, 50, 100]
+    })
+  );
+});
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close();
+  const link = event.notification.data?.link;
+  const url = link && link.startsWith('/') ? link : '/';
+
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientsList) => {
+      // Если вкладка уже открыта — переиспользуем её, а не плодим новые.
+      for (const client of clientsList) {
+        if ('focus' in client) return client.focus();
+      }
+      return self.clients.openWindow(url);
+    })
+  );
+});

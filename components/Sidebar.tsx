@@ -1,7 +1,8 @@
 
 import React, { useState } from 'react';
-import { AppView, UserRole, User } from '../types';
+import { AppView, UserRole, User, AppNotification } from '../types';
 import { NAVIGATION_ITEMS } from '../constants';
+import NotificationBell from './NotificationBell';
 
 interface SidebarProps {
   currentView: AppView;
@@ -12,9 +13,15 @@ interface SidebarProps {
   rentalCount?: number;
   bookingCount?: number;
   user?: User | null;
+  notifications: AppNotification[];
+  onMarkNotificationRead: (id: string) => void;
+  onMarkAllNotificationsRead: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onLogout, userName, requestCount, rentalCount, bookingCount, user }) => {
+const Sidebar: React.FC<SidebarProps> = ({
+  currentView, onNavigate, onLogout, userName, requestCount, rentalCount, bookingCount, user,
+  notifications, onMarkNotificationRead, onMarkAllNotificationsRead
+}) => {
   const [contractsOpen, setContractsOpen] = useState(currentView === 'CONTRACTS' || currentView === 'CONTRACTS_ARCHIVE' || currentView === 'BOOKINGS');
   const [showUserMenu, setShowUserMenu] = useState(false);
 
@@ -48,10 +55,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onLogout, us
 
   return (
     <div className="hidden md:flex fixed inset-y-0 left-0 w-64 bg-slate-900 text-white flex-col z-50 transition-transform duration-300">
-      <div className="p-4 border-b border-slate-800 relative">
+      <div className="p-4 border-b border-slate-800 relative flex items-center gap-1">
         <button
           onClick={() => setShowUserMenu(!showUserMenu)}
-          className="w-full flex items-center space-x-3 text-left p-2 rounded-2xl hover:bg-slate-800 transition-all"
+          className="flex-1 min-w-0 flex items-center space-x-3 text-left p-2 rounded-2xl hover:bg-slate-800 transition-all"
         >
           <div className={`w-10 h-10 rounded-full flex-shrink-0 flex items-center justify-center text-sm font-bold shadow-inner ${isSuperadmin ? 'bg-gradient-to-tr from-amber-400 to-amber-600' : 'bg-gradient-to-tr from-blue-500 to-indigo-500'}`}>{userName.charAt(0)}</div>
           <div className="flex-1 overflow-hidden">
@@ -60,6 +67,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentView, onNavigate, onLogout, us
           </div>
           <i className={`fas fa-chevron-down text-slate-500 text-xs transition-transform ${showUserMenu ? 'rotate-180' : ''}`}></i>
         </button>
+
+        <NotificationBell
+          notifications={notifications}
+          onMarkRead={onMarkNotificationRead}
+          onMarkAllRead={onMarkAllNotificationsRead}
+          onNavigate={onNavigate}
+        />
 
         {showUserMenu && (
           <>

@@ -197,6 +197,36 @@ export interface Rental {
   extensions?: RentalExtension[];
 }
 
+export interface AppNotification {
+  id: string;
+  userId: string;
+  type: 'NEW_REQUEST' | 'SUPPORT_MESSAGE' | string;
+  title: string;
+  body: string;
+  link?: AppView | string;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface SupportMessage {
+  id: string;
+  fromUserId: string;
+  toUserId: string;
+  body: string;
+  isBroadcast: boolean;
+  isRead: boolean;
+  createdAt: string;
+}
+
+export interface SupportThread {
+  userId: string;
+  name: string;
+  email: string;
+  lastMessage: string | null;
+  lastAt: string | null;
+  unread: number;
+}
+
 export type AppView =
   | 'DASHBOARD'
   | 'CARS'
@@ -220,4 +250,5 @@ export type AppView =
   | 'STAFF_DETAILS'
   | 'INVESTOR_DETAILS'
   | 'TARIFFS'
-  | 'SUPERADMIN_PANEL';
+  | 'SUPERADMIN_PANEL'
+  | 'SUPPORT_CHAT';

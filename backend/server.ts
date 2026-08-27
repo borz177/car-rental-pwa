@@ -11,6 +11,7 @@ import rateLimit from 'express-rate-limit';
 import { Pool, types as pgTypes } from 'pg';
 import { randomUUID, randomBytes } from 'crypto';
 import { sendVerificationEmail, sendPasswordResetEmail } from './mailer';
+import { getVapidPublicKey, sendPushToUser } from './push';
 
 const app = express();
 // Nginx sits in front on the same host — trust its X-Forwarded-For so rate limiting
@@ -175,6 +176,38 @@ const initDB = async () => {
       status TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS push_subscriptions (
+      id UUID PRIMARY KEY,
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      endpoint TEXT UNIQUE NOT NULL,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS notifications (
+      id UUID PRIMARY KEY,
+      user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      type TEXT NOT NULL,
+      title TEXT NOT NULL,
+      body TEXT,
+      link TEXT,
+      is_read BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
+
+    -- Переписка суперадмина (платформенная поддержка) с владельцами автопарков.
+    -- Тред определяется парой (from_user_id, to_user_id) в любом порядке.
+    CREATE TABLE IF NOT EXISTS support_messages (
+      id UUID PRIMARY KEY,
+      from_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      to_user_id UUID REFERENCES users(id) ON DELETE CASCADE,
+      body TEXT NOT NULL,
+      is_broadcast BOOLEAN DEFAULT FALSE,
+      is_read BOOLEAN DEFAULT FALSE,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    );
   `;
 
   try {
@@ -325,6 +358,31 @@ const isValidUUID = (uuid: string) => {
   return regex.test(uuid);
 };
 
+// --- УВЕДОМЛЕНИЯ ---
+interface NotificationInput { type: string; title: string; body: string; link?: string }
+
+// Кладёт запись в общий журнал уведомлений и параллельно шлёт push (если есть подписка).
+// Журнал не зависит от push: уведомление видно в колокольчике, даже если пользователь
+// ни разу не разрешал браузеру пуши.
+const notifyUser = async (userId: string, n: NotificationInput) => {
+  const id = randomUUID();
+  await pool.query(
+    'INSERT INTO notifications (id, user_id, type, title, body, link) VALUES ($1, $2, $3, $4, $5, $6)',
+    [id, userId, n.type, n.title, n.body, n.link || null]
+  );
+  await sendPushToUser(pool, userId, { title: n.title, body: n.body, link: n.link });
+};
+
+// Новая заявка касается не только владельца автопарка, но и его сотрудников —
+// они тоже оформляют аренды и должны увидеть заявку без опоздания.
+const notifyOwnerTeam = async (ownerId: string, n: NotificationInput) => {
+  const { rows } = await pool.query(
+    `SELECT id FROM users WHERE id = $1 OR (owner_id = $1 AND role = 'STAFF')`,
+    [ownerId]
+  );
+  await Promise.all(rows.map(r => notifyUser(r.id, n)));
+};
+
 // --- PUBLIC ROUTES ---
 
 app.get('/api/public/fleet/:slug', publicLimiter, async (req: any, res: any) => {
@@ -374,11 +432,19 @@ app.post('/api/public/request', publicLimiter, async (req: any, res: any) => {
     if (ownerCheck.rows.length === 0) return res.status(400).json({ message: 'Владелец автопарка не найден' });
 
     await pool.query(
-      `INSERT INTO requests 
-      (id, owner_id, car_id, client_id, client_name, client_phone, client_dob, start_date, start_time, end_date, end_time, status) 
+      `INSERT INTO requests
+      (id, owner_id, car_id, client_id, client_name, client_phone, client_dob, start_date, start_time, end_date, end_time, status)
       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`,
       [id, ownerId, carId, clientId, clientName, clientPhone, clientDob, startDate, startTime, endDate, endTime, status]
     );
+
+    // Оповещаем владельца автопарка и его сотрудников — push, только если у них есть подписка.
+    notifyOwnerTeam(ownerId, {
+      type: 'NEW_REQUEST',
+      title: 'Новая заявка',
+      body: `${clientName || 'Клиент'} хочет забронировать автомобиль`,
+      link: 'REQUESTS'
+    }).catch((e) => console.error('Ошибка уведомления о заявке:', e.message));
 
     res.status(201).json({ success: true, id });
   } catch (err: any) {
@@ -557,6 +623,178 @@ app.get('/api/auth/me', authenticateToken, async (req: any, res: any) => {
     if (rows.length === 0) return res.status(404).json({message: 'User not found'});
     const { password_hash, ...safeUser } = rows[0];
     res.json(mapKeys(safeUser, toCamelCase));
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+});
+
+// --- PUSH ---
+app.get('/api/push/vapid-public-key', (req, res) => {
+  const key = getVapidPublicKey();
+  if (!key) return res.status(503).json({ message: 'Push не настроен на сервере' });
+  res.json({ publicKey: key });
+});
+
+app.post('/api/push/subscribe', authenticateToken, async (req: any, res: any) => {
+  const { endpoint, keys } = req.body;
+  if (!endpoint || !keys?.p256dh || !keys?.auth) return res.status(400).json({ message: 'Некорректная подписка' });
+  try {
+    // Один и тот же браузер может переподписаться (например, после очистки данных) —
+    // endpoint уникален, поэтому просто обновляем владельца и ключи.
+    await pool.query(
+      `INSERT INTO push_subscriptions (id, user_id, endpoint, p256dh, auth)
+       VALUES ($1, $2, $3, $4, $5)
+       ON CONFLICT (endpoint) DO UPDATE SET user_id = $2, p256dh = $4, auth = $5`,
+      [randomUUID(), req.user.id, endpoint, keys.p256dh, keys.auth]
+    );
+    res.status(201).json({ message: 'Подписка сохранена' });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+});
+
+app.post('/api/push/unsubscribe', authenticateToken, async (req: any, res: any) => {
+  const { endpoint } = req.body;
+  try {
+    await pool.query('DELETE FROM push_subscriptions WHERE endpoint = $1 AND user_id = $2', [endpoint, req.user.id]);
+    res.json({ message: 'Подписка удалена' });
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+});
+
+// --- NOTIFICATIONS (колокольчик) ---
+app.get('/api/notifications', authenticateToken, async (req: any, res: any) => {
+  try {
+    const { rows } = await pool.query(
+      'SELECT * FROM notifications WHERE user_id = $1 ORDER BY created_at DESC LIMIT 50',
+      [req.user.id]
+    );
+    res.json(rows.map(r => mapKeys(r, toCamelCase)));
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+});
+
+app.patch('/api/notifications/read-all', authenticateToken, async (req: any, res: any) => {
+  try {
+    await pool.query('UPDATE notifications SET is_read = TRUE WHERE user_id = $1 AND is_read = FALSE', [req.user.id]);
+    res.status(204).send();
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+});
+
+app.patch('/api/notifications/:id/read', authenticateToken, async (req: any, res: any) => {
+  try {
+    await pool.query('UPDATE notifications SET is_read = TRUE WHERE id = $1 AND user_id = $2', [req.params.id, req.user.id]);
+    res.status(204).send();
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+});
+
+// --- SUPPORT CHAT (суперадмин <-> владельцы автопарков) ---
+
+// Список ADMIN-тредов для инбокса суперадмина: последнее сообщение и число непрочитанных.
+app.get('/api/support/threads', authenticateToken, async (req: any, res: any) => {
+  if (req.user.role !== 'SUPERADMIN') return res.status(403).json({ message: 'Доступ запрещён' });
+  try {
+    const { rows } = await pool.query(`
+      SELECT u.id AS user_id, u.name, u.email,
+        (SELECT body FROM support_messages
+          WHERE from_user_id = u.id OR to_user_id = u.id
+          ORDER BY created_at DESC LIMIT 1) AS last_message,
+        (SELECT created_at FROM support_messages
+          WHERE from_user_id = u.id OR to_user_id = u.id
+          ORDER BY created_at DESC LIMIT 1) AS last_at,
+        (SELECT COUNT(*)::int FROM support_messages
+          WHERE from_user_id = u.id AND to_user_id = $1 AND is_read = FALSE) AS unread
+      FROM users u
+      WHERE u.role = 'ADMIN'
+      ORDER BY last_at DESC NULLS LAST, u.name ASC
+    `, [req.user.id]);
+    res.json(rows.map(r => mapKeys(r, toCamelCase)));
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+});
+
+// Для ADMIN — его переписка с поддержкой (кем бы она ни велась — считаем контрагентом
+// первого найденного SUPERADMIN). Для SUPERADMIN — переписка с конкретным ADMIN (?adminId=).
+app.get('/api/support/messages', authenticateToken, async (req: any, res: any) => {
+  try {
+    let otherUserId: string;
+    if (req.user.role === 'SUPERADMIN') {
+      if (!req.query.adminId) return res.status(400).json({ message: 'Не указан adminId' });
+      otherUserId = req.query.adminId;
+    } else if (req.user.role === 'ADMIN') {
+      const { rows } = await pool.query(`SELECT id FROM users WHERE role = 'SUPERADMIN' ORDER BY created_at ASC LIMIT 1`);
+      if (rows.length === 0) return res.json([]);
+      otherUserId = rows[0].id;
+    } else {
+      return res.status(403).json({ message: 'Доступ запрещён' });
+    }
+
+    const { rows } = await pool.query(
+      `SELECT * FROM support_messages
+        WHERE (from_user_id = $1 AND to_user_id = $2) OR (from_user_id = $2 AND to_user_id = $1)
+        ORDER BY created_at ASC`,
+      [req.user.id, otherUserId]
+    );
+    res.json(rows.map(r => mapKeys(r, toCamelCase)));
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+});
+
+app.post('/api/support/messages', authenticateToken, async (req: any, res: any) => {
+  const { body, toUserId, broadcast } = req.body;
+  if (!body?.trim()) return res.status(400).json({ message: 'Пустое сообщение' });
+
+  try {
+    let recipients: string[] = [];
+
+    if (req.user.role === 'SUPERADMIN') {
+      if (broadcast) {
+        const { rows } = await pool.query(`SELECT id FROM users WHERE role = 'ADMIN'`);
+        recipients = rows.map(r => r.id);
+      } else if (toUserId) {
+        recipients = [toUserId];
+      } else {
+        return res.status(400).json({ message: 'Укажите получателя или broadcast' });
+      }
+    } else if (req.user.role === 'ADMIN') {
+      const { rows } = await pool.query(`SELECT id FROM users WHERE role = 'SUPERADMIN' ORDER BY created_at ASC LIMIT 1`);
+      if (rows.length === 0) return res.status(503).json({ message: 'Поддержка временно недоступна' });
+      recipients = [rows[0].id];
+    } else {
+      return res.status(403).json({ message: 'Доступ запрещён' });
+    }
+
+    const isBroadcast = req.user.role === 'SUPERADMIN' && !!broadcast;
+    const inserted = await Promise.all(recipients.map(async (toId) => {
+      const id = randomUUID();
+      const { rows } = await pool.query(
+        `INSERT INTO support_messages (id, from_user_id, to_user_id, body, is_broadcast)
+         VALUES ($1, $2, $3, $4, $5) RETURNING *`,
+        [id, req.user.id, toId, body.trim(), isBroadcast]
+      );
+      // Сообщение уже записано и будет доставлено получателю при следующем опросе/входе
+      // независимо от уведомления — сбой push/колокольчика не должен превращать
+      // успешную отправку в ошибку 500 для отправителя.
+      notifyUser(toId, {
+        type: 'SUPPORT_MESSAGE',
+        title: req.user.role === 'SUPERADMIN' ? 'Сообщение от поддержки' : 'Новое сообщение',
+        body: body.trim().slice(0, 140),
+        link: 'SUPPORT_CHAT'
+      }).catch((e: any) => console.error('Ошибка уведомления о сообщении:', e.message));
+      return rows[0];
+    }));
+
+    res.status(201).json(mapKeys(inserted[0], toCamelCase));
+  } catch (err: any) { res.status(500).json({ message: err.message }); }
+});
+
+app.patch('/api/support/messages/read', authenticateToken, async (req: any, res: any) => {
+  try {
+    const otherUserId = req.user.role === 'SUPERADMIN' ? req.body.adminId : null;
+    if (req.user.role === 'SUPERADMIN' && !otherUserId) {
+      return res.status(400).json({ message: 'Не указан adminId' });
+    }
+    if (req.user.role === 'SUPERADMIN') {
+      await pool.query(
+        `UPDATE support_messages SET is_read = TRUE WHERE to_user_id = $1 AND from_user_id = $2 AND is_read = FALSE`,
+        [req.user.id, otherUserId]
+      );
+    } else {
+      await pool.query(`UPDATE support_messages SET is_read = TRUE WHERE to_user_id = $1 AND is_read = FALSE`, [req.user.id]);
+    }
+    res.status(204).send();
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 });
 

@@ -3,7 +3,7 @@ import 'process';
 import React, { useState, useEffect } from 'react';
 import {
   User, Car, Rental, Client, BookingRequest, AppView,
-  Transaction, TransactionType, Investor, Fine, UserRole, RequestStatus, Staff
+  Transaction, TransactionType, Investor, Fine, UserRole, RequestStatus, Staff, AppNotification
 } from './types';
 import Sidebar from './components/Sidebar';
 import BottomNav from './components/BottomNav';
@@ -32,6 +32,9 @@ import CompleteRentalModal from './components/CompleteRentalModal';
 import BackendAPI from './services/offlineApi';
 import { flushQueue } from './services/offlineSync';
 import ToastContainer, { ToastMessage } from './components/Toast';
+import NotificationBell from './components/NotificationBell';
+import SupportChat from './components/SupportChat';
+import { enablePush } from './services/push';
 
 const App: React.FC = () => {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
@@ -80,6 +83,7 @@ const App: React.FC = () => {
   const [fines, setFines] = useState<Fine[]>([]);
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [currentFleetSlug, setCurrentFleetSlug] = useState<string | null>(null);
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   // --- ACCESS CONTROL HELPERS ---
 
@@ -168,6 +172,17 @@ const App: React.FC = () => {
     }
   };
 
+  // CLIENT-аккаунты в колокольчике и чате поддержки не участвуют (см. App.tsx notifyOwnerTeam
+  // на бэкенде — уведомления адресуются только владельцу автопарка и его сотрудникам).
+  const loadNotifications = async () => {
+    try {
+      const list = await BackendAPI.getNotifications();
+      setNotifications(list);
+    } catch (e) {
+      console.warn('Ошибка загрузки уведомлений:', e);
+    }
+  };
+
  useEffect(() => {
   const init = async () => {
     try {
@@ -229,6 +244,7 @@ const App: React.FC = () => {
         else if (user.role !== UserRole.CLIENT) {
           // 🎯 Владелец смотрит СВОЙ флот или зашёл без slug — стандартная загрузка
           await loadData();
+          await loadNotifications();
 
         }
         else if (user.role === UserRole.CLIENT) {
@@ -270,6 +286,15 @@ useEffect(() => {
   };
 }, []);
 
+// Пуш работает и при закрытой вкладке, а этот поллинг — только пока приложение
+// открыто, но зато отражает и уведомления, до которых пуш не добрался
+// (разрешение не выдано, браузер не поддерживает Push API и т.п.).
+useEffect(() => {
+  if (!currentUser || currentUser.role === UserRole.CLIENT) return;
+  const interval = setInterval(loadNotifications, 25000);
+  return () => clearInterval(interval);
+}, [currentUser]);
+
   const handleAuthSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setAuthLoading(true);
@@ -293,6 +318,7 @@ useEffect(() => {
       }
       setCurrentUser(user);
       await loadData();
+      await loadNotifications();
     } catch (err: any) {
       notify(err.message || 'Ошибка авторизации');
     } finally {
@@ -429,6 +455,17 @@ useEffect(() => {
     } finally {
       setIsGlobalLoading(false);
     }
+  };
+
+  const handleMarkNotificationRead = async (id: string) => {
+    // Оптимистично: колокольчик не должен ждать сеть, чтобы погасить точку.
+    setNotifications(prev => prev.map(n => n.id === id ? { ...n, isRead: true } : n));
+    try { await BackendAPI.markNotificationRead(id); } catch { /* переживёт до следующего опроса */ }
+  };
+
+  const handleMarkAllNotificationsRead = async () => {
+    setNotifications(prev => prev.map(n => ({ ...n, isRead: true })));
+    try { await BackendAPI.markAllNotificationsRead(); } catch { /* переживёт до следующего опроса */ }
   };
 
   const handleAddCar = async (car: Car) => {
@@ -731,7 +768,13 @@ useEffect(() => {
         </div>
       )}
 
-      <TopNavbar brandName={currentUser.publicBrandName || 'AutoPro AI'} />
+      <TopNavbar
+        brandName={currentUser.publicBrandName || 'AutoPro AI'}
+        notifications={notifications}
+        onMarkNotificationRead={handleMarkNotificationRead}
+        onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
+        onNavigate={(view) => { setSelectedEntityId(null); setCurrentView(view); }}
+      />
 
       <Sidebar
         currentView={currentView}
@@ -746,6 +789,9 @@ useEffect(() => {
         requestCount={pendingRequestsCount}
         rentalCount={activeRentalsCount}
         bookingCount={bookingsCount}
+        notifications={notifications}
+        onMarkNotificationRead={handleMarkNotificationRead}
+        onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
       />
 
       <main className="flex-1 overflow-y-auto pt-32 md:pt-12 pb-44 md:pb-12 md:ml-64 p-6">
@@ -1024,6 +1070,10 @@ useEffect(() => {
                   onUpdate={apiAction((u) => BackendAPI.updateGlobalUser(currentUser.id, u))}
                   onBack={() => setCurrentView('SETTINGS')}
               />
+          )}
+
+          {currentView === 'SUPPORT_CHAT' && (
+              <SupportChat currentUser={currentUser} />
           )}
         </div>
       </main>

@@ -1,5 +1,5 @@
 
-import { User, Car, Rental, Client, BookingRequest, Transaction, Investor, Staff, Fine, UserRole } from '../types';
+import { User, Car, Rental, Client, BookingRequest, Transaction, Investor, Staff, Fine, UserRole, AppNotification, SupportMessage, SupportThread } from '../types';
 
 // Helper to simulate image compression
 const compressImage = async (file: File): Promise<string> => {
@@ -349,6 +349,77 @@ export default class BackendAPI {
           });
           await BackendAPI.handleResponse(response);
       }
+  }
+
+  // --- PUSH ---
+  static async getVapidPublicKey(): Promise<string | null> {
+      try {
+        const response = await fetch(`${BackendAPI.BASE_URL}/push/vapid-public-key`);
+        if (!response.ok) return null;
+        const data = await response.json();
+        return data.publicKey;
+      } catch { return null; }
+  }
+  static async subscribePush(subscription: PushSubscriptionJSON): Promise<void> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/push/subscribe`, {
+          method: 'POST',
+          headers: BackendAPI.getHeaders(),
+          body: JSON.stringify(subscription)
+      });
+      await BackendAPI.handleResponse(response);
+  }
+  static async unsubscribePush(endpoint: string): Promise<void> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/push/unsubscribe`, {
+          method: 'POST',
+          headers: BackendAPI.getHeaders(),
+          body: JSON.stringify({ endpoint })
+      });
+      await BackendAPI.handleResponse(response);
+  }
+
+  // --- NOTIFICATIONS ---
+  static async getNotifications(): Promise<AppNotification[]> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/notifications`, { headers: BackendAPI.getHeaders() });
+      return BackendAPI.handleResponse(response);
+  }
+  static async markNotificationRead(id: string): Promise<void> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/notifications/${id}/read`, {
+        method: 'PATCH', headers: BackendAPI.getHeaders()
+      });
+      await BackendAPI.handleResponse(response);
+  }
+  static async markAllNotificationsRead(): Promise<void> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/notifications/read-all`, {
+        method: 'PATCH', headers: BackendAPI.getHeaders()
+      });
+      await BackendAPI.handleResponse(response);
+  }
+
+  // --- SUPPORT CHAT ---
+  static async getSupportThreads(): Promise<SupportThread[]> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/support/threads`, { headers: BackendAPI.getHeaders() });
+      return BackendAPI.handleResponse(response);
+  }
+  static async getSupportMessages(adminId?: string): Promise<SupportMessage[]> {
+      const qs = adminId ? `?adminId=${encodeURIComponent(adminId)}` : '';
+      const response = await fetch(`${BackendAPI.BASE_URL}/support/messages${qs}`, { headers: BackendAPI.getHeaders() });
+      return BackendAPI.handleResponse(response);
+  }
+  static async sendSupportMessage(body: string, opts?: { toUserId?: string; broadcast?: boolean }): Promise<SupportMessage> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/support/messages`, {
+          method: 'POST',
+          headers: BackendAPI.getHeaders(),
+          body: JSON.stringify({ body, ...opts })
+      });
+      return BackendAPI.handleResponse(response);
+  }
+  static async markSupportRead(adminId?: string): Promise<void> {
+      const response = await fetch(`${BackendAPI.BASE_URL}/support/messages/read`, {
+          method: 'PATCH',
+          headers: BackendAPI.getHeaders(),
+          body: JSON.stringify({ adminId })
+      });
+      await BackendAPI.handleResponse(response);
   }
 
   // --- UTILS ---

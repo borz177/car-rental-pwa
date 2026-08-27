@@ -112,6 +112,16 @@ export default class OfflineAPI {
   static resendVerification = BackendAPI.resendVerification;
   static forgotPassword = BackendAPI.forgotPassword;
   static changePassword = BackendAPI.changePassword;
+  static getVapidPublicKey = BackendAPI.getVapidPublicKey;
+  static subscribePush = BackendAPI.subscribePush;
+  static unsubscribePush = BackendAPI.unsubscribePush;
+  static getNotifications = BackendAPI.getNotifications;
+  static markNotificationRead = BackendAPI.markNotificationRead;
+  static markAllNotificationsRead = BackendAPI.markAllNotificationsRead;
+  static getSupportThreads = BackendAPI.getSupportThreads;
+  static getSupportMessages = BackendAPI.getSupportMessages;
+  static sendSupportMessage = BackendAPI.sendSupportMessage;
+  static markSupportRead = BackendAPI.markSupportRead;
   static resetPassword = BackendAPI.resetPassword;
   static getAllUsers = BackendAPI.getAllUsers;
   static updateGlobalUser = BackendAPI.updateGlobalUser;
