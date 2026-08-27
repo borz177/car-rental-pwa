@@ -208,6 +208,13 @@ const initDB = async () => {
       is_read BOOLEAN DEFAULT FALSE,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
+
+    -- Нумерация договоров и броней своя у каждого аккаунта и начинается с 1.
+    -- next_number хранит СЛЕДУЮЩИЙ номер к выдаче (см. присвоение при создании аренды).
+    CREATE TABLE IF NOT EXISTS contract_counters (
+      owner_id UUID PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+      next_number INTEGER NOT NULL DEFAULT 1
+    );
   `;
 
   try {
@@ -921,6 +928,23 @@ const setupCrud = (resource: string, fields: string[]) => {
     if (!id || !isValidUUID(id)) id = randomUUID();
 
     const data = req.body;
+
+    if (resource === 'rentals') {
+      // Номер договора не доверяем клиенту — раньше это было случайное 4-значное
+      // число (могло повториться, не давало предсказуемой нумерации). Присваиваем
+      // атомарно через счётчик на владельца: у каждого аккаунта отсчёт договоров
+      // и броней начинается с 1, независимо от других аккаунтов. INSERT..ON CONFLICT
+      // — один атомарный запрос, безопасен при одновременном создании нескольких аренд.
+      const prefix = data.isReservation ? 'Б' : 'Д';
+      const { rows } = await pool.query(
+        `INSERT INTO contract_counters (owner_id, next_number) VALUES ($1, 1)
+         ON CONFLICT (owner_id) DO UPDATE SET next_number = contract_counters.next_number + 1
+         RETURNING next_number`,
+        [req.user.ownerId]
+      );
+      data.contractNumber = `${prefix}-${rows[0].next_number}`;
+    }
+
     const columns = ['id', 'owner_id', ...snakeFields];
 
     // CRITICAL FIX: Insert using ownerId. Staff creates records owned by Admin.

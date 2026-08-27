@@ -9,7 +9,7 @@ interface ManualBookingProps {
   preSelectedCarId?: string;
   preIsReservation?: boolean;
   preSelectedRentalId?: string | null;
-  onCreate: (rental: Rental) => Promise<void>;
+  onCreate: (rental: Rental) => Promise<Rental | undefined>;
   onNavigate?: (view: AppView) => void;
   onQuickAddClient: (c: Partial<Client>) => Promise<string>;
   currentUser: User;
@@ -61,7 +61,11 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
     endDate: tomorrow,
     endTime: nowTime,
     price: 0,
-    prepayment: 0
+    prepayment: 0,
+    // Пусто для новой сделки — сервер сам присвоит номер по счётчику аккаунта.
+    // При выдаче/редактировании существующей брони сюда попадает её реальный номер,
+    // чтобы не терять его при отправке.
+    contractNumber: ''
   });
 
   useEffect(() => {
@@ -78,7 +82,8 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
           endDate: existing.endDate,
           endTime: existing.endTime,
           price: existing.totalAmount,
-          prepayment: existing.prepayment || 0
+          prepayment: existing.prepayment || 0,
+          contractNumber: existing.contractNumber || ''
         });
         setBookingType(existing.bookingType || 'DAILY');
         setIsReservation(false);
@@ -181,26 +186,31 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
       totalAmount: formData.price,
       prepayment: isReservation ? formData.prepayment : 0,
       status: 'ACTIVE',
-      contractNumber: `${isReservation ? 'Б' : 'Д'}-${Math.floor(Math.random() * 9000) + 1000}`,
+      // Пусто при создании — сервер присваивает номер атомарно по счётчику аккаунта
+      // (см. App.tsx handleSaveRental и backend server.ts). При выдаче/редактировании
+      // существующей брони formData.contractNumber уже несёт её реальный номер.
+      contractNumber: formData.contractNumber,
       paymentStatus: isReservation ? (formData.prepayment >= formData.price ? 'PAID' : 'DEBT') : paymentMode,
       isReservation: isReservation,
       bookingType: bookingType,
       extensions: []
     };
 
-    await onCreate(rental);
+    const saved = await onCreate(rental);
+    if (!saved) return; // сохранение не удалось — App.tsx уже показал уведомление об ошибке
 
-    // Prepare data for success modal
-    const car = cars.find(c => c.id === rental.carId);
-    const client = clients.find(c => c.id === rental.clientId);
+    // Окно успеха и текст для WhatsApp собираем из ответа сервера, а не из
+    // локального rental: при создании только сервер знает настоящий номер договора.
+    const car = cars.find(c => c.id === saved.carId);
+    const client = clients.find(c => c.id === saved.clientId);
     if (car && client) {
-      setSuccessData({ rental, car, client });
+      setSuccessData({ rental: saved, car, client });
     } else {
       if (onNavigate) onNavigate('CONTRACTS');
     }
 
     // Reset form data in background
-    setFormData({ carId: '', clientId: '', clientName: '', startDate: today, startTime: nowTime, endDate: tomorrow, endTime: nowTime, price: 0, prepayment: 0 });
+    setFormData({ carId: '', clientId: '', clientName: '', startDate: today, startTime: nowTime, endDate: tomorrow, endTime: nowTime, price: 0, prepayment: 0, contractNumber: '' });
   };
 
   const handleQuickAddClient = async (e: React.FormEvent<HTMLFormElement>) => {

@@ -368,13 +368,15 @@ useEffect(() => {
     }
   };
 
-  const handleSaveRental = async (rental: Rental) => {
+  const handleSaveRental = async (rental: Rental): Promise<Rental | undefined> => {
     // Check subscription before creating NEW rental (updating existing is fine usually, but for strict mode let's check)
     if (!rental.id && !checkAccess('CREATE_RENTAL')) return;
 
     setIsGlobalLoading(true);
     try {
-      await BackendAPI.saveRental(rental);
+      // Сервер сам присваивает номер договора (атомарно, по счётчику на аккаунт) —
+      // локальный rental.contractNumber при создании пуст, реальный номер только в ответе.
+      const saved = await BackendAPI.saveRental(rental);
       if (!rental.isReservation) {
         if (rental.paymentStatus === 'PAID') {
           await BackendAPI.saveTransaction({
@@ -383,7 +385,7 @@ useEffect(() => {
             amount: rental.totalAmount,
             type: TransactionType.INCOME,
             category: 'Аренда',
-            description: `Оплата по дог. ${rental.contractNumber}`,
+            description: `Оплата по дог. ${saved.contractNumber}`,
             date: new Date().toISOString(),
             clientId: rental.clientId,
             carId: rental.carId
@@ -401,6 +403,7 @@ useEffect(() => {
       }
       await loadData();
       // Убрали автоматический переход, теперь этим управляет ManualBooking через onNavigate
+      return saved;
     } catch (e: any) {
       notify(e.message);
     } finally {

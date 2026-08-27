@@ -164,6 +164,9 @@ export default class OfflineAPI {
 
   // --- Rentals ---
   static getRentals = () => fetchAndCache<Rental>('rentals', BackendAPI.getRentals);
+  // Номер договора для новых аренд присваивает сервер (атомарный счётчик на аккаунт),
+  // поэтому созданная офлайн запись временно остаётся без номера — реальный придёт
+  // при синхронизации через offlineSync.flushQueue(), которая перезаписывает кэш ответом сервера.
   static saveRental = (rental: Rental) => saveEntity('rentals', 'saveRental', rental, () => BackendAPI.saveRental(rental));
   static deleteRental = (id: string) => deleteEntity('rentals', 'deleteRental', id, () => BackendAPI.deleteRental(id));
 
