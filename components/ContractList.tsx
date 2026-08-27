@@ -12,6 +12,8 @@ interface ContractListProps {
   onComplete: (rental: Rental) => void;
   viewMode?: 'CONTRACTS' | 'BOOKINGS' | 'ARCHIVE';
   brandName?: string;
+  canPrint?: boolean;
+  onUpgrade?: () => void;
 }
 
 type StatusFilter = 'ALL' | 'PAID' | 'DEBT' | 'OVERDUE';
@@ -36,7 +38,7 @@ const debtOf = (r: Rental) => Math.max(0, (r.totalAmount || 0) - paidOf(r));
 
 const ContractList: React.FC<ContractListProps> = ({
   rentals, cars, clients, onUpdate, onDelete, onIssueFromBooking, onComplete,
-  viewMode = 'CONTRACTS', brandName
+  viewMode = 'CONTRACTS', brandName, canPrint = true, onUpgrade
 }) => {
   const [extendingRental, setExtendingRental] = useState<Rental | null>(null);
   const [showActions, setShowActions] = useState<string | null>(null);
@@ -175,6 +177,11 @@ const ContractList: React.FC<ContractListProps> = ({
   };
 
   const handlePrint = (rent: Rental) => {
+    if (!canPrint) {
+      if (onUpgrade) onUpgrade();
+      else alert('Печать договоров доступна начиная с тарифа Бизнес.');
+      return;
+    }
     setPrintingRental(rent);
     setTimeout(() => { window.print(); setPrintingRental(null); }, 300);
   };
@@ -280,8 +287,8 @@ const ContractList: React.FC<ContractListProps> = ({
                 <button onClick={() => setShowActions(null)} className="p-2 -mr-2 text-slate-400"><i className="fas fa-xmark"></i></button>
               </div>
               <div className="p-2">
-                <button onClick={() => { handlePrint(rent); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm hover:bg-slate-50">
-                  <i className="fas fa-print w-4"></i> Печать договора
+                <button onClick={() => { handlePrint(rent); setShowActions(null); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm hover:bg-slate-50 ${!canPrint ? 'text-slate-400' : ''}`}>
+                  <i className={`fas ${canPrint ? 'fa-print' : 'fa-lock'} w-4`}></i> Печать договора{!canPrint ? ' (Бизнес+)' : ''}
                 </button>
                 {rent.isReservation && onIssueFromBooking && (
                   <button onClick={() => { onIssueFromBooking(rent.id); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-emerald-600 hover:bg-emerald-50">
@@ -323,7 +330,7 @@ const ContractList: React.FC<ContractListProps> = ({
         <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-slate-100 pt-safe px-4 flex items-center justify-between">
           <button onClick={() => setSelectedRental(null)} className="p-3 -ml-2 text-slate-400"><i className="fas fa-arrow-left"></i></button>
           <h2 className="font-semibold text-sm truncate px-2">Договор № {rent.contractNumber || '—'}</h2>
-          <button onClick={() => handlePrint(rent)} className="p-3 -mr-2 text-slate-400"><i className="fas fa-print"></i></button>
+          <button onClick={() => handlePrint(rent)} className="p-3 -mr-2 text-slate-400"><i className={`fas ${canPrint ? 'fa-print' : 'fa-lock'}`}></i></button>
         </div>
 
         <div className="p-4 pb-24 space-y-3 max-w-2xl mx-auto">
@@ -407,7 +414,7 @@ const ContractList: React.FC<ContractListProps> = ({
                 <button onClick={() => { onComplete(rent); setSelectedRental(null); }} className="py-3 bg-blue-100 text-blue-700 rounded-xl font-semibold text-sm"><i className="fas fa-check-circle mr-1"></i> Завершить</button>
               </>
             )}
-            <button onClick={() => handlePrint(rent)} className="py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold text-sm col-span-2"><i className="fas fa-print mr-1"></i> Печать</button>
+            <button onClick={() => handlePrint(rent)} className="py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold text-sm col-span-2"><i className={`fas ${canPrint ? 'fa-print' : 'fa-lock'} mr-1`}></i> Печать{!canPrint ? ' (Бизнес+)' : ''}</button>
           </div>
         </div>
       </div>

@@ -92,7 +92,8 @@ const initDB = async () => {
       investor_id TEXT,
       investor_share INTEGER DEFAULT 0,
       last_oil_change_mileage INTEGER,
-      oil_change_interval INTEGER
+      oil_change_interval INTEGER,
+      created_at TIMESTAMP NOT NULL DEFAULT NOW()
     );
 
     CREATE TABLE IF NOT EXISTS clients (
@@ -269,6 +270,8 @@ const initDB = async () => {
     await client.query(`ALTER TABLE cars ADD COLUMN IF NOT EXISTS investor_share INTEGER DEFAULT 0`);
     await client.query(`ALTER TABLE cars ADD COLUMN IF NOT EXISTS last_oil_change_mileage INTEGER`);
     await client.query(`ALTER TABLE cars ADD COLUMN IF NOT EXISTS oil_change_interval INTEGER`);
+    // Нужна для определения, какие машины "лишние" при понижении тарифа (см. getBlockedCarIds).
+    await client.query(`ALTER TABLE cars ADD COLUMN IF NOT EXISTS created_at TIMESTAMP NOT NULL DEFAULT NOW()`);
 
     // Requests migrations
     await client.query(`ALTER TABLE requests ADD COLUMN IF NOT EXISTS client_phone TEXT`);
@@ -402,20 +405,57 @@ const assignContractNumber = async (ownerId: string, isReservation: boolean): Pr
   return `${prefix}-${rows[0].next_number}`;
 };
 
-// --- ПОДПИСКА И ЛИМИТЫ ТАРИФА ---
+// --- ПОДПИСКА, ТАРИФНЫЕ УРОВНИ И ФИЧИ ---
 // Раньше единственной защитой был checkAccess() на фронтенде (App.tsx) — лимит
 // машин и блокировка при истёкшей подписке полностью обходились прямым запросом
-// к API (консоль браузера, curl). Логика — точная копия фронтенда, но здесь
-// это уже настоящая граница, а не просьба вести себя хорошо.
-const getPlanLimit = (owner: { active_plan?: string; is_trial?: boolean } | undefined): number => {
-  const plan = (owner?.active_plan || (owner?.is_trial ? 'Premium' : 'Start')).toUpperCase();
-  if (plan.includes('БИЗНЕС') || plan.includes('BUSINESS')) return 20;
-  if (plan.includes('ПРЕМИУМ') || plan.includes('PREMIUM')) return 9999;
-  return 5;
+// к API (консоль браузера, curl). Логика — точная копия фронтенда (services/planFeatures.ts),
+// но здесь это уже настоящая граница, а не просьба вести себя хорошо.
+// Держать в синхроне со services/planFeatures.ts при правке лимитов/фич.
+type PlanTier = 'START' | 'BUSINESS' | 'PREMIUM';
+type PlanOwner = { role?: string; active_plan?: string; is_trial?: boolean };
+
+const resolvePlanTier = (owner: PlanOwner | undefined): PlanTier => {
+  const plan = (owner?.active_plan || (owner?.is_trial ? 'Премиум' : 'Старт')).toUpperCase();
+  if (plan.includes('ПРЕМИУМ') || plan.includes('PREMIUM')) return 'PREMIUM';
+  if (plan.includes('БИЗНЕС') || plan.includes('BUSINESS')) return 'BUSINESS';
+  return 'START';
+};
+
+const PLAN_LIMITS: Record<PlanTier, number> = { START: 5, BUSINESS: 10, PREMIUM: 9999 };
+
+interface PlanFeatures { carLimit: number; calendar: boolean; contractPrint: boolean; staff: boolean; investors: boolean; }
+const PLAN_FEATURES: Record<PlanTier, PlanFeatures> = {
+  START:    { carLimit: PLAN_LIMITS.START,    calendar: false, contractPrint: false, staff: false, investors: false },
+  BUSINESS: { carLimit: PLAN_LIMITS.BUSINESS, calendar: true,  contractPrint: true,  staff: false, investors: false },
+  PREMIUM:  { carLimit: PLAN_LIMITS.PREMIUM,  calendar: true,  contractPrint: true,  staff: true,  investors: true },
+};
+
+const getPlanLimit = (owner: PlanOwner | undefined): number => PLAN_LIMITS[resolvePlanTier(owner)];
+const getPlanFeatures = (owner: PlanOwner | undefined): PlanFeatures =>
+  owner?.role === 'SUPERADMIN' ? PLAN_FEATURES.PREMIUM : PLAN_FEATURES[resolvePlanTier(owner)];
+
+// Автомобили сверх лимита тарифа не удаляются, а блокируются для новых сделок —
+// самые недавно добавленные (по created_at) считаются "лишними" при понижении тарифа,
+// более старые продолжают работать. Пересчитывается на лету при каждой проверке,
+// а не хранится в БД, поэтому апгрейд тарифа сразу снимает блокировку без миграций.
+const getBlockedCarIds = async (ownerId: string, owner?: PlanOwner): Promise<Set<string>> => {
+  let resolvedOwner = owner;
+  if (!resolvedOwner) {
+    const { rows } = await pool.query('SELECT role, is_trial, active_plan FROM users WHERE id = $1', [ownerId]);
+    resolvedOwner = rows[0];
+  }
+  if (!resolvedOwner || resolvedOwner.role === 'SUPERADMIN') return new Set();
+  const limit = getPlanLimit(resolvedOwner);
+  const { rows } = await pool.query(
+    'SELECT id FROM cars WHERE owner_id = $1 ORDER BY created_at ASC, id ASC',
+    [ownerId]
+  );
+  if (rows.length <= limit) return new Set();
+  return new Set(rows.slice(limit).map((r: any) => r.id));
 };
 
 const checkSubscriptionAndLimit = async (
-  ownerId: string, resource: 'cars' | 'rentals'
+  ownerId: string, resource: 'cars' | 'rentals' | 'investors' | 'staff'
 ): Promise<{ ok: boolean; message?: string }> => {
   const { rows } = await pool.query(
     'SELECT role, subscription_until, is_trial, active_plan FROM users WHERE id = $1',
@@ -436,6 +476,19 @@ const checkSubscriptionAndLimit = async (
       return { ok: false, message: `Лимит тарифа исчерпан: до ${limit} автомобилей. Обновите тариф для расширения автопарка.` };
     }
   }
+
+  if (resource === 'investors') {
+    if (!getPlanFeatures(owner).investors) {
+      return { ok: false, message: 'Учёт инвесторов доступен на тарифе Премиум. Обновите тариф в разделе «Подписка».' };
+    }
+  }
+
+  if (resource === 'staff') {
+    if (!getPlanFeatures(owner).staff) {
+      return { ok: false, message: 'Управление сотрудниками доступно на тарифе Премиум. Обновите тариф в разделе «Подписка».' };
+    }
+  }
+
   return { ok: true };
 };
 
@@ -548,6 +601,16 @@ app.post('/api/auth/register', authLimiter, async (req: any, res: any) => {
       'INSERT INTO users (id, email, password_hash, name, role, email_verified) VALUES ($1, $2, $3, $4, $5, $6)',
       [id, email, hashedPassword, name, safeRole, emailVerified]
     );
+
+    // Новый владелец автопарка сразу получает 3-дневный пробный период тарифа "Премиум" —
+    // полный доступ ко всем функциям на старте, чтобы оценить продукт до оплаты.
+    // Клиентам (гостевой каталог) подписка не нужна — у них её нет вовсе.
+    if (safeRole === 'ADMIN') {
+      await pool.query(
+        `UPDATE users SET is_trial = TRUE, active_plan = 'Премиум', subscription_until = NOW() + INTERVAL '3 days' WHERE id = $1`,
+        [id]
+      );
+    }
 
     if (!emailVerified) {
       const verifyToken = randomBytes(32).toString('hex');
@@ -696,6 +759,22 @@ app.get('/api/auth/me', authenticateToken, async (req: any, res: any) => {
     const { rows } = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
     if (rows.length === 0) return res.status(404).json({message: 'User not found'});
     const { password_hash, ...safeUser } = rows[0];
+
+    // У сотрудника нет собственного тарифа — все ограничения (лимит машин, доступ
+    // к календарю/печати/инвесторам) считаются по подписке владельца автопарка,
+    // иначе интерфейс сотрудника всегда видел бы "подписка не активна".
+    if (safeUser.role === 'STAFF' && safeUser.owner_id) {
+      const { rows: ownerRows } = await pool.query(
+        'SELECT subscription_until, is_trial, active_plan FROM users WHERE id = $1',
+        [safeUser.owner_id]
+      );
+      if (ownerRows[0]) {
+        safeUser.subscription_until = ownerRows[0].subscription_until;
+        safeUser.is_trial = ownerRows[0].is_trial;
+        safeUser.active_plan = ownerRows[0].active_plan;
+      }
+    }
+
     res.json(mapKeys(safeUser, toCamelCase));
   } catch (err: any) { res.status(500).json({ message: err.message }); }
 });
@@ -902,6 +981,9 @@ app.post('/api/staff', authenticateToken, blockStaffRole, async (req: any, res: 
   const userEmail = email || req.body.login;
 
   try {
+    const subCheck = await checkSubscriptionAndLimit(req.user.ownerId, 'staff');
+    if (!subCheck.ok) return res.status(403).json({ message: subCheck.message });
+
     const existing = await pool.query('SELECT id FROM users WHERE email = $1', [userEmail]);
     if (existing.rows.length > 0) return res.status(400).json({ message: 'Email занят' });
 
@@ -1013,7 +1095,7 @@ const setupCrud = (resource: string, fields: string[]) => {
       return res.status(403).json({ message: 'Нет прав на оформление сделок' });
     }
 
-    if (resource === 'cars' || resource === 'rentals') {
+    if (resource === 'cars' || resource === 'rentals' || resource === 'investors') {
       const check = await checkSubscriptionAndLimit(req.user.ownerId, resource);
       if (!check.ok) return res.status(403).json({ message: check.message });
     }
@@ -1022,6 +1104,10 @@ const setupCrud = (resource: string, fields: string[]) => {
       // Пересечение дат для этого пути уже проверено чуть раньше в стеке роутов —
       // см. app.post('/api/rentals', authenticateToken, checkRentalConflict) ниже,
       // она вызывает next() и передаёт управление сюда только если конфликта нет.
+      const blockedCarIds = await getBlockedCarIds(req.user.ownerId);
+      if (blockedCarIds.has(data.carId)) {
+        return res.status(403).json({ message: 'Этот автомобиль заблокирован: превышен лимит текущего тарифа. Обновите тариф или освободите место, удалив лишние автомобили.' });
+      }
       data.contractNumber = await assignContractNumber(req.user.ownerId, !!data.isReservation);
     }
 
@@ -1280,6 +1366,11 @@ app.patch(`/api/requests/:id/status`, authenticateToken, async (req: any, res: a
                 endDate: request.end_date, endTime: request.end_time, ownerId
             });
             if (conflictMessage) return res.status(409).json({ message: conflictMessage });
+
+            const blockedCarIds = await getBlockedCarIds(ownerId);
+            if (blockedCarIds.has(request.car_id)) {
+                return res.status(403).json({ message: 'Этот автомобиль заблокирован: превышен лимит текущего тарифа. Обновите тариф или освободите место, удалив лишние автомобили.' });
+            }
 
             let finalClientId = request.client_id;
             const requestPhone = request.client_phone || 'Не указан';

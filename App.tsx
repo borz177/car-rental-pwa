@@ -31,6 +31,8 @@ import SubscriptionExpiredModal from './components/SubscriptionExpiredModal';
 import CompleteRentalModal from './components/CompleteRentalModal';
 import BackendAPI from './services/offlineApi';
 import { flushQueue } from './services/offlineSync';
+import { getQueue as getOfflineQueue, clearAllData as clearOfflineData } from './services/offlineDb';
+import { getPlanFeatures, getBlockedCarIds } from './services/planFeatures';
 import ToastContainer, { ToastMessage } from './components/Toast';
 import NotificationBell from './components/NotificationBell';
 import SupportChat from './components/SupportChat';
@@ -86,6 +88,9 @@ const App: React.FC = () => {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
 
   // --- ACCESS CONTROL HELPERS ---
+  // Лимиты и доступность функций по тарифу — единый источник в services/planFeatures.ts,
+  // зеркалируется на бэкенде (server.ts), который и есть настоящая граница. Проверки здесь
+  // только избавляют пользователя от похода в API за отказом, который всё равно случится.
 
   const isSubscriptionActive = () => {
     if (!currentUser) return false;
@@ -98,18 +103,12 @@ const App: React.FC = () => {
     return new Date(currentUser.subscriptionUntil) > new Date();
   };
 
-  const getPlanLimit = () => {
-    if (!currentUser) return 0;
-    const plan = currentUser.activePlan || (currentUser.isTrial ? 'Premium' : 'Start');
+  const planFeatures = getPlanFeatures(currentUser);
+  const blockedCarIds = getBlockedCarIds(cars, planFeatures.carLimit);
 
-    if (plan.toUpperCase().includes('БИЗНЕС') || plan.toUpperCase().includes('BUSINESS')) return 20;
-    if (plan.toUpperCase().includes('ПРЕМИУМ') || plan.toUpperCase().includes('PREMIUM')) return 9999;
+  const getPlanLimit = () => planFeatures.carLimit;
 
-    // Default Start
-    return 5;
-  };
-
-  const checkAccess = (action: 'ADD_CAR' | 'CREATE_RENTAL') => {
+  const checkAccess = (action: 'ADD_CAR' | 'CREATE_RENTAL', carId?: string) => {
     if (!isSubscriptionActive()) {
       setUpgradeModalContent({
         title: 'Подписка истекла',
@@ -131,7 +130,26 @@ const App: React.FC = () => {
       }
     }
 
+    if (action === 'CREATE_RENTAL' && carId && blockedCarIds.has(carId)) {
+      setUpgradeModalContent({
+        title: 'Автомобиль заблокирован',
+        message: `Этот автомобиль превышает лимit текущего тарифа (${getPlanLimit()} авто) и заблокирован для новых сделок. Обновите тариф или освободите место, удалив лишние автомобили.`
+      });
+      setShowUpgradeModal(true);
+      return false;
+    }
+
     return true;
+  };
+
+  const requirePlanFeature = (feature: keyof Omit<ReturnType<typeof getPlanFeatures>, 'carLimit'>, title: string) => {
+    if (planFeatures[feature]) return true;
+    setUpgradeModalContent({
+      title: 'Недоступно на вашем тарифе',
+      message: `«${title}» доступно начиная с тарифа ${feature === 'staff' || feature === 'investors' ? 'Премиум' : 'Бизнес'}. Обновите тариф в разделе «Подписка».`
+    });
+    setShowUpgradeModal(true);
+    return false;
   };
 
   const loadData = async () => {
@@ -285,6 +303,29 @@ useEffect(() => {
     window.removeEventListener('offline', handleOffline);
   };
 }, []);
+
+// Если понизили тариф (или истёк триал) прямо во время просмотра раздела, доступного
+// только на более высоком тарифе, — уводим на дашборд вместо пустого экрана.
+useEffect(() => {
+  const blocked =
+    (currentView === 'CALENDAR' && !planFeatures.calendar) ||
+    (currentView === 'STAFF' && !planFeatures.staff) ||
+    (currentView === 'INVESTORS' && !planFeatures.investors);
+  if (blocked) setCurrentView('DASHBOARD');
+}, [currentView, planFeatures.calendar, planFeatures.staff, planFeatures.investors]);
+
+// Settings -> "Очистить локальные данные": wipes the IndexedDB cache (all collections,
+// the cached session and any queued offline mutations) and reloads so the app rebuilds
+// everything from a fresh server fetch. Called only after the user confirms the warning.
+const handleClearLocalData = async () => {
+  await clearOfflineData();
+  window.location.reload();
+};
+
+const handleSyncNow = async () => {
+  await flushQueue();
+  await loadData();
+};
 
 // Пуш работает и при закрытой вкладке, а этот поллинг — только пока приложение
 // открыто, но зато отражает и уведомления, до которых пуш не добрался
@@ -837,6 +878,7 @@ useEffect(() => {
                   onComplete={setCompletingRental}
                   currentUser={currentUser}
                   planLimit={getPlanLimit()}
+                  onUpgrade={() => setCurrentView('TARIFFS')}
                   autoEditCarId={autoEditCarId}
                   onAutoEditHandled={() => setAutoEditCarId(null)}
               />
@@ -871,6 +913,8 @@ useEffect(() => {
                   onComplete={setCompletingRental}
                   viewMode={currentView === 'BOOKINGS' ? 'BOOKINGS' : (currentView === 'CONTRACTS_ARCHIVE' ? 'ARCHIVE' : 'CONTRACTS')}
                   brandName={currentUser.publicBrandName}
+                  canPrint={planFeatures.contractPrint}
+                  onUpgrade={() => { setUpgradeModalContent({ title: 'Недоступно на вашем тарифе', message: 'Печать договоров доступна начиная с тарифа Бизнес. Обновите тариф в разделе «Подписка».' }); setShowUpgradeModal(true); }}
               />
           )}
 
@@ -899,7 +943,7 @@ useEffect(() => {
               />
           )}
 
-          {currentView === 'INVESTORS' && (!isStaff || permissions?.canViewDocs) && (
+          {currentView === 'INVESTORS' && (!isStaff || permissions?.canViewDocs) && planFeatures.investors && (
               <InvestorList
                   investors={investors}
                   cars={cars}
@@ -915,7 +959,7 @@ useEffect(() => {
               />
           )}
 
-          {currentView === 'STAFF' && !isStaff && (
+          {currentView === 'STAFF' && !isStaff && planFeatures.staff && (
               <StaffList
                   staff={staff}
                   onAdd={apiAction(BackendAPI.saveStaff)}
@@ -998,7 +1042,7 @@ useEffect(() => {
               />
           )}
 
-          {currentView === 'CALENDAR' && (
+          {currentView === 'CALENDAR' && planFeatures.calendar && (
               <BookingCalendar
                   cars={cars}
                   rentals={rentals}
@@ -1064,12 +1108,17 @@ useEffect(() => {
                   }}
                   onNavigate={setCurrentView}
                   onLogout={() => BackendAPI.logout()}
+                  isOnline={isOnline}
+                  onGetPendingSyncCount={() => getOfflineQueue().then(q => q.length)}
+                  onClearLocalData={handleClearLocalData}
+                  onSyncNow={handleSyncNow}
               />
           )}
 
           {currentView === 'TARIFFS' && (
               <Tariffs
                   user={currentUser}
+                  carCount={cars.length}
                   onUpdate={apiAction((u) => BackendAPI.updateGlobalUser(currentUser.id, u))}
                   onBack={() => setCurrentView('SETTINGS')}
               />
@@ -1084,6 +1133,7 @@ useEffect(() => {
       <BottomNav
           currentView={currentView}
           userRole={currentUser.role}
+          user={currentUser}
           onNavigate={(view) => {
             setSelectedEntityId(null);
           setCurrentView(view);

@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Car, Client, Rental, AppView, User, UserRole } from '../types';
+import { getPlanFeatures, getBlockedCarIds } from '../services/planFeatures';
 
 interface ManualBookingProps {
   cars: Car[];
@@ -154,6 +155,12 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
     return set;
   }, [cars, rentals, formData.startDate, formData.startTime, formData.endDate, formData.endTime, preSelectedRentalId]);
 
+  // Машины сверх лимита тарифа недоступны для новой сделки (см. services/planFeatures.ts).
+  const blockedCarIds = useMemo(
+    () => getBlockedCarIds(cars, getPlanFeatures(currentUser).carLimit),
+    [cars, currentUser]
+  );
+
   const selectedConflict = formData.carId ? conflictFor(formData.carId) : null;
   const conflictClientName = selectedConflict
     ? clients.find(c => c.id === selectedConflict.clientId)?.name
@@ -164,6 +171,10 @@ const ManualBooking: React.FC<ManualBookingProps> = ({
     if (!formData.carId || !formData.clientId) { alert('Выберите авто и клиента'); return; }
     // Сервер эту же проверку делает независимо — здесь она нужна, чтобы
     // сказать об этом до отправки, а не показывать ошибку после.
+    if (blockedCarIds.has(formData.carId)) {
+      alert('Этот автомобиль заблокирован: превышен лимит текущего тарифа. Обновите тариф или освободите место, удалив лишние автомобили.');
+      return;
+    }
     if (selectedConflict) {
       alert(
         `Автомобиль занят по договору № ${selectedConflict.contractNumber || '—'}`
@@ -310,8 +321,8 @@ ${rental.prepayment ? `💸 *Предоплата:* ${rental.prepayment.toLocale
                 >
                   <option value="">-- Выберите машину --</option>
                   {cars.map(c => (
-                    <option key={c.id} value={c.id} disabled={busyCarIds.has(c.id)}>
-                      {busyCarIds.has(c.id) ? '● занято — ' : ''}{c.brand} {c.model} — {c.plate}
+                    <option key={c.id} value={c.id} disabled={busyCarIds.has(c.id) || blockedCarIds.has(c.id)}>
+                      {blockedCarIds.has(c.id) ? '🔒 заблокировано (лимит тарифа) — ' : busyCarIds.has(c.id) ? '● занято — ' : ''}{c.brand} {c.model} — {c.plate}
                     </option>
                   ))}
                 </select>

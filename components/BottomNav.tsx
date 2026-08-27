@@ -1,18 +1,21 @@
 
 import React, { useState } from 'react';
-import { AppView, UserRole } from '../types';
+import { AppView, UserRole, User } from '../types';
 import { NAVIGATION_ITEMS } from '../constants';
+import { getPlanFeatures } from '../services/planFeatures';
 
 interface BottomNavProps {
   currentView: AppView;
   userRole: UserRole;
+  user?: User | null;
   onNavigate: (view: AppView) => void;
   requestCount?: number;
   isClientMode?: boolean;
 }
 
-const BottomNav: React.FC<BottomNavProps> = ({ currentView, userRole, onNavigate, requestCount, isClientMode }) => {
+const BottomNav: React.FC<BottomNavProps> = ({ currentView, userRole, user, onNavigate, requestCount, isClientMode }) => {
   const [showMenu, setShowMenu] = useState(false);
+  const planFeatures = getPlanFeatures(user);
 
   const handleNavigate = (view: AppView) => {
     onNavigate(view);
@@ -23,7 +26,10 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, userRole, onNavigate
     item.roles.includes(userRole) &&
     !['DASHBOARD', 'CARS', 'REQUESTS', 'SETTINGS', 'CONTRACTS', 'CONTRACTS_ARCHIVE'].includes(item.id) &&
     item.id !== 'CLIENT_CATALOG' &&
-    item.id !== 'CLIENT_MY_BOOKINGS'
+    item.id !== 'CLIENT_MY_BOOKINGS' &&
+    !(item.id === 'CALENDAR' && !planFeatures.calendar) &&
+    !(item.id === 'STAFF' && !planFeatures.staff) &&
+    !(item.id === 'INVESTORS' && !planFeatures.investors)
   );
 
   return (

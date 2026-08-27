@@ -142,3 +142,16 @@ export async function cancelQueuedCreate(store: CollectionStore, tempId: string)
   }
   await tx.done;
 }
+
+// Wipes the entire local cache (all collections, the cached session, and any queued
+// offline mutations). Used by the "Clear local data" settings action — the caller is
+// responsible for warning about unsynced changes and for reloading afterwards so the
+// app re-fetches everything from the server.
+export async function clearAllData(): Promise<void> {
+  const db = await getDb();
+  for (const store of COLLECTIONS) {
+    await db.clear(store);
+  }
+  await db.clear('meta');
+  await db.clear('mutationQueue');
+}

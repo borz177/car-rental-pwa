@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { AppView, UserRole, User, AppNotification } from '../types';
 import { NAVIGATION_ITEMS } from '../constants';
 import NotificationBell from './NotificationBell';
+import { getPlanFeatures } from '../services/planFeatures';
 
 interface SidebarProps {
   currentView: AppView;
@@ -29,10 +30,16 @@ const Sidebar: React.FC<SidebarProps> = ({
   const isSuperadmin = userRole === UserRole.SUPERADMIN;
   const isStaff = userRole === UserRole.STAFF;
   const permissions = user?.permissions;
+  const planFeatures = getPlanFeatures(user);
 
   const filteredNav = NAVIGATION_ITEMS.filter(item => {
     if (!item.roles.includes(userRole)) return false;
     if (['CONTRACTS_ARCHIVE', 'BOOKINGS'].includes(item.id)) return false;
+
+    // Tariff-based visibility — календарь и печать с тарифа "Бизнес", сотрудники и инвесторы только с "Премиум"
+    if (item.id === 'CALENDAR' && !planFeatures.calendar) return false;
+    if (item.id === 'STAFF' && !planFeatures.staff) return false;
+    if (item.id === 'INVESTORS' && !planFeatures.investors) return false;
 
     // Role-based visibility
     if (isStaff) {

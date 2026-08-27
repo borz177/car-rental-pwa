@@ -4,6 +4,7 @@ import { User } from '../types';
 
 interface TariffsProps {
   user: User;
+  carCount?: number;
   onUpdate: (u: Partial<User>) => void;
   onBack: () => void;
 }
@@ -13,7 +14,7 @@ const PLANS = [
     id: 'START',
     name: 'Старт',
     price: 990,
-    features: ['До 5 автомобилей', 'Базовый календарь', 'Печать договоров', 'Учет клиентов'],
+    features: ['До 5 автомобилей', 'Учёт клиентов и договоров', 'Касса и финансы'],
     color: 'bg-slate-100 text-slate-900',
     limit: 5
   },
@@ -21,22 +22,22 @@ const PLANS = [
     id: 'BUSINESS',
     name: 'Бизнес',
     price: 1500,
-    features: ['До 20 автомобилей', 'Учет инвесторов и выплат', 'Финансовые отчеты', 'WhatsApp уведомления'],
+    features: ['До 10 автомобилей', 'Календарь бронирований', 'Печать договоров', 'WhatsApp уведомления'],
     color: 'bg-blue-600 text-white',
     popular: true,
-    limit: 20
+    limit: 10
   },
   {
     id: 'PREMIUM',
     name: 'Премиум',
     price: 2500,
-    features: ['Безлимит автомобилей', 'Брендирование (White Label)', 'Приоритетная поддержка', 'Экспорт данных в Excel'],
+    features: ['Безлимит автомобилей', 'Сотрудники и инвесторы', 'Брендирование (White Label)', 'Приоритетная поддержка'],
     color: 'bg-indigo-900 text-white',
     limit: 9999
   },
 ];
 
-const Tariffs: React.FC<TariffsProps> = ({ user, onUpdate, onBack }) => {
+const Tariffs: React.FC<TariffsProps> = ({ user, carCount = 0, onUpdate, onBack }) => {
   const [months, setMonths] = useState(1);
   const [selectedPlan, setSelectedPlan] = useState<typeof PLANS[0] | null>(null);
   const [isPaying, setIsPaying] = useState(false);
@@ -191,6 +192,16 @@ const Tariffs: React.FC<TariffsProps> = ({ user, onUpdate, onBack }) => {
                     <div className="text-lg font-bold">{months} мес.</div>
                   </div>
                 </div>
+
+                {carCount > selectedPlan.limit && (
+                  <div className="bg-rose-50 border-2 border-rose-100 rounded-2xl p-4 mb-6 flex items-start gap-3">
+                    <i className="fas fa-triangle-exclamation text-rose-500 mt-0.5"></i>
+                    <p className="text-xs font-semibold text-rose-700 leading-relaxed">
+                      У вас сейчас {carCount} автомобилей, а тариф "{selectedPlan.name}" позволяет использовать до {selectedPlan.limit}.
+                      {' '}{carCount - selectedPlan.limit} {carCount - selectedPlan.limit === 1 ? 'самый недавно добавленный автомобиль будет заблокирован' : 'самых недавно добавленных автомобиля будут заблокированы'} для новых сделок сразу после оплаты.
+                    </p>
+                  </div>
+                )}
 
                 <div className="space-y-4 mb-8">
                    <button onClick={handlePay} className="w-full bg-slate-900 text-white py-5 rounded-2xl font-semibold uppercase tracking-wide text-xs flex items-center justify-center space-x-3 hover:bg-slate-800 transition-all">

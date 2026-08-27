@@ -3,23 +3,37 @@ import React, { useState, useEffect } from 'react';
 import { User, AppView, UserRole } from '../types';
 import BackendAPI from '../services/offlineApi';
 import { isPushSupported, getPushSubscriptionState, enablePush, disablePush } from '../services/push';
+import { getPlanFeatures } from '../services/planFeatures';
+
+type SubView = 'MENU' | 'BRANDING' | 'INTERFACE' | 'NOTIFICATIONS' | 'DATA';
 
 interface SettingsProps {
   user: User | null;
   onUpdate: (updates: Partial<User>) => Promise<void>;
   onNavigate: (view: AppView) => void;
   onLogout: () => void;
-  currentMode?: 'MENU' | 'BRANDING';
+  isOnline: boolean;
+  onGetPendingSyncCount: () => Promise<number>;
+  onClearLocalData: () => Promise<void>;
+  onSyncNow: () => Promise<void>;
 }
 
-const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogout, currentMode = 'MENU' }) => {
-  const [copied, setCopied] = useState(false);
-  const [localMode, setLocalMode] = useState<'MENU' | 'BRANDING' | 'UI_SETTINGS'>(currentMode);
+const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogout, isOnline, onGetPendingSyncCount, onClearLocalData, onSyncNow }) => {
+  const [view, setView] = useState<SubView>('MENU');
   const [contractsExpanded, setContractsExpanded] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
 
+  // Бренд
+  const [copied, setCopied] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [brandName, setBrandName] = useState(user?.publicBrandName || '');
   const [slug, setSlug] = useState(user?.publicSlug || '');
+
+  useEffect(() => {
+    if (user) {
+      setBrandName(user.publicBrandName || '');
+      setSlug(user.publicSlug || '');
+    }
+  }, [user]);
 
   // Смена пароля
   const [showPasswordForm, setShowPasswordForm] = useState(false);
@@ -48,13 +62,6 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
       setPasswordSaving(false);
     }
   };
-
-  useEffect(() => {
-    if (user) {
-      setBrandName(user.publicBrandName || '');
-      setSlug(user.publicSlug || '');
-    }
-  }, [user]);
 
   // Push-уведомления
   const [pushEnabled, setPushEnabled] = useState(false);
@@ -88,6 +95,41 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
       alert('Не удалось изменить настройку push-уведомлений');
     } finally {
       setPushBusy(false);
+    }
+  };
+
+  // Данные и хранилище
+  const [pendingCount, setPendingCount] = useState<number | null>(null);
+  const [syncing, setSyncing] = useState(false);
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
+  const [clearing, setClearing] = useState(false);
+
+  const refreshPendingCount = () => {
+    onGetPendingSyncCount().then(setPendingCount).catch(() => setPendingCount(null));
+  };
+
+  useEffect(() => {
+    if (view === 'DATA') refreshPendingCount();
+  }, [view]);
+
+  const handleSyncNow = async () => {
+    setSyncing(true);
+    try {
+      await onSyncNow();
+      refreshPendingCount();
+    } finally {
+      setSyncing(false);
+    }
+  };
+
+  const handleConfirmClear = async () => {
+    setClearing(true);
+    try {
+      await onClearLocalData();
+    } catch {
+      setClearing(false);
+      setShowClearConfirm(false);
+      alert('Не удалось очистить локальные данные');
     }
   };
 
@@ -130,56 +172,31 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
   };
 
   const isAdmin = user.role === UserRole.ADMIN || user.role === UserRole.SUPERADMIN;
+  const canViewDocs = user.role !== UserRole.STAFF || user.permissions?.canViewDocs;
+  const planFeatures = getPlanFeatures(user);
 
-  const menuItems = [
-    { id: 'BRANDING', label: 'Настройки бренда', icon: 'fa-paint-brush', color: 'bg-blue-100 text-blue-600', desktopShow: true, adminOnly: true },
-    { id: 'TARIFFS', label: 'Управление подпиской', icon: 'fa-credit-card', color: 'bg-emerald-100 text-emerald-600', desktopShow: true, adminOnly: true },
-    { id: 'UI_SETTINGS', label: 'Интерфейс', icon: 'fa-palette', color: 'bg-purple-100 text-purple-600', desktopShow: false, adminOnly: true},
-    { id: 'CONTRACTS_SUB', label: 'Договоры', icon: 'fa-file-invoice-dollar', color: 'bg-indigo-100 text-indigo-600', expandable: true, desktopShow: false, adminOnly: true },
-    { id: 'CLIENTS', label: 'Клиенты', icon: 'fa-users', color: 'bg-emerald-100 text-emerald-600', desktopShow: false, adminOnly: true },
-    { id: 'STAFF', label: 'Сотрудники', icon: 'fa-user-tie', color: 'bg-indigo-100 text-indigo-600', desktopShow: false, adminOnly: true },
-    { id: 'INVESTORS', label: 'Инвесторы', icon: 'fa-handshake', color: 'bg-amber-100 text-amber-600', desktopShow: false, adminOnly: true },
-    { id: 'CASHBOX', label: 'Касса и Финансы', icon: 'fa-wallet', color: 'bg-rose-100 text-rose-600', desktopShow: false, adminOnly: true },
+  const managementItems = [
+    { id: 'TARIFFS' as const, label: 'Управление подпиской', icon: 'fa-credit-card', color: 'bg-emerald-100 text-emerald-600', desktopShow: true },
+    { id: 'CONTRACTS_SUB' as const, label: 'Договоры', icon: 'fa-file-invoice-dollar', color: 'bg-indigo-100 text-indigo-600', expandable: true, desktopShow: false },
+    { id: 'CLIENTS' as const, label: 'Клиенты', icon: 'fa-users', color: 'bg-emerald-100 text-emerald-600', desktopShow: false },
+    { id: 'STAFF' as const, label: 'Сотрудники', icon: 'fa-user-tie', color: 'bg-indigo-100 text-indigo-600', desktopShow: false, hideForStaff: true, needsFeature: 'staff' as const },
+    { id: 'INVESTORS' as const, label: 'Инвесторы', icon: 'fa-handshake', color: 'bg-amber-100 text-amber-600', desktopShow: false, needsFeature: 'investors' as const },
+    { id: 'CASHBOX' as const, label: 'Касса и Финансы', icon: 'fa-wallet', color: 'bg-rose-100 text-rose-600', desktopShow: false, needsDocs: true },
   ];
 
-  const renderUiSettings = (isModal: boolean) => (
-    <div className={`${isModal ? 'p-1' : 'bg-white p-5 rounded-2xl shadow-sm border border-slate-100'}`}>
-        <h3 className={`text-xl font-semibold text-slate-900 ${isModal ? 'mb-4' : 'mb-6'}`}>Настройки интерфейса</h3>
-        <div className="space-y-4">
-           <SettingToggle
-             label="Показывать кнопку 'Добавить авто'"
-             description="Скрыть кнопку для ограничения добавления авто сотрудниками."
-             enabled={user.settings?.showAddCarButton ?? true}
-             onToggle={(val) => handleSettingToggle('showAddCarButton', val)}
-           />
-           <SettingToggle
-             label="Показывать кнопку 'Удалить авто'"
-             description="Защита от случайного удаления автомобилей из автопарка."
-             enabled={user.settings?.showDeleteCarButton ?? true}
-             onToggle={(val) => handleSettingToggle('showDeleteCarButton', val)}
-           />
-        </div>
-    </div>
-  );
-
-  if (localMode === 'BRANDING' && isAdmin) {
+  // ---------- BRANDING ----------
+  if (view === 'BRANDING' && isAdmin) {
     return (
       <div className="max-w-4xl mx-auto space-y-5 animate-fadeIn pb-24 md:pb-0">
-        <button
-          onClick={() => setLocalMode('MENU')}
-          className="flex items-center space-x-2 text-slate-500 font-bold hover:text-blue-600 transition-all mb-4"
-        >
-          <i className="fas fa-arrow-left"></i>
-          <span>Назад</span>
-        </button>
+        <SubPageHeader title="Бренд и каталог" onBack={() => setView('MENU')} />
 
         <div className="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-slate-100">
           <div className="flex justify-between items-center mb-8">
-            <h2 className="text-3xl font-semibold text-slate-900">Брендинг компании</h2>
+            <h2 className="text-2xl font-semibold text-slate-900">Брендинг компании</h2>
             <button
               onClick={handleSaveBranding}
               disabled={isSaving}
-              className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-bold hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
+              className="bg-blue-600 text-white px-6 py-3 rounded-2xl font-semibold hover:bg-blue-700 transition-all disabled:opacity-50 flex items-center gap-2"
             >
               {isSaving ? <i className="fas fa-spinner animate-spin"></i> : <i className="fas fa-save"></i>}
               <span>Сохранить</span>
@@ -217,7 +234,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
 
         <div className="bg-slate-900 p-5 md:p-8 rounded-2xl text-white relative overflow-hidden shadow-md">
           <div className="relative z-10">
-            <h3 className="text-2xl font-semibold mb-4 flex items-center">
+            <h3 className="text-xl font-semibold mb-4 flex items-center">
               <i className="fas fa-link mr-4 text-blue-400"></i> Ссылка каталога
             </h3>
             <p className="text-slate-400 font-medium mb-8 max-w-lg">Ваш персональный URL для бронирования клиентами. Разместите его в соцсетях или отправьте напрямую.</p>
@@ -237,6 +254,133 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
     );
   }
 
+  // ---------- INTERFACE ----------
+  if (view === 'INTERFACE' && isAdmin) {
+    return (
+      <div className="max-w-2xl mx-auto space-y-5 animate-fadeIn pb-24 md:pb-0">
+        <SubPageHeader title="Интерфейс" onBack={() => setView('MENU')} />
+        <SettingsGroup title="Автопарк">
+          <ToggleRow
+            icon="fa-plus" iconColor="bg-blue-50 text-blue-600"
+            label="Кнопка «Добавить авто»"
+            description="Скрыть кнопку для ограничения добавления авто сотрудниками."
+            checked={user.settings?.showAddCarButton ?? true}
+            onChange={(val) => handleSettingToggle('showAddCarButton', val)}
+          />
+          <ToggleRow
+            icon="fa-trash" iconColor="bg-rose-50 text-rose-600"
+            label="Кнопка «Удалить авто»"
+            description="Защита от случайного удаления автомобилей из автопарка."
+            checked={user.settings?.showDeleteCarButton ?? true}
+            onChange={(val) => handleSettingToggle('showDeleteCarButton', val)}
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // ---------- NOTIFICATIONS ----------
+  if (view === 'NOTIFICATIONS') {
+    return (
+      <div className="max-w-2xl mx-auto space-y-5 animate-fadeIn pb-24 md:pb-0">
+        <SubPageHeader title="Уведомления" onBack={() => setView('MENU')} />
+        <SettingsGroup>
+          <ToggleRow
+            icon="fa-bell" iconColor="bg-amber-50 text-amber-600"
+            label="Push-уведомления"
+            description={
+              pushSupported === false
+                ? 'Браузер не поддерживает push-уведомления'
+                : 'О новых заявках и сообщениях от поддержки — даже когда приложение закрыто'
+            }
+            checked={pushEnabled}
+            disabled={pushSupported === false || pushBusy}
+            onChange={handleTogglePush}
+          />
+        </SettingsGroup>
+      </div>
+    );
+  }
+
+  // ---------- DATA & STORAGE ----------
+  if (view === 'DATA') {
+    return (
+      <div className="max-w-2xl mx-auto space-y-5 animate-fadeIn pb-24 md:pb-0">
+        <SubPageHeader title="Данные и хранилище" onBack={() => setView('MENU')} />
+
+        <SettingsGroup title="Синхронизация">
+          <SettingsRow
+            icon={isOnline ? 'fa-wifi' : 'fa-wifi-slash'}
+            iconColor={isOnline ? 'bg-emerald-50 text-emerald-600' : 'bg-slate-100 text-slate-400'}
+            label={isOnline ? 'Подключение есть' : 'Нет подключения'}
+            description={
+              pendingCount === null ? 'Проверка...' :
+              pendingCount === 0 ? 'Все изменения синхронизированы' :
+              `Ожидают отправки: ${pendingCount}`
+            }
+          />
+          {isOnline && (pendingCount ?? 0) > 0 && (
+            <SettingsRow
+              icon="fa-rotate" iconColor="bg-blue-50 text-blue-600"
+              label={syncing ? 'Синхронизация...' : 'Синхронизировать сейчас'}
+              onClick={syncing ? undefined : handleSyncNow}
+              trailing={syncing ? <i className="fas fa-circle-notch animate-spin text-slate-300"></i> : <i className="fas fa-chevron-right text-slate-300 text-xs"></i>}
+            />
+          )}
+        </SettingsGroup>
+
+        <SettingsGroup title="Локальный кэш">
+          <SettingsRow
+            icon="fa-trash-can" iconColor="bg-rose-50 text-rose-500"
+            label="Очистить локальные данные"
+            description={isOnline ? 'Удалит офлайн-кэш этого устройства' : 'Требуется подключение к интернету'}
+            destructive
+            onClick={isOnline ? () => setShowClearConfirm(true) : undefined}
+            trailing={<i className="fas fa-chevron-right text-slate-300 text-xs"></i>}
+          />
+        </SettingsGroup>
+
+        {showClearConfirm && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
+            <div className="bg-white rounded-2xl w-full max-w-sm p-6 shadow-md animate-scaleIn">
+              <div className="w-12 h-12 rounded-2xl bg-rose-50 text-rose-500 flex items-center justify-center text-xl mb-4">
+                <i className="fas fa-triangle-exclamation"></i>
+              </div>
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Очистить локальные данные?</h3>
+              <p className="text-sm text-slate-500 leading-relaxed mb-3">
+                Локальный кэш автомобилей, клиентов, договоров и других данных на этом устройстве будет удалён.
+                После очистки приложение перезагрузится и заново загрузит данные с сервера.
+              </p>
+              {(pendingCount ?? 0) > 0 && (
+                <div className="bg-rose-50 border border-rose-100 text-rose-700 text-xs font-semibold rounded-xl p-3 mb-3">
+                  У вас {pendingCount} несинхронизированных изменений — они будут потеряны безвозвратно.
+                </div>
+              )}
+              <div className="flex gap-2 mt-4">
+                <button
+                  onClick={() => setShowClearConfirm(false)}
+                  disabled={clearing}
+                  className="flex-1 py-3 bg-slate-100 text-slate-600 rounded-xl font-semibold text-sm disabled:opacity-50"
+                >
+                  Отмена
+                </button>
+                <button
+                  onClick={handleConfirmClear}
+                  disabled={clearing}
+                  className="flex-1 py-3 bg-rose-600 text-white rounded-xl font-semibold text-sm hover:bg-rose-700 transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                >
+                  {clearing ? <i className="fas fa-circle-notch animate-spin"></i> : <i className="fas fa-trash-can"></i>}
+                  <span>Да, очистить</span>
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // ---------- MENU ----------
   return (
     <div className="max-w-4xl mx-auto space-y-4 animate-fadeIn pb-24 md:pb-0">
       <div className="px-2">
@@ -246,7 +390,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
         {/* Profile & Logout */}
         <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between h-full">
           <div>
@@ -320,19 +464,6 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
                 </div>
               </form>
             )}
-            {user.role !== UserRole.CLIENT && (
-              <SettingToggle
-                label="Push-уведомления"
-                description={
-                  pushSupported === false
-                    ? 'Браузер не поддерживает push-уведомления'
-                    : 'О новых заявках и сообщениях от поддержки — даже когда приложение закрыто'
-                }
-                enabled={pushEnabled}
-                disabled={pushSupported === false || pushBusy}
-                onToggle={handleTogglePush}
-              />
-            )}
           </div>
 
           <button
@@ -344,58 +475,81 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
           </button>
         </div>
 
-        {/* Settings Menu */}
+        {/* Grouped settings */}
         <div className="space-y-4">
-          {menuItems.map(item => {
-            const shouldShow = (item.desktopShow || (typeof window !== 'undefined' && window.innerWidth < 768)) &&
-                             (!item.adminOnly || isAdmin);
-            if (!shouldShow) return null;
+          <SettingsGroup title="Приложение">
+            {isAdmin && (
+              <SettingsRow
+                icon="fa-paint-brush" iconColor="bg-blue-50 text-blue-600"
+                label="Бренд и каталог"
+                onClick={() => setView('BRANDING')}
+                trailing={<i className="fas fa-chevron-right text-slate-300 text-xs"></i>}
+              />
+            )}
+            {isAdmin && (
+              <SettingsRow
+                icon="fa-palette" iconColor="bg-purple-50 text-purple-600"
+                label="Интерфейс"
+                onClick={() => setView('INTERFACE')}
+                trailing={<i className="fas fa-chevron-right text-slate-300 text-xs"></i>}
+              />
+            )}
+            {user.role !== UserRole.CLIENT && (
+              <SettingsRow
+                icon="fa-bell" iconColor="bg-amber-50 text-amber-600"
+                label="Уведомления"
+                onClick={() => setView('NOTIFICATIONS')}
+                trailing={<i className="fas fa-chevron-right text-slate-300 text-xs"></i>}
+              />
+            )}
+            <SettingsRow
+              icon="fa-database" iconColor="bg-slate-100 text-slate-500"
+              label="Данные и хранилище"
+              onClick={() => setView('DATA')}
+              trailing={<i className="fas fa-chevron-right text-slate-300 text-xs"></i>}
+            />
+          </SettingsGroup>
 
-            // Explicitly hide Staff for staff members
-            if (item.id === 'STAFF' && user.role === UserRole.STAFF) return null;
+          {isAdmin && (
+            <SettingsGroup title="Управление">
+              {managementItems.map(item => {
+                const shouldShow = item.desktopShow || (typeof window !== 'undefined' && window.innerWidth < 768);
+                if (!shouldShow) return null;
+                if (item.hideForStaff && user.role === UserRole.STAFF) return null;
+                if (item.needsDocs && !canViewDocs) return null;
+                if (item.needsFeature && !planFeatures[item.needsFeature]) return null;
 
-            // Hide docs for staff without permission
-            const canViewDocs = user.role !== UserRole.STAFF || user.permissions?.canViewDocs;
-            if (['CASHBOX', 'REPORTS'].includes(item.id) && !canViewDocs) return null;
-
-            return (
-              <div key={item.id} className="w-full">
-                <button
-                  onClick={() => {
-                    if (item.expandable) setContractsExpanded(!contractsExpanded);
-                    else if (item.id === 'BRANDING' || item.id === 'UI_SETTINGS') setLocalMode(item.id as any);
-                    else onNavigate(item.id as AppView);
-                  }}
-                  className={`w-full bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between group active:scale-[0.98] transition-all shadow-sm ${contractsExpanded && item.expandable ? 'mb-2' : ''}`}
-                >
-                  <div className="flex items-center space-x-4">
-                    <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${item.color} shadow-sm transition-transform group-hover:scale-110`}>
-                      <i className={`fas ${item.icon} text-lg`}></i>
-                    </div>
-                    <span className="font-semibold text-slate-700 uppercase tracking-tight text-sm">{item.label}</span>
-                  </div>
-                  <i className={`fas ${item.expandable ? (contractsExpanded ? 'fa-chevron-up' : 'fa-chevron-down') : 'fa-chevron-right'} text-slate-200 group-hover:text-blue-500 transition-colors`}></i>
-                </button>
-
-                {item.expandable && contractsExpanded && (
-                  <div className="grid grid-cols-2 gap-3 px-2 mb-4 animate-slideDown">
-                    <button onClick={() => onNavigate('BOOKINGS')} className="bg-amber-50 p-5 rounded-2xl border-2 border-amber-100 flex flex-col items-center text-center space-y-2 active:scale-95 transition-all">
-                      <i className="fas fa-calendar-alt text-amber-600 text-xl"></i>
-                      <span className="text-[10px] font-semibold text-amber-800 uppercase tracking-wide">Брони</span>
-                    </button>
-                    <button onClick={() => onNavigate('CONTRACTS')} className="bg-blue-50 p-5 rounded-2xl border-2 border-blue-100 flex flex-col items-center text-center space-y-2 active:scale-95 transition-all">
-                      <i className="fas fa-play-circle text-blue-600 text-xl"></i>
-                      <span className="text-[10px] font-semibold text-blue-800 uppercase tracking-wide">Активные</span>
-                    </button>
-                    <button onClick={() => onNavigate('CONTRACTS_ARCHIVE')} className="bg-slate-50 p-5 rounded-2xl border-2 border-slate-200 flex flex-col items-center text-center space-y-2 active:scale-95 transition-all col-span-2">
-                      <i className="fas fa-history text-slate-600 text-xl"></i>
-                      <span className="text-[10px] font-semibold text-slate-700 uppercase tracking-wide">Архив</span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+                return (
+                  <React.Fragment key={item.id}>
+                    <SettingsRow
+                      icon={item.icon} iconColor={item.color}
+                      label={item.label}
+                      onClick={() => item.expandable ? setContractsExpanded(!contractsExpanded) : onNavigate(item.id as AppView)}
+                      trailing={
+                        <i className={`fas ${item.expandable ? (contractsExpanded ? 'fa-chevron-up' : 'fa-chevron-down') : 'fa-chevron-right'} text-slate-300 text-xs`}></i>
+                      }
+                    />
+                    {item.expandable && contractsExpanded && (
+                      <div className="grid grid-cols-3 gap-2 p-3 bg-slate-50 animate-slideDown">
+                        <button onClick={() => onNavigate('BOOKINGS')} className="bg-amber-50 p-3 rounded-xl border border-amber-100 flex flex-col items-center text-center gap-1.5 active:scale-95 transition-all">
+                          <i className="fas fa-calendar-alt text-amber-600"></i>
+                          <span className="text-[9px] font-semibold text-amber-800 uppercase tracking-wide">Брони</span>
+                        </button>
+                        <button onClick={() => onNavigate('CONTRACTS')} className="bg-blue-50 p-3 rounded-xl border border-blue-100 flex flex-col items-center text-center gap-1.5 active:scale-95 transition-all">
+                          <i className="fas fa-play-circle text-blue-600"></i>
+                          <span className="text-[9px] font-semibold text-blue-800 uppercase tracking-wide">Активные</span>
+                        </button>
+                        <button onClick={() => onNavigate('CONTRACTS_ARCHIVE')} className="bg-white p-3 rounded-xl border border-slate-200 flex flex-col items-center text-center gap-1.5 active:scale-95 transition-all">
+                          <i className="fas fa-history text-slate-600"></i>
+                          <span className="text-[9px] font-semibold text-slate-700 uppercase tracking-wide">Архив</span>
+                        </button>
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </SettingsGroup>
+          )}
 
           {user.role === UserRole.CLIENT && (
              <div className="bg-indigo-50 p-5 rounded-2xl border border-indigo-100 text-center">
@@ -405,41 +559,82 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
           )}
         </div>
       </div>
-       {isAdmin && (
-         <div className="hidden md:block">
-           {renderUiSettings(false)}
-         </div>
-       )}
-
-      {/* UI Settings Modal for Mobile */}
-      {localMode === 'UI_SETTINGS' && isAdmin && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md md:hidden">
-          <div className="bg-white rounded-2xl w-full max-w-lg p-8 shadow-md animate-scaleIn">
-            <button onClick={() => setLocalMode('MENU')} className="absolute top-6 right-6 w-10 h-10 bg-slate-100 rounded-full text-slate-400 flex items-center justify-center">
-              <i className="fas fa-times"></i>
-            </button>
-            {renderUiSettings(true)}
-          </div>
-        </div>
-      )}
     </div>
   );
 };
 
-const SettingToggle: React.FC<{label: string, description: string, enabled: boolean, disabled?: boolean, onToggle: (e: boolean) => void}> = ({ label, description, enabled, disabled, onToggle }) => (
-  <div className={`flex justify-between items-center p-4 bg-slate-50 rounded-2xl ${disabled ? 'opacity-50' : ''}`}>
-    <div>
-      <div className="font-bold text-slate-800 text-sm">{label}</div>
-      <div className="text-xs text-slate-400 mt-1">{description}</div>
-    </div>
+const SubPageHeader: React.FC<{ title: string; onBack: () => void }> = ({ title, onBack }) => (
+  <div className="flex items-center gap-3 px-1">
     <button
-      onClick={() => !disabled && onToggle(!enabled)}
-      disabled={disabled}
-      className={`w-12 h-7 rounded-full p-1 flex items-center transition-colors ${enabled ? 'bg-blue-600 justify-end' : 'bg-slate-200 justify-start'} ${disabled ? 'cursor-not-allowed' : ''}`}
+      onClick={onBack}
+      className="w-10 h-10 rounded-full bg-white border border-slate-100 shadow-sm text-slate-500 flex items-center justify-center hover:text-blue-600 hover:border-blue-100 transition-all"
+      aria-label="Назад"
     >
-      <div className="w-5 h-5 bg-white rounded-full shadow-md"></div>
+      <i className="fas fa-arrow-left"></i>
     </button>
+    <h2 className="text-2xl font-semibold text-slate-900">{title}</h2>
   </div>
+);
+
+const SettingsGroup: React.FC<{ title?: string; children: React.ReactNode }> = ({ title, children }) => (
+  <div className="space-y-2">
+    {title && <div className="px-3 text-[10px] font-semibold uppercase tracking-wide text-slate-400">{title}</div>}
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm divide-y divide-slate-100 overflow-hidden">
+      {children}
+    </div>
+  </div>
+);
+
+const SettingsRow: React.FC<{
+  icon: string;
+  iconColor: string;
+  label: string;
+  description?: string;
+  onClick?: () => void;
+  trailing?: React.ReactNode;
+  destructive?: boolean;
+}> = ({ icon, iconColor, label, description, onClick, trailing, destructive }) => {
+  const Tag: any = onClick ? 'button' : 'div';
+  return (
+    <Tag
+      onClick={onClick}
+      className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors ${onClick ? 'hover:bg-slate-50 active:bg-slate-100' : ''} ${!onClick && !description ? 'opacity-90' : ''}`}
+    >
+      <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconColor}`}>
+        <i className={`fas ${icon} text-sm`}></i>
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className={`font-semibold text-sm ${destructive ? 'text-rose-600' : 'text-slate-800'}`}>{label}</div>
+        {description && <div className="text-xs text-slate-400 mt-0.5">{description}</div>}
+      </div>
+      {trailing}
+    </Tag>
+  );
+};
+
+const Switch: React.FC<{ checked: boolean; disabled?: boolean; onChange: (v: boolean) => void }> = ({ checked, disabled, onChange }) => (
+  <button
+    onClick={(e) => { e.stopPropagation(); if (!disabled) onChange(!checked); }}
+    disabled={disabled}
+    className={`w-11 h-6 rounded-full flex items-center px-0.5 transition-colors shrink-0 ${checked ? 'bg-blue-600 justify-end' : 'bg-slate-200 justify-start'} ${disabled ? 'opacity-40 cursor-not-allowed' : ''}`}
+  >
+    <div className="w-5 h-5 bg-white rounded-full shadow"></div>
+  </button>
+);
+
+const ToggleRow: React.FC<{
+  icon: string;
+  iconColor: string;
+  label: string;
+  description?: string;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: (v: boolean) => void;
+}> = ({ icon, iconColor, label, description, checked, disabled, onChange }) => (
+  <SettingsRow
+    icon={icon} iconColor={iconColor} label={label} description={description}
+    trailing={<Switch checked={checked} disabled={disabled} onChange={onChange} />}
+  />
 );
 
 export default Settings;

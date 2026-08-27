@@ -2,6 +2,7 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Car, CarStatus, FuelType, Transmission, Investor, Rental, Client, User, UserRole } from '../types';
 import BackendAPI from '../services/api';
+import { getBlockedCarIds } from '../services/planFeatures';
 
 interface CarListProps {
   cars: Car[];
@@ -17,6 +18,7 @@ interface CarListProps {
   onComplete: (rental: Rental) => void;
   currentUser: User;
   planLimit?: number;
+  onUpgrade?: () => void;
   autoEditCarId?: string | null;
   onAutoEditHandled?: () => void;
 }
@@ -34,6 +36,7 @@ const CarCard: React.FC<{
   car: Car,
   activeRental?: Rental,
   clientPhone?: string;
+  isBlocked?: boolean;
   onEdit: () => void,
   onDelete: () => void,
   onIssue: () => void,
@@ -42,7 +45,7 @@ const CarCard: React.FC<{
   onViewImages: (images: string[]) => void,
   onComplete: (rental: Rental) => void,
   currentUser: User;
-}> = ({ car, activeRental, clientPhone, onEdit, onDelete, onIssue, onReserve, onInfo, onViewImages, onComplete, currentUser }) => {
+}> = ({ car, activeRental, clientPhone, isBlocked, onEdit, onDelete, onIssue, onReserve, onInfo, onViewImages, onComplete, currentUser }) => {
   const [showMenu, setShowMenu] = useState(false);
 
   const permissions = currentUser.permissions;
@@ -50,9 +53,14 @@ const CarCard: React.FC<{
   const canEdit = !isStaff || permissions?.canEdit;
   const canDelete = !isStaff || permissions?.canDelete;
   const canCreateBooking = !isStaff || permissions?.canCreateBooking;
+  // Оформление НОВОЙ сделки на заблокированную (сверх лимита тарифа) машину запрещено,
+  // но завершить уже идущую аренду на ней по-прежнему можно — блокировка не должна
+  // мешать закрыть то, что уже было оформлено до понижения тарифа.
+  const canBookNew = canCreateBooking && !isBlocked;
   const showDeleteButton = (currentUser.settings?.showDeleteCarButton ?? true) && canDelete;
 
   const getDisplayStatus = () => {
+    if (isBlocked) return { label: 'Заблокировано', color: 'bg-rose-600' };
     if (car.status === CarStatus.MAINTENANCE) return { label: 'В ремонте', color: 'bg-slate-800' };
     if (activeRental && !activeRental.isReservation) return { label: 'В аренде', color: 'bg-blue-600' };
     if (activeRental && activeRental.isReservation) return { label: 'Забронирован', color: 'bg-amber-500' };
@@ -90,11 +98,15 @@ const CarCard: React.FC<{
   };
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden shadow-sm border border-slate-100 transition-all group hover:shadow-md relative">
-      <div className="h-40 md:h-40 relative overflow-hidden bg-slate-100 cursor-pointer" onClick={handleImageClick}>
+    <div className={`bg-white rounded-2xl overflow-hidden shadow-sm border transition-all group hover:shadow-md relative ${isBlocked ? 'border-rose-200' : 'border-slate-100'}`}>
+      <div className={`h-40 md:h-40 relative overflow-hidden bg-slate-100 cursor-pointer ${isBlocked ? 'grayscale opacity-70' : ''}`} onClick={handleImageClick}>
         <img src={car.images[0] || 'https://images.unsplash.com/photo-1494905998402-395d579af36f?q=80&w=400'} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
 
-        <div className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[9px] font-semibold uppercase tracking-wide shadow-lg z-10 text-white ${status.color}`}>
+        <div
+          title={isBlocked ? 'Превышен лимит текущего тарифа — обновите тариф, чтобы разблокировать' : undefined}
+          className={`absolute top-4 right-4 px-3 py-1 rounded-full text-[9px] font-semibold uppercase tracking-wide shadow-lg z-10 text-white flex items-center gap-1.5 ${status.color}`}
+        >
+          {isBlocked && <i className="fas fa-lock text-[8px]"></i>}
           {status.label}
         </div>
 
@@ -123,15 +135,15 @@ const CarCard: React.FC<{
         <div className="flex items-center gap-2">
           {status.label === 'Свободен' ? (
             <div className="flex-1 flex gap-2">
-              <button onClick={onIssue} disabled={!canCreateBooking} className="flex-1 bg-blue-600 text-white py-2.5 rounded-2xl font-semibold text-[10px] uppercase transition-all hover:bg-blue-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">Оформить</button>
-              <button onClick={onReserve} disabled={!canCreateBooking} className="flex-1 bg-amber-500 text-white py-2.5 rounded-2xl font-semibold text-[10px] uppercase transition-all hover:bg-amber-600 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">Бронь</button>
+              <button onClick={onIssue} disabled={!canBookNew} title={isBlocked ? 'Превышен лимит тарифа' : undefined} className="flex-1 bg-blue-600 text-white py-2.5 rounded-2xl font-semibold text-[10px] uppercase transition-all hover:bg-blue-700 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">Оформить</button>
+              <button onClick={onReserve} disabled={!canBookNew} title={isBlocked ? 'Превышен лимит тарифа' : undefined} className="flex-1 bg-amber-500 text-white py-2.5 rounded-2xl font-semibold text-[10px] uppercase transition-all hover:bg-amber-600 shadow-lg disabled:opacity-50 disabled:cursor-not-allowed">Бронь</button>
             </div>
           ) : (
             <div className="flex-1 flex gap-2">
               <button onClick={handleWhatsAppClick} className="flex-1 bg-emerald-500 text-white py-2.5 rounded-2xl font-semibold text-[10px] uppercase transition-all hover:bg-emerald-600 shadow-lg flex items-center justify-center gap-2">
                 <i className="fab fa-whatsapp"></i><span>Написать</span>
               </button>
-              <button onClick={onReserve} disabled={!canCreateBooking} className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-2xl font-semibold text-[10px] uppercase hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">Бронь</button>
+              <button onClick={onReserve} disabled={!canBookNew} title={isBlocked ? 'Превышен лимит тарифа' : undefined} className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-2xl font-semibold text-[10px] uppercase hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">Бронь</button>
             </div>
           )}
           <div className="relative">
@@ -160,7 +172,7 @@ const CarCard: React.FC<{
 
 const CarList: React.FC<CarListProps> = ({
   cars, investors, rentals, clients, onAdd, onUpdate, onDelete, onIssue, onReserve, onInfo, onComplete, currentUser,
-  planLimit = 9999, autoEditCarId, onAutoEditHandled
+  planLimit = 9999, onUpgrade, autoEditCarId, onAutoEditHandled
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editing, setEditing] = useState<Car | null>(null);
@@ -169,6 +181,8 @@ const CarList: React.FC<CarListProps> = ({
   const [tempImages, setTempImages] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [viewingImages, setViewingImages] = useState<string[] | null>(null);
+
+  const blockedCarIds = useMemo(() => getBlockedCarIds(cars, planLimit), [cars, planLimit]);
 
   // Возврат из карточки автомобиля по кнопке «Изменить» — сразу открываем форму.
   useEffect(() => {
@@ -258,6 +272,25 @@ const CarList: React.FC<CarListProps> = ({
 
   return (
     <div className="space-y-4 animate-fadeIn pb-24 md:pb-0">
+      {blockedCarIds.size > 0 && (
+        <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+              <i className="fas fa-lock"></i>
+            </div>
+            <div>
+              <div className="font-semibold text-sm text-rose-700">Превышен лимит тарифа: заблокировано {blockedCarIds.size} {blockedCarIds.size === 1 ? 'автомобиль' : 'автомобиля'}</div>
+              <div className="text-xs text-rose-500 mt-0.5">Текущий тариф позволяет использовать до {planLimit} автомобилей. Заблокированные недоступны для новых сделок.</div>
+            </div>
+          </div>
+          {onUpgrade && (
+            <button onClick={onUpgrade} className="shrink-0 px-5 py-2.5 bg-rose-600 text-white rounded-xl font-semibold text-xs uppercase tracking-wide hover:bg-rose-700 transition-all">
+              Обновить тариф
+            </button>
+          )}
+        </div>
+      )}
+
       <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-4">
         <div className="relative">
           <i className="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
@@ -323,6 +356,7 @@ const CarList: React.FC<CarListProps> = ({
               car={car}
               activeRental={rental}
               clientPhone={client?.phone}
+              isBlocked={blockedCarIds.has(car.id)}
               currentUser={currentUser}
               onEdit={() => { setEditing(car); setTempImages(car.images); setIsModalOpen(true); }}
               onDelete={() => confirm('Удалить?') && onDelete(car.id)}

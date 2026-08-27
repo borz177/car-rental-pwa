@@ -168,6 +168,7 @@ export interface Car {
   investorShare?: number;
   lastOilChangeMileage?: number;
   oilChangeInterval?: number;
+  createdAt?: string;
 }
 
 export interface RentalExtension {
