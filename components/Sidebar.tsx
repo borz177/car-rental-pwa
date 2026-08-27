@@ -153,7 +153,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           }
 
           const isSystemControl = item.id === 'SUPERADMIN_PANEL';
-          const isActive = currentView === item.id;
+          const isActive = currentView === item.id || (item.id === 'CASHBOX' && (currentView === 'INCOME' || currentView === 'EXPENSE'));
 
           return (
             <button

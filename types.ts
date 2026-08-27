@@ -240,6 +240,8 @@ export type AppView =
   | 'CONTRACTS_ARCHIVE'
   | 'INVESTORS'
   | 'CASHBOX'
+  | 'INCOME'
+  | 'EXPENSE'
   | 'REPORTS'
   | 'STAFF'
   | 'SETTINGS'

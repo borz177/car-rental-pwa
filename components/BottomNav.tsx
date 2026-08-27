@@ -49,11 +49,11 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, userRole, user, onNa
             </div>
 
             <div className="grid grid-cols-3 gap-y-8 gap-x-4">
-              <button onClick={() => handleNavigate('CASHBOX')} className="flex flex-col items-center space-y-3">
+              <button onClick={() => handleNavigate('INCOME')} className="flex flex-col items-center space-y-3">
                 <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg"><i className="fas fa-plus-circle text-xl"></i></div>
                 <span className="text-[10px] font-semibold text-emerald-600 uppercase text-center">Приход</span>
               </button>
-              <button onClick={() => handleNavigate('CASHBOX')} className="flex flex-col items-center space-y-3">
+              <button onClick={() => handleNavigate('EXPENSE')} className="flex flex-col items-center space-y-3">
                 <div className="w-14 h-14 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-lg"><i className="fas fa-minus-circle text-xl"></i></div>
                 <span className="text-[10px] font-semibold text-rose-600 uppercase text-center">Расход</span>
               </button>

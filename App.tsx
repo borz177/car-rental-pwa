@@ -17,6 +17,7 @@ import Settings from './components/Settings';
 import ManualBooking from './components/ManualBooking';
 import ContractList from './components/ContractList';
 import Cashbox from './components/Cashbox';
+import TransactionTypePage from './components/TransactionTypePage';
 import Reports from './components/Reports';
 import ClientDetails from './components/ClientDetails';
 import CarDetails from './components/CarDetails';
@@ -921,12 +922,21 @@ useEffect(() => {
           {currentView === 'CASHBOX' && (!isStaff || permissions?.canViewDocs) && (
               <Cashbox
                   transactions={transactions}
+                  onNavigate={setCurrentView}
+              />
+          )}
+
+          {(currentView === 'INCOME' || currentView === 'EXPENSE') && (!isStaff || permissions?.canViewDocs) && (
+              <TransactionTypePage
+                  type={currentView === 'INCOME' ? TransactionType.INCOME : TransactionType.EXPENSE}
+                  transactions={transactions}
                   clients={clients}
                   rentals={rentals}
                   staff={staff}
                   investors={investors}
                   cars={cars}
                   onAddTransaction={apiAction(BackendAPI.saveTransaction)}
+                  onBack={() => setCurrentView('CASHBOX')}
               />
           )}
 
