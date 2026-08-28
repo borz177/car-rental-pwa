@@ -878,7 +878,11 @@ useEffect(() => {
         onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
       />
 
-      <main className="flex-1 overflow-y-auto pt-32 md:pt-12 pb-44 md:pb-12 md:ml-64 p-6">
+      {/* bg-slate-50/dark:bg-slate-900 продублирован здесь (а не только на родителе) — этот
+          элемент сам является скролл-контейнером (overflow-y-auto), и на мобильных при
+          overscroll/моментум-скролле без собственного фона он мог на миг отрисоваться
+          белым поверх тёмной темы, независимо от фона родителя. */}
+      <main className="flex-1 overflow-y-auto pt-32 md:pt-12 pb-44 md:pb-12 md:ml-64 p-6 bg-slate-50 dark:bg-slate-900">
         <div className="max-w-7xl mx-auto mt-4">
           {currentView === 'DASHBOARD' &&
               <Dashboard
