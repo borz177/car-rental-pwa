@@ -30,11 +30,11 @@ interface ToggleItemProps {
 const ToggleItem: React.FC<ToggleItemProps> = ({ label, checked, onChange, color, description }) => (
   <div onClick={onChange} className="flex items-center justify-between p-3 hover:bg-white rounded-xl cursor-pointer transition-all group">
     <div>
-      <div className="font-bold text-slate-700 text-sm group-hover:text-slate-900">{label}</div>
-      {description && <div className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{description}</div>}
+      <div className="font-bold text-slate-700 dark:text-slate-200 text-sm group-hover:text-slate-900">{label}</div>
+      {description && <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">{description}</div>}
     </div>
-    <div className={`w-10 h-6 rounded-full p-1 transition-colors ${checked ? color : 'bg-slate-200'}`}>
-      <div className={`w-4 h-4 bg-white rounded-full shadow-sm transition-transform ${checked ? 'translate-x-4' : ''}`}></div>
+    <div className={`w-10 h-6 rounded-full p-1 transition-colors ${checked ? color : 'bg-slate-200 dark:bg-slate-600'}`}>
+      <div className={`w-4 h-4 bg-white dark:bg-slate-800 rounded-full shadow-sm transition-transform ${checked ? 'translate-x-4' : ''}`}></div>
     </div>
   </div>
 );
@@ -107,8 +107,8 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onAdd, onUpdate, onDelete,
     <div className="space-y-5 animate-fadeIn pb-24 md:pb-0">
       <div className="flex justify-between items-center px-2">
         <div>
-          <h2 className="text-3xl font-semibold text-slate-900">Команда</h2>
-          <p className="text-slate-400 font-bold uppercase text-[10px] tracking-wide mt-1">Управление сотрудниками и доступом</p>
+          <h2 className="text-3xl font-semibold text-slate-900 dark:text-white">Команда</h2>
+          <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[10px] tracking-wide mt-1">Управление сотрудниками и доступом</p>
         </div>
         <button
           onClick={() => { setEditingMember(null); setPermissions(DEFAULT_PERMISSIONS); setIsModalOpen(true); }}
@@ -120,18 +120,18 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onAdd, onUpdate, onDelete,
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 px-2">
         {staff.map(member => (
-          <div key={member.id} className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all relative group">
+          <div key={member.id} className="bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all relative group">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                <div className="w-14 h-14 bg-slate-50 text-blue-600 rounded-2xl flex items-center justify-center text-xl font-semibold shadow-inner">
+                <div className="w-14 h-14 bg-slate-50 dark:bg-slate-700 text-blue-600 dark:text-blue-400 rounded-2xl flex items-center justify-center text-xl font-semibold shadow-inner">
                   {member.name.charAt(0)}
                 </div>
                 <div>
-                  <h3 className="text-lg font-bold text-slate-900 tracking-tight">{member.name}</h3>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white tracking-tight">{member.name}</h3>
                   <div className="flex items-center space-x-2 mt-1">
-                    <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide truncate max-w-[120px]">{member.email || member.login}</span>
-                    <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
-                    <span className={`text-[10px] font-semibold uppercase tracking-wide ${member.permissions?.fullAccess ? 'text-emerald-500' : 'text-blue-500'}`}>
+                    <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide truncate max-w-[120px]">{member.email || member.login}</span>
+                    <span className="w-1 h-1 bg-slate-200 dark:bg-slate-600 rounded-full"></span>
+                    <span className={`text-[10px] font-semibold uppercase tracking-wide ${member.permissions?.fullAccess ? 'text-emerald-500 dark:text-emerald-400' : 'text-blue-500 dark:text-blue-400'}`}>
                       {member.permissions?.fullAccess ? 'Полный доступ' : 'Сотрудник'}
                     </span>
                   </div>
@@ -141,21 +141,21 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onAdd, onUpdate, onDelete,
               <div className="relative">
                 <button
                   onClick={() => setShowActions(showActions === member.id ? null : member.id)}
-                  className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
+                  className="w-10 h-10 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
                 >
                   <i className="fas fa-ellipsis-v"></i>
                 </button>
                 {showActions === member.id && (
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowActions(null)}></div>
-                    <div className="absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-md border border-slate-50 z-50 overflow-hidden animate-scaleIn">
-                      <button onClick={() => { onSelectStaff(member.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 border-b border-slate-50">
-                        <i className="fas fa-id-card text-blue-500"></i> <span>Профиль</span>
+                    <div className="absolute right-0 top-12 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-50 dark:border-slate-800 z-50 overflow-hidden animate-scaleIn">
+                      <button onClick={() => { onSelectStaff(member.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800">
+                        <i className="fas fa-id-card text-blue-500 dark:text-blue-400"></i> <span>Профиль</span>
                       </button>
-                      <button onClick={() => { setEditingMember(member); setIsModalOpen(true); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 border-b border-slate-50">
-                        <i className="fas fa-edit text-amber-500"></i> <span>Права доступа</span>
+                      <button onClick={() => { setEditingMember(member); setIsModalOpen(true); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800">
+                        <i className="fas fa-edit text-amber-500 dark:text-amber-400"></i> <span>Права доступа</span>
                       </button>
-                      <button onClick={() => { if(window.confirm('Удалить сотрудника?')) onDelete(member.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-rose-50 text-rose-500 flex items-center space-x-3">
+                      <button onClick={() => { if(window.confirm('Удалить сотрудника?')) onDelete(member.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-rose-50 text-rose-500 dark:text-rose-400 flex items-center space-x-3">
                         <i className="fas fa-trash-alt"></i> <span>Удалить</span>
                       </button>
                     </div>
@@ -166,7 +166,7 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onAdd, onUpdate, onDelete,
           </div>
         ))}
         {staff.length === 0 && (
-          <div className="col-span-full py-20 text-center text-slate-400 bg-white rounded-2xl border-2 border-dashed border-slate-100 italic">
+          <div className="col-span-full py-20 text-center text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-100 dark:border-slate-700 italic">
             Команда еще не сформирована
           </div>
         )}
@@ -174,25 +174,25 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onAdd, onUpdate, onDelete,
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
-          <form onSubmit={handleSubmit} className="bg-white rounded-2xl w-full max-w-2xl p-6 shadow-md animate-scaleIn my-auto">
+          <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-2xl p-6 shadow-md animate-scaleIn my-auto">
             <h2 className="text-2xl font-semibold mb-8">{editingMember ? 'Редактировать сотрудника' : 'Новый сотрудник'}</h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
               <div className="space-y-4">
-                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Основные данные</h3>
-                <input name="name" defaultValue={editingMember?.name} placeholder="ФИО сотрудника" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
-                <input name="email" type="email" defaultValue={editingMember?.email || editingMember?.login} placeholder="Email (для входа)" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
-                <input name="password" type="password" placeholder={editingMember ? "Новый пароль (необязательно)" : "Пароль"} required={!editingMember} className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
-                <div className="p-4 bg-blue-50 rounded-2xl border border-blue-100 text-xs text-blue-800 font-medium leading-relaxed">
+                <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-4">Основные данные</h3>
+                <input name="name" defaultValue={editingMember?.name} placeholder="ФИО сотрудника" required className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
+                <input name="email" type="email" defaultValue={editingMember?.email || editingMember?.login} placeholder="Email (для входа)" required className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
+                <input name="password" type="password" placeholder={editingMember ? "Новый пароль (необязательно)" : "Пароль"} required={!editingMember} className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
+                <div className="p-4 bg-blue-50 dark:bg-blue-500/10 rounded-2xl border border-blue-100 dark:border-blue-500/20 text-xs text-blue-800 dark:text-blue-300 font-medium leading-relaxed">
                   <i className="fas fa-info-circle mr-2"></i>
                   Сотрудник сможет входить в систему, используя указанный Email и пароль.
                 </div>
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wide mb-4">Права доступа</h3>
+                <h3 className="text-xs font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-4">Права доступа</h3>
 
-                <div className="bg-slate-50 p-1 rounded-2xl space-y-1">
+                <div className="bg-slate-50 dark:bg-slate-700 p-1 rounded-2xl space-y-1">
                   <ToggleItem
                     label="Полный доступ"
                     checked={permissions.fullAccess}
@@ -200,7 +200,7 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onAdd, onUpdate, onDelete,
                     color="bg-purple-500"
                     description="Включает все функции"
                   />
-                  <div className="h-px bg-slate-200 mx-4 my-2"></div>
+                  <div className="h-px bg-slate-200 dark:bg-slate-600 mx-4 my-2"></div>
                   <ToggleItem
                     label="Оформление сделок"
                     checked={permissions.canCreateBooking}
@@ -236,7 +236,7 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onAdd, onUpdate, onDelete,
             </div>
 
             <div className="flex gap-4">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl font-bold text-slate-600 transition-all hover:bg-slate-200">Отмена</button>
+              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-slate-100 dark:bg-slate-700 rounded-2xl font-bold text-slate-600 dark:text-slate-300 transition-all hover:bg-slate-200">Отмена</button>
               <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-md transition-all hover:bg-blue-700">Сохранить</button>
             </div>
           </form>

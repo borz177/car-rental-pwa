@@ -99,8 +99,8 @@ const CarCard: React.FC<{
   };
 
   return (
-    <div className={`bg-white rounded-2xl overflow-hidden shadow-sm border transition-all group hover:shadow-md relative ${isBlocked ? 'border-rose-200' : 'border-slate-100'}`}>
-      <div className={`h-40 md:h-40 relative overflow-hidden bg-slate-100 cursor-pointer ${isBlocked ? 'grayscale opacity-70' : ''}`} onClick={handleImageClick}>
+    <div className={`bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-sm border transition-all group hover:shadow-md relative ${isBlocked ? 'border-rose-200 dark:border-rose-500/20' : 'border-slate-100 dark:border-slate-700'}`}>
+      <div className={`h-40 md:h-40 relative overflow-hidden bg-slate-100 dark:bg-slate-700 cursor-pointer ${isBlocked ? 'grayscale opacity-70' : ''}`} onClick={handleImageClick}>
         <img src={car.images[0] || CAR_PLACEHOLDER_IMAGE} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
 
         <div
@@ -124,12 +124,12 @@ const CarCard: React.FC<{
       <div className="p-3">
         <div className="flex justify-between items-start mb-3">
           <div onClick={onInfo} className="cursor-pointer min-w-0 pr-2 group/title">
-            <h3 className="text-base md:text-lg font-semibold text-slate-900 tracking-tight truncate group-hover/title:text-blue-600 transition-colors">{car.brand} {car.model}</h3>
-            <p className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{car.plate} • {car.year} г.</p>
+            <h3 className="text-base md:text-lg font-semibold text-slate-900 dark:text-white tracking-tight truncate group-hover/title:text-blue-600 transition-colors">{car.brand} {car.model}</h3>
+            <p className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wide">{car.plate} • {car.year} г.</p>
           </div>
           <div className="text-right">
-            <div className="text-blue-600 font-bold text-base md:text-lg leading-none">{car.pricePerDay.toLocaleString()} ₽</div>
-            <div className="text-[8px] text-slate-400 uppercase font-semibold tracking-wide">в сутки</div>
+            <div className="text-blue-600 dark:text-blue-400 font-bold text-base md:text-lg leading-none">{car.pricePerDay.toLocaleString()} ₽</div>
+            <div className="text-[8px] text-slate-400 dark:text-slate-500 uppercase font-semibold tracking-wide">в сутки</div>
           </div>
         </div>
 
@@ -144,23 +144,23 @@ const CarCard: React.FC<{
               <button onClick={handleWhatsAppClick} className="flex-1 bg-emerald-500 text-white py-2.5 rounded-2xl font-semibold text-[10px] uppercase transition-all hover:bg-emerald-600 shadow-lg flex items-center justify-center gap-2">
                 <i className="fab fa-whatsapp"></i><span>Написать</span>
               </button>
-              <button onClick={onReserve} disabled={!canBookNew} title={isBlocked ? 'Превышен лимит тарифа' : undefined} className="flex-1 bg-slate-100 text-slate-600 py-2.5 rounded-2xl font-semibold text-[10px] uppercase hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">Бронь</button>
+              <button onClick={onReserve} disabled={!canBookNew} title={isBlocked ? 'Превышен лимит тарифа' : undefined} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-2.5 rounded-2xl font-semibold text-[10px] uppercase hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">Бронь</button>
             </div>
           )}
           <div className="relative">
-            <button onClick={() => setShowMenu(!showMenu)} className="w-10 h-10 bg-slate-50 text-slate-400 rounded-2xl flex items-center justify-center hover:bg-slate-100 border border-slate-100 transition-all">
+            <button onClick={() => setShowMenu(!showMenu)} className="w-10 h-10 bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 rounded-2xl flex items-center justify-center hover:bg-slate-100 border border-slate-100 dark:border-slate-700 transition-all">
               <i className="fas fa-ellipsis-v text-xs"></i>
             </button>
             {showMenu && (
               <>
                 <div className="fixed inset-0 z-20" onClick={() => setShowMenu(false)}></div>
-                <div className="absolute bottom-14 right-0 w-48 bg-white rounded-2xl shadow-md border border-slate-50 z-30 py-1 animate-scaleIn">
-                  <button onClick={() => { onInfo(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600"><i className="fas fa-circle-info text-blue-500 w-4"></i><span>Подробнее</span></button>
-                  {canEdit && <button onClick={() => { onEdit(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-slate-50 flex items-center space-x-3 text-amber-500"><i className="fas fa-edit w-4"></i><span>Изменить</span></button>}
+                <div className="absolute bottom-14 right-0 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-50 dark:border-slate-800 z-30 py-1 animate-scaleIn">
+                  <button onClick={() => { onInfo(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 dark:text-slate-300"><i className="fas fa-circle-info text-blue-500 dark:text-blue-400 w-4"></i><span>Подробнее</span></button>
+                  {canEdit && <button onClick={() => { onEdit(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-slate-50 flex items-center space-x-3 text-amber-500 dark:text-amber-400"><i className="fas fa-edit w-4"></i><span>Изменить</span></button>}
                   {activeRental && !activeRental.isReservation && canCreateBooking && (
-                    <button onClick={() => { onComplete(activeRental); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-blue-50 flex items-center space-x-3 text-blue-600"><i className="fas fa-check-circle w-4"></i><span>Завершить</span></button>
+                    <button onClick={() => { onComplete(activeRental); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-blue-50 flex items-center space-x-3 text-blue-600 dark:text-blue-400"><i className="fas fa-check-circle w-4"></i><span>Завершить</span></button>
                   )}
-                  {showDeleteButton && <button onClick={() => { onDelete(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-rose-50 text-rose-500 flex items-center space-x-3"><i className="fas fa-trash-alt w-4"></i><span>Удалить</span></button>}
+                  {showDeleteButton && <button onClick={() => { onDelete(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-rose-50 text-rose-500 dark:text-rose-400 flex items-center space-x-3"><i className="fas fa-trash-alt w-4"></i><span>Удалить</span></button>}
                 </div>
               </>
             )}
@@ -274,14 +274,14 @@ const CarList: React.FC<CarListProps> = ({
   return (
     <div className="space-y-4 animate-fadeIn pb-24 md:pb-0">
       {blockedCarIds.size > 0 && (
-        <div className="bg-rose-50 border border-rose-100 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
+        <div className="bg-rose-50 dark:bg-rose-500/10 border border-rose-100 dark:border-rose-500/20 rounded-2xl p-4 flex flex-col sm:flex-row sm:items-center gap-3 justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center shrink-0">
               <i className="fas fa-lock"></i>
             </div>
             <div>
-              <div className="font-semibold text-sm text-rose-700">Превышен лимит тарифа: заблокировано {blockedCarIds.size} {blockedCarIds.size === 1 ? 'автомобиль' : 'автомобиля'}</div>
-              <div className="text-xs text-rose-500 mt-0.5">Текущий тариф позволяет использовать до {planLimit} автомобилей. Заблокированные недоступны для новых сделок.</div>
+              <div className="font-semibold text-sm text-rose-700 dark:text-rose-400">Превышен лимит тарифа: заблокировано {blockedCarIds.size} {blockedCarIds.size === 1 ? 'автомобиль' : 'автомобиля'}</div>
+              <div className="text-xs text-rose-500 dark:text-rose-400 mt-0.5">Текущий тариф позволяет использовать до {planLimit} автомобилей. Заблокированные недоступны для новых сделок.</div>
             </div>
           </div>
           {onUpgrade && (
@@ -292,19 +292,19 @@ const CarList: React.FC<CarListProps> = ({
         </div>
       )}
 
-      <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-4">
+      <div className="bg-white dark:bg-slate-800 p-4 md:p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex flex-col gap-4">
         <div className="relative">
-          <i className="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+          <i className="fas fa-magnifying-glass absolute left-4 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 text-xs"></i>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Поиск по марке, модели или гос. номеру"
-            className="w-full pl-10 pr-10 py-3 bg-slate-50 rounded-xl font-semibold text-sm outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+            className="w-full pl-10 pr-10 py-3 bg-slate-50 dark:bg-slate-700 rounded-xl font-semibold text-sm outline-none border-2 border-transparent focus:border-blue-500 transition-all"
           />
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg text-slate-300 hover:text-slate-600 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg text-slate-300 dark:text-slate-600 hover:text-slate-600 transition-colors"
             >
               <i className="fas fa-xmark text-xs"></i>
             </button>
@@ -324,10 +324,10 @@ const CarList: React.FC<CarListProps> = ({
                 <button
                   key={f.id}
                   onClick={() => setStatusFilter(f.id)}
-                  className={`px-4 py-2 rounded-xl text-[9px] font-semibold uppercase transition-all flex items-center gap-2 ${statusFilter === f.id ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400'}`}
+                  className={`px-4 py-2 rounded-xl text-[9px] font-semibold uppercase transition-all flex items-center gap-2 ${statusFilter === f.id ? 'bg-blue-600 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500'}`}
                 >
                   <span>{f.label}</span>
-                  <span className={`px-2 py-0.5 text-[10px] rounded-md ${statusFilter === f.id ? 'bg-white/20' : 'bg-slate-200'}`}>{f.count}</span>
+                  <span className={`px-2 py-0.5 text-[10px] rounded-md ${statusFilter === f.id ? 'bg-white/20' : 'bg-slate-200 dark:bg-slate-600'}`}>{f.count}</span>
                 </button>
               ))}
             </div>
@@ -372,13 +372,13 @@ const CarList: React.FC<CarListProps> = ({
       </div>
 
       {filteredCars.length === 0 && (
-        <div className="bg-white rounded-2xl border border-slate-100 p-12 text-center">
-          <i className="fas fa-car-side text-3xl text-slate-200 mb-3"></i>
-          <div className="font-semibold text-slate-500">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 p-12 text-center">
+          <i className="fas fa-car-side text-3xl text-slate-200 dark:text-slate-700 mb-3"></i>
+          <div className="font-semibold text-slate-500 dark:text-slate-400">
             {query ? 'Ничего не найдено' : 'В этой категории нет автомобилей'}
           </div>
           {query && (
-            <button onClick={() => setSearch('')} className="mt-3 text-xs font-semibold text-blue-600 uppercase tracking-wide">
+            <button onClick={() => setSearch('')} className="mt-3 text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide">
               Сбросить поиск
             </button>
           )}
@@ -389,43 +389,43 @@ const CarList: React.FC<CarListProps> = ({
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-sm overflow-y-auto">
-          <form onSubmit={handleSubmit} className="bg-white rounded-2xl w-full max-w-2xl p-5 md:p-8 shadow-md my-auto animate-scaleIn">
-            <h2 className="text-3xl font-semibold text-slate-900 uppercase mb-8">{editing ? 'Редактировать' : 'Новое'} авто</h2>
+          <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-2xl p-5 md:p-8 shadow-md my-auto animate-scaleIn">
+            <h2 className="text-3xl font-semibold text-slate-900 dark:text-white uppercase mb-8">{editing ? 'Редактировать' : 'Новое'} авто</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
                 <div className="space-y-4">
-                  <input name="brand" defaultValue={editing?.brand} required placeholder="Марка" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
-                  <input name="model" defaultValue={editing?.model} required placeholder="Модель" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
+                  <input name="brand" defaultValue={editing?.brand} required placeholder="Марка" className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none" />
+                  <input name="model" defaultValue={editing?.model} required placeholder="Модель" className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none" />
                   <div className="grid grid-cols-2 gap-4">
-                    <input name="year" type="number" defaultValue={editing?.year} required placeholder="Год" className="p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
-                    <input name="plate" defaultValue={editing?.plate} required placeholder="Гос. номер" className="p-4 bg-slate-50 rounded-2xl font-bold outline-none uppercase" />
+                    <input name="year" type="number" defaultValue={editing?.year} required placeholder="Год" className="p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none" />
+                    <input name="plate" defaultValue={editing?.plate} required placeholder="Гос. номер" className="p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none uppercase" />
                   </div>
-                   <input name="mileage" type="number" defaultValue={editing?.mileage} placeholder="Пробег (км)" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
-                  <div className="p-4 bg-indigo-50/50 rounded-2xl border border-indigo-100 space-y-3">
+                   <input name="mileage" type="number" defaultValue={editing?.mileage} placeholder="Пробег (км)" className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none" />
+                  <div className="p-4 bg-indigo-50/50 dark:bg-indigo-500/10 rounded-2xl border border-indigo-100 dark:border-indigo-500/20 space-y-3">
                      <div className="text-[10px] font-semibold text-indigo-400 uppercase tracking-wide ml-1">Данные инвестора</div>
-                     <select name="investorId" defaultValue={editing?.investorId || ''} className="w-full p-3 bg-white rounded-xl font-bold border border-indigo-100 outline-none">
+                     <select name="investorId" defaultValue={editing?.investorId || ''} className="w-full p-3 bg-white dark:bg-slate-800 rounded-xl font-bold border border-indigo-100 dark:border-indigo-500/20 outline-none">
                         <option value="">Собственный автопарк</option>
                         {investors.map(inv => <option key={inv.id} value={inv.id}>{inv.name}</option>)}
                      </select>
                      <div className="relative">
-                        <input name="investorShare" type="number" defaultValue={editing?.investorShare || 0} placeholder="Доля инвестора %" className="w-full p-3 bg-white rounded-xl font-bold border border-indigo-100 outline-none" />
+                        <input name="investorShare" type="number" defaultValue={editing?.investorShare || 0} placeholder="Доля инвестора %" className="w-full p-3 bg-white dark:bg-slate-800 rounded-xl font-bold border border-indigo-100 dark:border-indigo-500/20 outline-none" />
                         <span className="absolute right-4 top-1/2 -translate-y-1/2 text-indigo-300 font-bold">%</span>
                      </div>
                   </div>
                 </div>
                 <div className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <input name="pricePerDay" type="number" defaultValue={editing?.pricePerDay} required placeholder="Цена сутки" className="p-4 bg-blue-50 rounded-2xl font-bold text-blue-600 outline-none" />
-                    <input name="pricePerHour" type="number" defaultValue={editing?.pricePerHour} required placeholder="Цена час" className="p-4 bg-slate-50 rounded-2xl font-bold outline-none" />
+                    <input name="pricePerDay" type="number" defaultValue={editing?.pricePerDay} required placeholder="Цена сутки" className="p-4 bg-blue-50 dark:bg-blue-500/10 rounded-2xl font-bold text-blue-600 dark:text-blue-400 outline-none" />
+                    <input name="pricePerHour" type="number" defaultValue={editing?.pricePerHour} required placeholder="Цена час" className="p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none" />
                   </div>
-                  <select name="status" defaultValue={editing?.status || CarStatus.AVAILABLE} className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none">
+                  <select name="status" defaultValue={editing?.status || CarStatus.AVAILABLE} className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none">
                     {Object.values(CarStatus).map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
-                  <div className="p-4 bg-amber-50/50 rounded-2xl border border-amber-100 space-y-3">
-                     <div className="text-[10px] font-semibold text-amber-500 uppercase tracking-wide ml-1">Замена масла</div>
-                     <input name="lastOilChangeMileage" type="number" defaultValue={editing?.lastOilChangeMileage} placeholder="Пробег последней замены" className="w-full p-3 bg-white rounded-xl font-bold border border-amber-100 outline-none" />
-                     <input name="oilChangeInterval" type="number" defaultValue={editing?.oilChangeInterval || 10000} placeholder="Интервал замены (км)" className="w-full p-3 bg-white rounded-xl font-bold border border-amber-100 outline-none" />
+                  <div className="p-4 bg-amber-50/50 dark:bg-amber-500/10 rounded-2xl border border-amber-100 dark:border-amber-500/20 space-y-3">
+                     <div className="text-[10px] font-semibold text-amber-500 dark:text-amber-400 uppercase tracking-wide ml-1">Замена масла</div>
+                     <input name="lastOilChangeMileage" type="number" defaultValue={editing?.lastOilChangeMileage} placeholder="Пробег последней замены" className="w-full p-3 bg-white dark:bg-slate-800 rounded-xl font-bold border border-amber-100 dark:border-amber-500/20 outline-none" />
+                     <input name="oilChangeInterval" type="number" defaultValue={editing?.oilChangeInterval || 10000} placeholder="Интервал замены (км)" className="w-full p-3 bg-white dark:bg-slate-800 rounded-xl font-bold border border-amber-100 dark:border-amber-500/20 outline-none" />
                   </div>
-                  <div className="aspect-video bg-slate-50 rounded-2xl border-2 border-dashed border-slate-200 flex flex-col items-center justify-center text-slate-400 cursor-pointer hover:border-blue-400 hover:text-blue-500 transition-all" onClick={() => fileInputRef.current?.click()}>
+                  <div className="aspect-video bg-slate-50 dark:bg-slate-700 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-600 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 cursor-pointer hover:border-blue-400 hover:text-blue-500 transition-all" onClick={() => fileInputRef.current?.click()}>
                      <i className="fas fa-camera text-2xl"></i>
                      <span className="text-[10px] font-semibold uppercase mt-2">{tempImages.length > 0 ? `${tempImages.length} фото` : 'Добавить фото'}</span>
                   </div>
@@ -437,7 +437,7 @@ const CarList: React.FC<CarListProps> = ({
                 </div>
               </div>
             <div className="flex gap-4">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-5 bg-slate-100 rounded-2xl font-semibold text-slate-500 uppercase text-[10px]">Отмена</button>
+              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-5 bg-slate-100 dark:bg-slate-700 rounded-2xl font-semibold text-slate-500 dark:text-slate-400 uppercase text-[10px]">Отмена</button>
               <button type="submit" className="flex-1 py-5 bg-blue-600 text-white rounded-2xl font-semibold uppercase text-[10px] shadow-md">Сохранить</button>
             </div>
           </form>

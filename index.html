@@ -9,6 +9,22 @@
     <meta name="theme-color" content="#0f172a">
     <link rel="apple-touch-icon" href="/icon-192.png">
     <title>AutoPro AI - Car Rental</title>
+    <script>
+      // dark: варианты в classы включаются вручную переключателем (Настройки → Интерфейс),
+      // а не системной темой напрямую — поэтому стратегия 'class', не 'media' по умолчанию.
+      tailwind = { config: { darkMode: 'class' } };
+    </script>
+    <script>
+      // Синхронно, до первой отрисовки — иначе при сохранённой тёмной теме страница на
+      // мгновение мигает светлой вёрсткой, пока не отработает React и не проставит класс.
+      (function () {
+        try {
+          var saved = localStorage.getItem('theme');
+          var isDark = saved === 'dark' || (saved !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+          if (isDark) document.documentElement.classList.add('dark');
+        } catch (e) {}
+      })();
+    </script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="manifest" href="/metadata.json">
@@ -21,6 +37,8 @@
       ::-webkit-scrollbar { width: 6px; }
       ::-webkit-scrollbar-track { background: #f1f1f1; }
       ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+      html.dark ::-webkit-scrollbar-track { background: #1e293b; }
+      html.dark ::-webkit-scrollbar-thumb { background: #475569; }
 
       .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
       .pt-safe { padding-top: env(safe-area-inset-top); }
@@ -64,7 +82,7 @@
 }
 </script>
 </head>
-<body class="bg-gray-50 text-gray-900 overflow-x-hidden selection:bg-blue-100">
+<body class="bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 overflow-x-hidden selection:bg-blue-100">
     <div id="root"></div>
 <script type="module" src="/index.tsx"></script>
 </body>

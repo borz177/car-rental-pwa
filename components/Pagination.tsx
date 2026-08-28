@@ -34,8 +34,8 @@ const Pagination: React.FC<PaginationProps> = ({
   const last = Math.min(page * pageSize, totalItems);
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-slate-100">
-      <div className="text-[11px] font-semibold text-slate-400">
+    <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 border-t border-slate-100 dark:border-slate-700">
+      <div className="text-[11px] font-semibold text-slate-400 dark:text-slate-500">
         {first}–{last} из {totalItems}
       </div>
 
@@ -44,7 +44,7 @@ const Pagination: React.FC<PaginationProps> = ({
           <button
             onClick={() => onPageChange(page - 1)}
             disabled={page <= 1}
-            className="w-8 h-8 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            className="w-8 h-8 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
             title="Назад"
           >
             <i className="fas fa-chevron-left text-[10px]"></i>
@@ -52,13 +52,13 @@ const Pagination: React.FC<PaginationProps> = ({
 
           {buildPages(page, totalPages).map((p, i) =>
             p === '…' ? (
-              <span key={`gap-${i}`} className="w-8 h-8 flex items-center justify-center text-slate-300 text-xs">…</span>
+              <span key={`gap-${i}`} className="w-8 h-8 flex items-center justify-center text-slate-300 dark:text-slate-600 text-xs">…</span>
             ) : (
               <button
                 key={p}
                 onClick={() => onPageChange(p)}
                 className={`min-w-8 h-8 px-2 rounded-lg text-xs font-semibold transition-colors ${
-                  p === page ? 'bg-blue-600 text-white' : 'text-slate-500 hover:bg-slate-100'
+                  p === page ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100'
                 }`}
               >
                 {p}
@@ -69,7 +69,7 @@ const Pagination: React.FC<PaginationProps> = ({
           <button
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages}
-            className="w-8 h-8 rounded-lg text-slate-500 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            className="w-8 h-8 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
             title="Вперёд"
           >
             <i className="fas fa-chevron-right text-[10px]"></i>
@@ -81,7 +81,7 @@ const Pagination: React.FC<PaginationProps> = ({
         <select
           value={pageSize}
           onChange={e => onPageSizeChange(Number(e.target.value))}
-          className="bg-slate-50 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-slate-500 outline-none border border-transparent focus:border-blue-500"
+          className="bg-slate-50 dark:bg-slate-700 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-slate-500 dark:text-slate-400 outline-none border border-transparent focus:border-blue-500"
         >
           {pageSizeOptions.map(n => <option key={n} value={n}>по {n}</option>)}
         </select>

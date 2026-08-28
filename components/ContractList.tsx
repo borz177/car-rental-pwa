@@ -217,57 +217,57 @@ const ContractList: React.FC<ContractListProps> = ({
     return (
       <div
         onClick={() => setSelectedRental(rent)}
-        className={`bg-white rounded-2xl border p-3 cursor-pointer transition-all hover:shadow-sm relative ${
-          overdue ? 'border-rose-200 bg-rose-50/40' : 'border-slate-100'
+        className={`bg-white dark:bg-slate-800 rounded-2xl border p-3 cursor-pointer transition-all hover:shadow-sm relative ${
+          overdue ? 'border-rose-200 dark:border-rose-500/20 bg-rose-50/40 dark:bg-rose-500/10' : 'border-slate-100 dark:border-slate-700'
         }`}
       >
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
-            overdue ? 'bg-rose-100 text-rose-600'
-              : rent.isReservation ? 'bg-amber-50 text-amber-600'
-              : rent.status === 'ACTIVE' ? 'bg-blue-50 text-blue-600'
-              : 'bg-slate-100 text-slate-500'
+            overdue ? 'bg-rose-100 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400'
+              : rent.isReservation ? 'bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400'
+              : rent.status === 'ACTIVE' ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400'
+              : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'
           }`}>
             <i className={`fas ${rent.isReservation ? 'fa-calendar-check' : 'fa-file-contract'} text-sm`}></i>
           </div>
 
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
-              <span className="font-semibold text-slate-900 truncate">
-                {client?.name || <span className="text-slate-400 italic">клиент удалён</span>}
+              <span className="font-semibold text-slate-900 dark:text-white truncate">
+                {client?.name || <span className="text-slate-400 dark:text-slate-500 italic">клиент удалён</span>}
               </span>
-              <span className="text-[10px] font-semibold text-slate-400 flex-shrink-0">
+              <span className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 flex-shrink-0">
                 № {rent.contractNumber || '—'}
               </span>
             </div>
-            <div className="text-[11px] text-slate-500 font-medium truncate">
+            <div className="text-[11px] text-slate-500 dark:text-slate-400 font-medium truncate">
               {car ? `${car.brand} ${car.model} • ${car.plate}` : 'авто удалено'}
             </div>
-            <div className="text-[11px] text-slate-400 font-medium mt-0.5">
+            <div className="text-[11px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">
               {formatDate(rent.startDate)} {rent.startTime} → {formatDate(rent.endDate)} {rent.endTime}
             </div>
           </div>
 
           <div className="text-right flex-shrink-0">
-            <div className="font-bold text-slate-900">{formatMoney(rent.totalAmount || 0)}</div>
+            <div className="font-bold text-slate-900 dark:text-white">{formatMoney(rent.totalAmount || 0)}</div>
             {debt > 0
-              ? <div className="text-[11px] font-semibold text-rose-600">долг {formatMoney(debt)}</div>
-              : <div className="text-[11px] font-semibold text-emerald-600">оплачено</div>}
+              ? <div className="text-[11px] font-semibold text-rose-600 dark:text-rose-400">долг {formatMoney(debt)}</div>
+              : <div className="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">оплачено</div>}
             {extensionSum > 0 && (
-              <div className="text-[10px] font-medium text-blue-500">+{formatMoney(extensionSum)} продления</div>
+              <div className="text-[10px] font-medium text-blue-500 dark:text-blue-400">+{formatMoney(extensionSum)} продления</div>
             )}
           </div>
 
           <button
             onClick={(e) => { e.stopPropagation(); setShowActions(showActions === rent.id ? null : rent.id); }}
-            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400 flex-shrink-0"
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400 dark:text-slate-500 flex-shrink-0"
           >
             <i className="fas fa-ellipsis-vertical"></i>
           </button>
         </div>
 
         {overdue && (
-          <div className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-rose-600">
+          <div className="mt-2 flex items-center gap-1.5 text-[11px] font-bold text-rose-600 dark:text-rose-400">
             <i className="fas fa-triangle-exclamation"></i>
             <span>Просрочка {overdue}</span>
           </div>
@@ -280,32 +280,32 @@ const ContractList: React.FC<ContractListProps> = ({
             <div className="fixed inset-0 z-[59] bg-slate-900/20 md:bg-transparent md:absolute md:inset-auto" onClick={(e) => { e.stopPropagation(); setShowActions(null); }} />
             <div
               onClick={(e) => e.stopPropagation()}
-              className="fixed bottom-0 left-0 right-0 pb-safe md:pb-0 md:absolute md:bottom-auto md:left-auto md:right-0 md:top-full md:w-56 bg-white rounded-t-2xl md:rounded-2xl shadow-lg border border-slate-100 z-[60] overflow-hidden animate-slideUp"
+              className="fixed bottom-0 left-0 right-0 pb-safe md:pb-0 md:absolute md:bottom-auto md:left-auto md:right-0 md:top-full md:w-56 bg-white dark:bg-slate-800 rounded-t-2xl md:rounded-2xl shadow-lg border border-slate-100 dark:border-slate-700 z-[60] overflow-hidden animate-slideUp"
             >
-              <div className="md:hidden px-4 pt-3 pb-2 border-b border-slate-100 flex items-center justify-between">
+              <div className="md:hidden px-4 pt-3 pb-2 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
                 <span className="font-semibold">Действия</span>
-                <button onClick={() => setShowActions(null)} className="p-2 -mr-2 text-slate-400"><i className="fas fa-xmark"></i></button>
+                <button onClick={() => setShowActions(null)} className="p-2 -mr-2 text-slate-400 dark:text-slate-500"><i className="fas fa-xmark"></i></button>
               </div>
               <div className="p-2">
-                <button onClick={() => { handlePrint(rent); setShowActions(null); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm hover:bg-slate-50 ${!canPrint ? 'text-slate-400' : ''}`}>
+                <button onClick={() => { handlePrint(rent); setShowActions(null); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm hover:bg-slate-50 ${!canPrint ? 'text-slate-400 dark:text-slate-500' : ''}`}>
                   <i className={`fas ${canPrint ? 'fa-print' : 'fa-lock'} w-4`}></i> Печать договора{!canPrint ? ' (Бизнес+)' : ''}
                 </button>
                 {rent.isReservation && onIssueFromBooking && (
-                  <button onClick={() => { onIssueFromBooking(rent.id); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-emerald-600 hover:bg-emerald-50">
+                  <button onClick={() => { onIssueFromBooking(rent.id); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50">
                     <i className="fas fa-key w-4"></i> Выдать авто
                   </button>
                 )}
                 {!rent.isReservation && rent.status === 'ACTIVE' && (
                   <>
-                    <button onClick={() => { setExtendingRental(rent); setExtensionData({ endDate: '', endTime: '', extraPrice: 0 }); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-amber-600 hover:bg-amber-50">
+                    <button onClick={() => { setExtendingRental(rent); setExtensionData({ endDate: '', endTime: '', extraPrice: 0 }); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50">
                       <i className="fas fa-calendar-plus w-4"></i> Продлить
                     </button>
-                    <button onClick={() => { onComplete(rent); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-blue-600 hover:bg-blue-50">
+                    <button onClick={() => { onComplete(rent); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50">
                       <i className="fas fa-check-circle w-4"></i> Завершить
                     </button>
                   </>
                 )}
-                <button onClick={() => { handleDelete(rent); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-rose-600 hover:bg-rose-50">
+                <button onClick={() => { handleDelete(rent); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50">
                   <i className="fas fa-trash w-4"></i> Удалить
                 </button>
               </div>
@@ -326,27 +326,27 @@ const ContractList: React.FC<ContractListProps> = ({
     // pt-safe в шапке: без него на телефонах с вырезом заголовок уезжал
     // под системную строку и кнопка «назад» оказывалась под часами.
     return (
-      <div className="fixed inset-0 z-[70] bg-white overflow-y-auto animate-slideUp">
-        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm border-b border-slate-100 pt-safe px-4 flex items-center justify-between">
-          <button onClick={() => setSelectedRental(null)} className="p-3 -ml-2 text-slate-400"><i className="fas fa-arrow-left"></i></button>
+      <div className="fixed inset-0 z-[70] bg-white dark:bg-slate-800 overflow-y-auto animate-slideUp">
+        <div className="sticky top-0 z-10 bg-white/95 dark:bg-slate-800 backdrop-blur-sm border-b border-slate-100 dark:border-slate-700 pt-safe px-4 flex items-center justify-between">
+          <button onClick={() => setSelectedRental(null)} className="p-3 -ml-2 text-slate-400 dark:text-slate-500"><i className="fas fa-arrow-left"></i></button>
           <h2 className="font-semibold text-sm truncate px-2">Договор № {rent.contractNumber || '—'}</h2>
-          <button onClick={() => handlePrint(rent)} className="p-3 -mr-2 text-slate-400"><i className={`fas ${canPrint ? 'fa-print' : 'fa-lock'}`}></i></button>
+          <button onClick={() => handlePrint(rent)} className="p-3 -mr-2 text-slate-400 dark:text-slate-500"><i className={`fas ${canPrint ? 'fa-print' : 'fa-lock'}`}></i></button>
         </div>
 
         <div className="p-4 pb-24 space-y-3 max-w-2xl mx-auto">
           {overdue && (
-            <div className="p-3 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-2">
-              <i className="fas fa-triangle-exclamation text-rose-500"></i>
-              <span className="text-sm font-semibold text-rose-700">Просрочка возврата: {overdue}</span>
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-500/10 border border-rose-200 dark:border-rose-500/20 flex items-center gap-2">
+              <i className="fas fa-triangle-exclamation text-rose-500 dark:text-rose-400"></i>
+              <span className="text-sm font-semibold text-rose-700 dark:text-rose-400">Просрочка возврата: {overdue}</span>
             </div>
           )}
 
-          <div className="bg-slate-50 rounded-2xl p-4">
+          <div className="bg-slate-50 dark:bg-slate-700 rounded-2xl p-4">
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600"><i className="fas fa-user"></i></div>
+              <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-500/15 flex items-center justify-center text-blue-600 dark:text-blue-400"><i className="fas fa-user"></i></div>
               <div className="min-w-0">
                 <div className="font-semibold truncate">{client?.name || 'Клиент удалён'}</div>
-                <div className="text-sm text-slate-500">{client?.phone || '—'}</div>
+                <div className="text-sm text-slate-500 dark:text-slate-400">{client?.phone || '—'}</div>
               </div>
               {client?.phone && (
                 <a
@@ -359,40 +359,40 @@ const ContractList: React.FC<ContractListProps> = ({
               )}
             </div>
             <div className="grid grid-cols-2 gap-3 text-sm">
-              <div><div className="text-[11px] text-slate-400 uppercase">Авто</div><div className="font-medium">{car ? `${car.brand} ${car.model}` : '—'}</div></div>
-              <div><div className="text-[11px] text-slate-400 uppercase">Номер</div><div className="font-medium">{car?.plate || '—'}</div></div>
-              <div><div className="text-[11px] text-slate-400 uppercase">Начало</div><div className="font-medium">{formatDate(rent.startDate)} {rent.startTime}</div></div>
-              <div><div className="text-[11px] text-slate-400 uppercase">Окончание</div><div className="font-medium">{formatDate(rent.endDate)} {rent.endTime}</div></div>
+              <div><div className="text-[11px] text-slate-400 dark:text-slate-500 uppercase">Авто</div><div className="font-medium">{car ? `${car.brand} ${car.model}` : '—'}</div></div>
+              <div><div className="text-[11px] text-slate-400 dark:text-slate-500 uppercase">Номер</div><div className="font-medium">{car?.plate || '—'}</div></div>
+              <div><div className="text-[11px] text-slate-400 dark:text-slate-500 uppercase">Начало</div><div className="font-medium">{formatDate(rent.startDate)} {rent.startTime}</div></div>
+              <div><div className="text-[11px] text-slate-400 dark:text-slate-500 uppercase">Окончание</div><div className="font-medium">{formatDate(rent.endDate)} {rent.endTime}</div></div>
             </div>
           </div>
 
-          <div className="bg-white border border-slate-100 rounded-2xl p-4">
+          <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4">
             <h4 className="font-semibold mb-3">Оплата</h4>
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between"><span className="text-slate-500">Сумма договора</span><span className="font-semibold">{formatMoney(rent.totalAmount || 0)}</span></div>
+              <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Сумма договора</span><span className="font-semibold">{formatMoney(rent.totalAmount || 0)}</span></div>
               {!!rent.prepayment && rent.prepayment > 0 && (
-                <div className="flex justify-between"><span className="text-slate-500">Предоплата</span><span className="text-amber-600">{formatMoney(rent.prepayment)}</span></div>
+                <div className="flex justify-between"><span className="text-slate-500 dark:text-slate-400">Предоплата</span><span className="text-amber-600 dark:text-amber-400">{formatMoney(rent.prepayment)}</span></div>
               )}
-              <div className="flex justify-between pt-2 border-t border-slate-100">
+              <div className="flex justify-between pt-2 border-t border-slate-100 dark:border-slate-700">
                 <span className="font-medium">{debt > 0 ? 'Осталось получить' : 'Получено полностью'}</span>
-                <span className={`font-bold ${debt > 0 ? 'text-rose-600' : 'text-emerald-600'}`}>{formatMoney(debt > 0 ? debt : (rent.totalAmount || 0))}</span>
+                <span className={`font-bold ${debt > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>{formatMoney(debt > 0 ? debt : (rent.totalAmount || 0))}</span>
               </div>
             </div>
           </div>
 
           {!!rent.extensions?.length && (
-            <div className="bg-white border border-slate-100 rounded-2xl p-4">
+            <div className="bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 rounded-2xl p-4">
               <h4 className="font-semibold mb-3">Продления</h4>
               <div className="space-y-2">
                 {rent.extensions.map((ext, i) => (
-                  <div key={i} className="flex items-center justify-between text-sm py-2 border-b border-slate-50 last:border-0">
+                  <div key={i} className="flex items-center justify-between text-sm py-2 border-b border-slate-50 dark:border-slate-800 last:border-0">
                     <div>
-                      <div className="font-medium text-slate-700">до {formatDate(ext.endDate)} {ext.endTime}</div>
-                      <div className="text-[11px] text-slate-400">{new Date(ext.date).toLocaleDateString('ru-RU')}</div>
+                      <div className="font-medium text-slate-700 dark:text-slate-200">до {formatDate(ext.endDate)} {ext.endTime}</div>
+                      <div className="text-[11px] text-slate-400 dark:text-slate-500">{new Date(ext.date).toLocaleDateString('ru-RU')}</div>
                     </div>
                     <div className="text-right">
                       <div className="font-semibold">{formatMoney(ext.amount || 0)}</div>
-                      <div className={`text-[10px] font-semibold uppercase ${ext.paymentStatus === 'DEBT' ? 'text-rose-500' : 'text-emerald-500'}`}>
+                      <div className={`text-[10px] font-semibold uppercase ${ext.paymentStatus === 'DEBT' ? 'text-rose-500 dark:text-rose-400' : 'text-emerald-500 dark:text-emerald-400'}`}>
                         {ext.paymentStatus === 'DEBT' ? 'в долг' : 'оплачено'}
                       </div>
                     </div>
@@ -404,17 +404,17 @@ const ContractList: React.FC<ContractListProps> = ({
 
           <div className="grid grid-cols-2 gap-2 pb-6">
             {rent.isReservation && onIssueFromBooking && (
-              <button onClick={() => { onIssueFromBooking(rent.id); setSelectedRental(null); }} className="py-3 bg-emerald-100 text-emerald-700 rounded-xl font-semibold text-sm col-span-2">
+              <button onClick={() => { onIssueFromBooking(rent.id); setSelectedRental(null); }} className="py-3 bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 rounded-xl font-semibold text-sm col-span-2">
                 <i className="fas fa-key mr-1"></i> Выдать авто
               </button>
             )}
             {!rent.isReservation && rent.status === 'ACTIVE' && (
               <>
-                <button onClick={() => { setExtendingRental(rent); setExtensionData({ endDate: '', endTime: '', extraPrice: 0 }); }} className="py-3 bg-amber-100 text-amber-700 rounded-xl font-semibold text-sm"><i className="fas fa-calendar-plus mr-1"></i> Продлить</button>
-                <button onClick={() => { onComplete(rent); setSelectedRental(null); }} className="py-3 bg-blue-100 text-blue-700 rounded-xl font-semibold text-sm"><i className="fas fa-check-circle mr-1"></i> Завершить</button>
+                <button onClick={() => { setExtendingRental(rent); setExtensionData({ endDate: '', endTime: '', extraPrice: 0 }); }} className="py-3 bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400 rounded-xl font-semibold text-sm"><i className="fas fa-calendar-plus mr-1"></i> Продлить</button>
+                <button onClick={() => { onComplete(rent); setSelectedRental(null); }} className="py-3 bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400 rounded-xl font-semibold text-sm"><i className="fas fa-check-circle mr-1"></i> Завершить</button>
               </>
             )}
-            <button onClick={() => handlePrint(rent)} className="py-3 bg-slate-100 text-slate-700 rounded-xl font-semibold text-sm col-span-2"><i className={`fas ${canPrint ? 'fa-print' : 'fa-lock'} mr-1`}></i> Печать{!canPrint ? ' (Бизнес+)' : ''}</button>
+            <button onClick={() => handlePrint(rent)} className="py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 rounded-xl font-semibold text-sm col-span-2"><i className={`fas ${canPrint ? 'fa-print' : 'fa-lock'} mr-1`}></i> Печать{!canPrint ? ' (Бизнес+)' : ''}</button>
           </div>
         </div>
       </div>
@@ -426,53 +426,53 @@ const ContractList: React.FC<ContractListProps> = ({
     const car = getCar(extendingRental.carId);
     return (
       <div className="fixed inset-0 z-[80] bg-slate-900/50 backdrop-blur-sm flex items-end md:items-center justify-center p-0 md:p-4">
-        <form onSubmit={handleExtendSubmit} className="bg-white w-full md:max-w-md md:rounded-xl rounded-t-2xl max-h-[90vh] overflow-y-auto animate-slideUp pb-safe md:pb-0">
-          <div className="sticky top-0 bg-white px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+        <form onSubmit={handleExtendSubmit} className="bg-white dark:bg-slate-800 w-full md:max-w-md md:rounded-xl rounded-t-2xl max-h-[90vh] overflow-y-auto animate-slideUp pb-safe md:pb-0">
+          <div className="sticky top-0 bg-white dark:bg-slate-800 px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
             <h3 className="font-semibold">Продление аренды</h3>
-            <button type="button" onClick={() => setExtendingRental(null)} className="p-2 text-slate-400"><i className="fas fa-xmark"></i></button>
+            <button type="button" onClick={() => setExtendingRental(null)} className="p-2 text-slate-400 dark:text-slate-500"><i className="fas fa-xmark"></i></button>
           </div>
           <div className="p-4 space-y-4">
-            <div className="bg-slate-50 rounded-xl p-3 text-sm">
+            <div className="bg-slate-50 dark:bg-slate-700 rounded-xl p-3 text-sm">
               <div className="font-medium">{car ? `${car.brand} ${car.model}` : '—'}</div>
-              <div className="text-slate-500">сейчас до {formatDate(extendingRental.endDate)} {extendingRental.endTime}</div>
+              <div className="text-slate-500 dark:text-slate-400">сейчас до {formatDate(extendingRental.endDate)} {extendingRental.endTime}</div>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] font-medium text-slate-400 uppercase mb-1 block">Новая дата</label>
-                <input type="date" value={extensionData.endDate} onChange={e => setExtensionData(d => ({ ...d, endDate: e.target.value }))} required min={dateOnly(extendingRental.endDate)} className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm" />
+                <label className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase mb-1 block">Новая дата</label>
+                <input type="date" value={extensionData.endDate} onChange={e => setExtensionData(d => ({ ...d, endDate: e.target.value }))} required min={dateOnly(extendingRental.endDate)} className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-sm" />
               </div>
               <div>
-                <label className="text-[11px] font-medium text-slate-400 uppercase mb-1 block">Время</label>
-                <input type="time" value={extensionData.endTime} onChange={e => setExtensionData(d => ({ ...d, endTime: e.target.value }))} required className="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-xl text-sm" />
+                <label className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase mb-1 block">Время</label>
+                <input type="time" value={extensionData.endTime} onChange={e => setExtensionData(d => ({ ...d, endTime: e.target.value }))} required className="w-full px-3 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-sm" />
               </div>
             </div>
             <div>
-              <label className="text-[11px] font-medium text-slate-400 uppercase mb-2 block">Оплата</label>
-              <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+              <label className="text-[11px] font-medium text-slate-400 dark:text-slate-500 uppercase mb-2 block">Оплата</label>
+              <div className="flex gap-2 p-1 bg-slate-100 dark:bg-slate-700 rounded-xl">
                 {(['PAID', 'DEBT'] as const).map(mode => (
-                  <button key={mode} type="button" onClick={() => setPaymentMode(mode)} className={`flex-1 py-2 rounded-lg text-sm font-medium ${paymentMode === mode ? 'bg-white text-slate-900 shadow-sm' : 'text-slate-500'}`}>
+                  <button key={mode} type="button" onClick={() => setPaymentMode(mode)} className={`flex-1 py-2 rounded-lg text-sm font-medium ${paymentMode === mode ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm' : 'text-slate-500 dark:text-slate-400'}`}>
                     {mode === 'PAID' ? 'Оплачено' : 'В долг'}
                   </button>
                 ))}
               </div>
             </div>
             {extensionData.endDate && extensionData.endTime && !extensionIsValid ? (
-              <div className="bg-rose-50 rounded-xl p-4 text-sm font-semibold text-rose-700">
+              <div className="bg-rose-50 dark:bg-rose-500/10 rounded-xl p-4 text-sm font-semibold text-rose-700 dark:text-rose-400">
                 <i className="fas fa-triangle-exclamation mr-1"></i>
                 Новый срок должен быть позже текущего окончания аренды
               </div>
             ) : (
-              <div className="bg-emerald-50 rounded-xl p-4 flex items-center justify-between">
+              <div className="bg-emerald-50 dark:bg-emerald-500/10 rounded-xl p-4 flex items-center justify-between">
                 <div>
-                  <div className="text-[11px] text-emerald-600 font-medium uppercase">Доплата</div>
-                  <div className="text-xl font-bold text-emerald-700">+{formatMoney(extensionData.extraPrice)}</div>
+                  <div className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium uppercase">Доплата</div>
+                  <div className="text-xl font-bold text-emerald-700 dark:text-emerald-400">+{formatMoney(extensionData.extraPrice)}</div>
                 </div>
                 <i className="fas fa-calculator text-emerald-300 text-xl"></i>
               </div>
             )}
           </div>
-          <div className="sticky bottom-0 bg-white px-4 py-3 border-t border-slate-100 flex gap-2">
-            <button type="button" onClick={() => setExtendingRental(null)} className="flex-1 py-3 text-slate-500 font-medium">Отмена</button>
+          <div className="sticky bottom-0 bg-white dark:bg-slate-800 px-4 py-3 border-t border-slate-100 dark:border-slate-700 flex gap-2">
+            <button type="button" onClick={() => setExtendingRental(null)} className="flex-1 py-3 text-slate-500 dark:text-slate-400 font-medium">Отмена</button>
             <button type="submit" disabled={!extensionIsValid} className="flex-1 py-3 bg-emerald-600 text-white rounded-xl font-semibold disabled:opacity-40 disabled:cursor-not-allowed">Сохранить</button>
           </div>
         </form>
@@ -513,42 +513,42 @@ const ContractList: React.FC<ContractListProps> = ({
 
       {/* Итоги: для учётной страницы это главное, раньше их не было вовсе */}
       <div className="no-print grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="bg-white p-4 rounded-2xl border border-slate-100">
-          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{titles[viewMode]}</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1">{summary.count}</div>
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
+          <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">{titles[viewMode]}</div>
+          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{summary.count}</div>
         </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-100">
-          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Сумма</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1">{summary.total.toLocaleString('ru-RU')} ₽</div>
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
+          <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Сумма</div>
+          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{summary.total.toLocaleString('ru-RU')} ₽</div>
         </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-100">
-          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Получено</div>
-          <div className="text-2xl font-bold text-emerald-600 mt-1">{summary.paid.toLocaleString('ru-RU')} ₽</div>
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
+          <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Получено</div>
+          <div className="text-2xl font-bold text-emerald-600 dark:text-emerald-400 mt-1">{summary.paid.toLocaleString('ru-RU')} ₽</div>
         </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-100">
-          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Долг</div>
-          <div className={`text-2xl font-bold mt-1 ${summary.debt > 0 ? 'text-rose-600' : 'text-slate-900'}`}>
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
+          <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Долг</div>
+          <div className={`text-2xl font-bold mt-1 ${summary.debt > 0 ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'}`}>
             {summary.debt.toLocaleString('ru-RU')} ₽
           </div>
           {summary.overdue > 0 && (
-            <div className="text-[10px] font-semibold text-rose-500 mt-0.5">просрочено: {summary.overdue}</div>
+            <div className="text-[10px] font-semibold text-rose-500 dark:text-rose-400 mt-0.5">просрочено: {summary.overdue}</div>
           )}
         </div>
       </div>
 
       {/* Поиск и фильтры */}
-      <div className="no-print bg-white p-4 rounded-2xl border border-slate-100 space-y-3">
+      <div className="no-print bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto] gap-3">
           <div className="relative">
-            <i className="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+            <i className="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 text-xs"></i>
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="ФИО, номер договора, госномер, телефон"
-              className="w-full pl-9 pr-9 py-2.5 bg-slate-50 rounded-xl text-sm font-medium outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+              className="w-full pl-9 pr-9 py-2.5 bg-slate-50 dark:bg-slate-700 rounded-xl text-sm font-medium outline-none border-2 border-transparent focus:border-blue-500 transition-all"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-600">
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 hover:text-slate-600">
                 <i className="fas fa-xmark text-xs"></i>
               </button>
             )}
@@ -559,7 +559,7 @@ const ContractList: React.FC<ContractListProps> = ({
               value={searchDate}
               onChange={e => setSearchDate(e.target.value)}
               title="Договоры, действующие в этот день"
-              className="w-full sm:w-44 px-3 py-2.5 bg-slate-50 rounded-xl text-sm font-medium outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+              className="w-full sm:w-44 px-3 py-2.5 bg-slate-50 dark:bg-slate-700 rounded-xl text-sm font-medium outline-none border-2 border-transparent focus:border-blue-500 transition-all"
             />
           </div>
         </div>
@@ -570,7 +570,7 @@ const ContractList: React.FC<ContractListProps> = ({
               key={f.id}
               onClick={() => setStatusFilter(f.id)}
               className={`px-3.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-all ${
-                statusFilter === f.id ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400 hover:text-slate-600'
+                statusFilter === f.id ? 'bg-blue-600 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600'
               }`}
             >
               {f.label}
@@ -579,7 +579,7 @@ const ContractList: React.FC<ContractListProps> = ({
           {(search || searchDate || statusFilter !== 'ALL') && (
             <button
               onClick={() => { setSearch(''); setSearchDate(''); setStatusFilter('ALL'); }}
-              className="px-3.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide text-blue-600 hover:bg-blue-50"
+              className="px-3.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400 hover:bg-blue-50"
             >
               Сбросить
             </button>
@@ -591,9 +591,9 @@ const ContractList: React.FC<ContractListProps> = ({
       <div className="no-print grid gap-2">
         {pagedRentals.map(rent => <ContractRow key={rent.id} rent={rent} />)}
         {filteredRentals.length === 0 && (
-          <div className="p-12 text-center bg-white rounded-2xl border border-slate-100">
-            <i className="fas fa-file-contract text-3xl text-slate-200 mb-3"></i>
-            <div className="font-semibold text-slate-500">
+          <div className="p-12 text-center bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
+            <i className="fas fa-file-contract text-3xl text-slate-200 dark:text-slate-700 mb-3"></i>
+            <div className="font-semibold text-slate-500 dark:text-slate-400">
               {search || searchDate || statusFilter !== 'ALL' ? 'Ничего не найдено' : `Нет записей в разделе «${titles[viewMode]}»`}
             </div>
           </div>
@@ -601,7 +601,7 @@ const ContractList: React.FC<ContractListProps> = ({
       </div>
 
       {filteredRentals.length > 0 && (
-        <div className="no-print bg-white rounded-2xl border border-slate-100">
+        <div className="no-print bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700">
           <Pagination
             page={page}
             pageSize={pageSize}

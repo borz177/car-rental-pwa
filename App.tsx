@@ -45,6 +45,11 @@ const App: React.FC = () => {
   const [isInitializing, setIsInitializing] = useState(true);
   const [isGlobalLoading, setIsGlobalLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
+  // 'system' следует за prefers-color-scheme; index.html уже читает тот же ключ
+  // localStorage синхронно до первого рендера, чтобы не было вспышки светлой темы.
+  const [themePref, setThemePref] = useState<'system' | 'light' | 'dark'>(
+    () => (localStorage.getItem('theme') as 'light' | 'dark' | null) || 'system'
+  );
   const [currentView, setCurrentView] = useState<AppView>('DASHBOARD');
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [fleetOwner, setFleetOwner] = useState<User | null>(null);
@@ -314,6 +319,31 @@ useEffect(() => {
   };
 }, []);
 
+// Применяем тему: класс 'dark' на <html> — от него зависят все dark: классы Tailwind.
+// В режиме 'system' дополнительно следим за живым переключением темы ОС (например,
+// автоматический переход в тёмную тему вечером), не только за значением на момент загрузки.
+useEffect(() => {
+  const root = document.documentElement;
+  const media = window.matchMedia('(prefers-color-scheme: dark)');
+
+  const apply = () => {
+    const isDark = themePref === 'dark' || (themePref === 'system' && media.matches);
+    root.classList.toggle('dark', isDark);
+  };
+  apply();
+
+  if (themePref === 'system') {
+    media.addEventListener('change', apply);
+    return () => media.removeEventListener('change', apply);
+  }
+}, [themePref]);
+
+const handleSetThemePref = (pref: 'system' | 'light' | 'dark') => {
+  setThemePref(pref);
+  if (pref === 'system') localStorage.removeItem('theme');
+  else localStorage.setItem('theme', pref);
+};
+
 // Если понизили тариф (или истёк триал) прямо во время просмотра раздела, доступного
 // только на более высоком тарифе, — уводим на дашборд вместо пустого экрана.
 useEffect(() => {
@@ -540,7 +570,7 @@ useEffect(() => {
 
           <div className="text-center">
             <h1 className="text-2xl font-semibold text-white tracking-tight">AutoPro AI</h1>
-            <p className="text-slate-500 font-semibold uppercase text-[10px] tracking-wide mt-1.5">Система управления автопарком</p>
+            <p className="text-slate-500 dark:text-slate-400 font-semibold uppercase text-[10px] tracking-wide mt-1.5">Система управления автопарком</p>
           </div>
 
           <div className="w-36 h-1 bg-slate-800 rounded-full overflow-hidden mt-3">
@@ -548,7 +578,7 @@ useEffect(() => {
           </div>
         </div>
 
-        <div className="absolute bottom-8 text-slate-700 text-[10px] font-semibold uppercase tracking-wide">
+        <div className="absolute bottom-8 text-slate-700 dark:text-slate-200 text-[10px] font-semibold uppercase tracking-wide">
           {isOnline ? 'Загрузка' : 'Офлайн режим'}
         </div>
       </div>
@@ -561,17 +591,17 @@ useEffect(() => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
         <ToastContainer toasts={toasts} onClose={dismissToast} />
-        <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn">
           <div className="text-center mb-8">
             <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-3xl shadow-lg mx-auto mb-4">
               <i className="fas fa-key"></i>
             </div>
-            <h1 className="text-2xl font-semibold text-slate-900 tracking-tight">Новый пароль</h1>
+            <h1 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">Новый пароль</h1>
           </div>
 
           {resetDone ? (
             <div className="text-center space-y-4">
-              <p className="text-slate-500 text-sm font-medium">Пароль обновлён. Теперь можно войти с новым паролем.</p>
+              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">Пароль обновлён. Теперь можно войти с новым паролем.</p>
               <button
                 onClick={() => { setResetToken(null); setResetDone(false); }}
                 className="w-full py-4 bg-blue-600 text-white rounded-2xl font-semibold uppercase tracking-wide text-xs shadow-md hover:bg-blue-700 active:scale-95 transition-all"
@@ -587,7 +617,7 @@ useEffect(() => {
                 placeholder="Новый пароль"
                 required
                 minLength={6}
-                className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+                className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
               />
               <input
                 name="confirm"
@@ -595,7 +625,7 @@ useEffect(() => {
                 placeholder="Повторите пароль"
                 required
                 minLength={6}
-                className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+                className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
               />
               <button
                 type="submit"
@@ -615,7 +645,7 @@ useEffect(() => {
   // Public Catalog View Wrapper
   if (!currentUser && currentView === 'CLIENT_CATALOG') {
     return (
-      <div className="min-h-screen bg-slate-50 relative overflow-y-auto">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 relative overflow-y-auto">
         <ToastContainer toasts={toasts} onClose={dismissToast} />
         <ClientCatalog
           cars={cars}
@@ -647,19 +677,19 @@ useEffect(() => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
         <ToastContainer toasts={toasts} onClose={dismissToast} />
-        <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn">
           <div className="text-center mb-8">
             <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white text-3xl shadow-lg mx-auto mb-4">
               <i className="fas fa-car-side"></i>
             </div>
-            <h1 className="text-3xl font-semibold text-slate-900 tracking-tight">AutoPro AI</h1>
-            <p className="text-slate-400 font-bold uppercase text-xs tracking-wide mt-2">
+            <h1 className="text-3xl font-semibold text-slate-900 dark:text-white tracking-tight">AutoPro AI</h1>
+            <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-xs tracking-wide mt-2">
               {authMode === 'FORGOT' ? 'Восстановление пароля' : 'Система управления автопарком'}
             </p>
           </div>
 
           {authNotice && (
-            <div className="mb-4 p-3 bg-blue-50 text-blue-700 text-xs font-semibold rounded-xl text-center">
+            <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-xs font-semibold rounded-xl text-center">
               {authNotice}
             </div>
           )}
@@ -670,7 +700,7 @@ useEffect(() => {
                 name="name"
                 placeholder="Название компании / ФИО"
                 required
-                className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+                className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
               />
             )}
             <input
@@ -678,7 +708,7 @@ useEffect(() => {
               type="email"
               placeholder="Email"
               required
-              className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+              className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
             />
             {authMode !== 'FORGOT' && (
               <input
@@ -686,7 +716,7 @@ useEffect(() => {
                 type="password"
                 placeholder="Пароль"
                 required
-                className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+                className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 transition-all"
               />
             )}
 
@@ -695,7 +725,7 @@ useEffect(() => {
                 <button
                   type="button"
                   onClick={() => { setAuthMode('FORGOT'); setAuthNotice(null); }}
-                  className="text-slate-400 font-semibold text-xs hover:text-blue-600 transition-colors"
+                  className="text-slate-400 dark:text-slate-500 font-semibold text-xs hover:text-blue-600 transition-colors"
                 >
                   Забыли пароль?
                 </button>
@@ -715,7 +745,7 @@ useEffect(() => {
           <div className="mt-6 text-center">
             <button
               onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'REGISTER' : 'LOGIN'); setAuthNotice(null); }}
-              className="text-slate-400 font-bold text-xs uppercase tracking-wide hover:text-blue-600 transition-colors"
+              className="text-slate-400 dark:text-slate-500 font-bold text-xs uppercase tracking-wide hover:text-blue-600 transition-colors"
             >
               {authMode === 'LOGIN' ? 'Нет аккаунта? Регистрация' : authMode === 'FORGOT' ? 'Назад ко входу' : 'Уже есть аккаунт? Войти'}
             </button>
@@ -730,18 +760,18 @@ useEffect(() => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-900 p-4">
         <ToastContainer toasts={toasts} onClose={dismissToast} />
-        <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn text-center">
-          <div className="w-12 h-12 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600 text-2xl mx-auto mb-4">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn text-center">
+          <div className="w-12 h-12 bg-amber-100 dark:bg-amber-500/15 rounded-2xl flex items-center justify-center text-amber-600 dark:text-amber-400 text-2xl mx-auto mb-4">
             <i className="fas fa-envelope-circle-check"></i>
           </div>
-          <h1 className="text-xl font-semibold text-slate-900">Подтвердите email</h1>
-          <p className="text-slate-500 text-sm font-medium mt-2">
-            Мы отправили письмо со ссылкой подтверждения на <span className="font-semibold text-slate-700">{currentUser.email}</span>.
+          <h1 className="text-xl font-semibold text-slate-900 dark:text-white">Подтвердите email</h1>
+          <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mt-2">
+            Мы отправили письмо со ссылкой подтверждения на <span className="font-semibold text-slate-700 dark:text-slate-200">{currentUser.email}</span>.
             Перейдите по ссылке, чтобы получить доступ к автопарку.
           </p>
 
           {authNotice && (
-            <div className="mt-4 p-3 bg-blue-50 text-blue-700 text-xs font-semibold rounded-xl">
+            <div className="mt-4 p-3 bg-blue-50 dark:bg-blue-500/10 text-blue-700 dark:text-blue-400 text-xs font-semibold rounded-xl">
               {authNotice}
             </div>
           )}
@@ -756,13 +786,13 @@ useEffect(() => {
             <button
               onClick={handleResendVerification}
               disabled={resendCooldown > 0}
-              className="w-full py-4 bg-slate-50 text-slate-500 rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-slate-100 transition-all disabled:opacity-50"
+              className="w-full py-4 bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-slate-100 transition-all disabled:opacity-50"
             >
               {resendCooldown > 0 ? `Отправить ещё раз (${resendCooldown}с)` : 'Отправить письмо ещё раз'}
             </button>
             <button
               onClick={() => BackendAPI.logout()}
-              className="text-slate-400 font-semibold text-xs uppercase tracking-wide hover:text-blue-600 transition-colors"
+              className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wide hover:text-blue-600 transition-colors"
             >
               Выйти
             </button>
@@ -785,7 +815,7 @@ useEffect(() => {
   const isStaff = currentUser.role === UserRole.STAFF;
 
   return (
-    <div className="min-h-screen bg-slate-50 relative flex overflow-hidden">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 relative flex overflow-hidden">
       {/* RESTRICTION MODAL (Only shows when action blocked) */}
       {showUpgradeModal && (
         <SubscriptionExpiredModal
@@ -808,8 +838,8 @@ useEffect(() => {
       )}
 
       {isGlobalLoading && (
-        <div className="fixed inset-0 z-[100] bg-white/40 backdrop-blur-[2px] flex items-center justify-center">
-          <div className="w-14 h-14 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+        <div className="fixed inset-0 z-[100] bg-white/40 dark:bg-slate-950/60 backdrop-blur-[2px] flex items-center justify-center">
+          <div className="w-14 h-14 border-4 border-blue-600 dark:border-blue-400 border-t-transparent rounded-full animate-spin"></div>
         </div>
       )}
 
@@ -1143,6 +1173,8 @@ useEffect(() => {
                   onGetPendingSyncCount={() => getOfflineQueue().then(q => q.length)}
                   onClearLocalData={handleClearLocalData}
                   onSyncNow={handleSyncNow}
+                  themePref={themePref}
+                  onSetThemePref={handleSetThemePref}
               />
           )}
 

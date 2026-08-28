@@ -143,17 +143,17 @@ const AllTransactions: React.FC<AllTransactionsProps> = ({
   return (
     <div className="space-y-5 animate-fadeIn pb-24 md:pb-0">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="w-10 h-10 rounded-full bg-white border border-slate-100 shadow-sm text-slate-500 flex items-center justify-center hover:text-blue-600 hover:border-blue-100 transition-all">
+        <button onClick={onBack} className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm text-slate-500 dark:text-slate-400 flex items-center justify-center hover:text-blue-600 hover:border-blue-100 transition-all">
           <i className="fas fa-arrow-left"></i>
         </button>
-        <h2 className="text-3xl font-semibold text-slate-900 flex-1">Все операции</h2>
+        <h2 className="text-3xl font-semibold text-slate-900 dark:text-white flex-1">Все операции</h2>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-        <StatCard label="Доход" value={`+${income.toLocaleString()} ₽`} valueClass="text-emerald-600" sub={PERIOD_LABELS[period]} delta={pctChange(income, prevIncome)} deltaGoodDirection="up" />
-        <StatCard label="Расход" value={`−${expense.toLocaleString()} ₽`} valueClass="text-rose-600" sub={PERIOD_LABELS[period]} delta={pctChange(expense, prevExpense)} deltaGoodDirection="down" />
-        <StatCard label="Прибыль" value={`${profit.toLocaleString()} ₽`} valueClass={profit >= 0 ? 'text-slate-900' : 'text-rose-600'} sub={PERIOD_LABELS[period]} delta={pctChange(profit, prevProfit)} deltaGoodDirection="up" />
-        <StatCard label="Операций" value={String(periodTransactions.length)} valueClass="text-slate-900" sub={PERIOD_LABELS[period]} />
+        <StatCard label="Доход" value={`+${income.toLocaleString()} ₽`} valueClass="text-emerald-600 dark:text-emerald-400" sub={PERIOD_LABELS[period]} delta={pctChange(income, prevIncome)} deltaGoodDirection="up" />
+        <StatCard label="Расход" value={`−${expense.toLocaleString()} ₽`} valueClass="text-rose-600 dark:text-rose-400" sub={PERIOD_LABELS[period]} delta={pctChange(expense, prevExpense)} deltaGoodDirection="down" />
+        <StatCard label="Прибыль" value={`${profit.toLocaleString()} ₽`} valueClass={profit >= 0 ? 'text-slate-900 dark:text-white' : 'text-rose-600 dark:text-rose-400'} sub={PERIOD_LABELS[period]} delta={pctChange(profit, prevProfit)} deltaGoodDirection="up" />
+        <StatCard label="Операций" value={String(periodTransactions.length)} valueClass="text-slate-900 dark:text-white" sub={PERIOD_LABELS[period]} />
       </div>
 
       {(incomeBreakdown.length > 0 || expenseBreakdown.length > 0) && (
@@ -165,27 +165,27 @@ const AllTransactions: React.FC<AllTransactionsProps> = ({
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-100 space-y-3">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-700 space-y-3">
           <div className="flex justify-between items-center gap-3 flex-wrap">
-            <h3 className="text-lg font-semibold text-slate-800">
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
               История
-              <span className="ml-2 text-xs font-medium text-slate-400">{visibleTransactions.length}</span>
+              <span className="ml-2 text-xs font-medium text-slate-400 dark:text-slate-500">{visibleTransactions.length}</span>
             </h3>
-            <button onClick={exportCsv} disabled={visibleTransactions.length === 0} className="text-blue-600 font-semibold text-xs uppercase tracking-wide hover:bg-blue-50 px-3 py-2 rounded-xl transition-all disabled:opacity-40">
+            <button onClick={exportCsv} disabled={visibleTransactions.length === 0} className="text-blue-600 dark:text-blue-400 font-semibold text-xs uppercase tracking-wide hover:bg-blue-50 px-3 py-2 rounded-xl transition-all disabled:opacity-40">
               <i className="fas fa-file-arrow-down mr-1.5"></i>Экспорт в CSV
             </button>
           </div>
 
           <div className="flex flex-wrap gap-2 items-center">
             {(Object.keys(PERIOD_LABELS) as Period[]).map(id => (
-              <button key={id} onClick={() => setPeriod(id)} className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors ${period === id ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-400 hover:text-slate-600'}`}>
+              <button key={id} onClick={() => setPeriod(id)} className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors ${period === id ? 'bg-slate-800 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600'}`}>
                 {PERIOD_LABELS[id]}
               </button>
             ))}
-            <span className="w-px bg-slate-200 mx-1 self-stretch"></span>
+            <span className="w-px bg-slate-200 dark:bg-slate-600 mx-1 self-stretch"></span>
             {([['ALL', 'Все'], [TransactionType.INCOME, 'Доходы'], [TransactionType.EXPENSE, 'Расходы']] as const).map(([id, label]) => (
-              <button key={String(id)} onClick={() => setTypeFilter(id as any)} className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors ${typeFilter === id ? 'bg-blue-600 text-white' : 'bg-slate-50 text-slate-400 hover:text-slate-600'}`}>
+              <button key={String(id)} onClick={() => setTypeFilter(id as any)} className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors ${typeFilter === id ? 'bg-blue-600 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600'}`}>
                 {label}
               </button>
             ))}
@@ -200,7 +200,7 @@ const AllTransactions: React.FC<AllTransactionsProps> = ({
                 const [kind, id] = v.split(':');
                 setEntityFilter({ kind: kind as 'car' | 'staff' | 'investor', id });
               }}
-              className="px-3 py-2 bg-slate-50 rounded-xl text-xs font-semibold outline-none border-2 border-transparent focus:border-blue-500 text-slate-700"
+              className="px-3 py-2 bg-slate-50 dark:bg-slate-700 rounded-xl text-xs font-semibold outline-none border-2 border-transparent focus:border-blue-500 text-slate-700 dark:text-slate-200"
             >
               <option value="">Все привязки</option>
               {cars.length > 0 && (
@@ -221,50 +221,50 @@ const AllTransactions: React.FC<AllTransactionsProps> = ({
             </select>
 
             {categoryFilter && (
-              <button onClick={() => setCategoryFilter(null)} className="px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide bg-blue-50 text-blue-600 flex items-center gap-2">
+              <button onClick={() => setCategoryFilter(null)} className="px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center gap-2">
                 {categoryFilter} <i className="fas fa-times"></i>
               </button>
             )}
           </div>
 
           <div className="relative">
-            <i className="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+            <i className="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 text-xs"></i>
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Поиск по описанию или категории"
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 rounded-xl text-sm font-medium outline-none border-2 border-transparent focus:border-blue-500 transition-all" />
+              className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-700 rounded-xl text-sm font-medium outline-none border-2 border-transparent focus:border-blue-500 transition-all" />
           </div>
         </div>
 
-        <div className="divide-y divide-slate-50">
+        <div className="divide-y divide-slate-50 dark:divide-slate-800">
           {pagedTransactions.map(t => {
             const linkLabel = getCarLabel(t.carId) || getStaffLabel(t.staffId) || getInvestorLabel(t.investorId);
             return (
               <div key={t.id} className="px-4 py-3 hover:bg-slate-50/50 transition-colors flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${t.type === TransactionType.INCOME ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600'}`}>
+                <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${t.type === TransactionType.INCOME ? 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400'}`}>
                   <i className={`fas ${t.type === TransactionType.INCOME ? 'fa-arrow-down' : 'fa-arrow-up'} text-xs`}></i>
                 </div>
                 <div className="flex-1 min-w-0">
-                  <div className="font-semibold text-slate-900 text-sm truncate">
-                    {t.description || <span className="text-slate-300 italic font-medium">Без описания</span>}
+                  <div className="font-semibold text-slate-900 dark:text-white text-sm truncate">
+                    {t.description || <span className="text-slate-300 dark:text-slate-600 italic font-medium">Без описания</span>}
                   </div>
-                  <div className="text-[11px] text-slate-400 font-medium truncate">
+                  <div className="text-[11px] text-slate-400 dark:text-slate-500 font-medium truncate">
                     {new Date(t.date).toLocaleDateString('ru-RU')} • {t.category}{linkLabel ? ` • ${linkLabel}` : ''}
                   </div>
                 </div>
-                <div className={`font-bold flex-shrink-0 ${t.type === TransactionType.INCOME ? 'text-emerald-600' : 'text-rose-600'}`}>
+                <div className={`font-bold flex-shrink-0 ${t.type === TransactionType.INCOME ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                   {t.type === TransactionType.INCOME ? '+' : '−'}{t.amount.toLocaleString()} ₽
                 </div>
                 <div className="relative">
-                  <button onClick={() => setMenuOpenId(menuOpenId === t.id ? null : t.id)} className="w-8 h-8 flex items-center justify-center text-slate-300 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
+                  <button onClick={() => setMenuOpenId(menuOpenId === t.id ? null : t.id)} className="w-8 h-8 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
                     <i className="fas fa-ellipsis-v text-xs"></i>
                   </button>
                   {menuOpenId === t.id && (
                     <>
                       <div className="fixed inset-0 z-20" onClick={() => setMenuOpenId(null)}></div>
-                      <div className="absolute top-9 right-0 w-44 bg-white rounded-xl shadow-md border border-slate-100 z-30 py-1 animate-scaleIn">
-                        <button onClick={() => { setCorrectingTx(t); setMenuOpenId(null); }} className="w-full px-4 py-2.5 text-left text-xs font-bold hover:bg-slate-50 flex items-center gap-2 text-amber-600">
+                      <div className="absolute top-9 right-0 w-44 bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-100 dark:border-slate-700 z-30 py-1 animate-scaleIn">
+                        <button onClick={() => { setCorrectingTx(t); setMenuOpenId(null); }} className="w-full px-4 py-2.5 text-left text-xs font-bold hover:bg-slate-50 flex items-center gap-2 text-amber-600 dark:text-amber-400">
                           <i className="fas fa-rotate-left w-4"></i> Исправить
                         </button>
-                        <button onClick={() => handleDelete(t)} className="w-full px-4 py-2.5 text-left text-xs font-bold hover:bg-rose-50 flex items-center gap-2 text-rose-500">
+                        <button onClick={() => handleDelete(t)} className="w-full px-4 py-2.5 text-left text-xs font-bold hover:bg-rose-50 flex items-center gap-2 text-rose-500 dark:text-rose-400">
                           <i className="fas fa-trash-alt w-4"></i> Удалить
                         </button>
                       </div>
@@ -276,8 +276,8 @@ const AllTransactions: React.FC<AllTransactionsProps> = ({
           })}
           {visibleTransactions.length === 0 && (
             <div className="p-12 text-center">
-              <i className="fas fa-receipt text-3xl text-slate-200 mb-3"></i>
-              <div className="font-semibold text-slate-500">Ничего не найдено</div>
+              <i className="fas fa-receipt text-3xl text-slate-200 dark:text-slate-700 mb-3"></i>
+              <div className="font-semibold text-slate-500 dark:text-slate-400">Ничего не найдено</div>
             </div>
           )}
         </div>
@@ -327,13 +327,13 @@ const StatCard: React.FC<{ label: string; value: string; valueClass: string; sub
   const isUp = (delta || 0) >= 0;
   const isGood = showDelta && (deltaGoodDirection === 'up' ? isUp : !isUp);
   return (
-    <div className="bg-white p-4 rounded-2xl border border-slate-100">
-      <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{label}</div>
+    <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
+      <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">{label}</div>
       <div className={`text-xl md:text-2xl font-bold mt-1 ${valueClass}`}>{value}</div>
       <div className="flex items-center gap-2 mt-0.5">
-        <span className="text-[10px] font-medium text-slate-400">{sub}</span>
+        <span className="text-[10px] font-medium text-slate-400 dark:text-slate-500">{sub}</span>
         {showDelta && delta !== 0 && (
-          <span className={`text-[10px] font-bold flex items-center gap-0.5 ${isGood ? 'text-emerald-500' : 'text-rose-500'}`}>
+          <span className={`text-[10px] font-bold flex items-center gap-0.5 ${isGood ? 'text-emerald-500 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>
             <i className={`fas ${isUp ? 'fa-arrow-up' : 'fa-arrow-down'}`}></i>{Math.abs(delta!)}%
           </span>
         )}
@@ -343,19 +343,19 @@ const StatCard: React.FC<{ label: string; value: string; valueClass: string; sub
 };
 
 const BreakdownCard: React.FC<{ title: string; items: { category: string; amount: number; pct: number }[]; accent: 'emerald' | 'rose'; onSelect: (cat: string) => void }> = ({ title, items, accent, onSelect }) => (
-  <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4">
-    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">{title}</h3>
+  <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm p-4">
+    <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-3">{title}</h3>
     {items.length === 0 ? (
-      <div className="text-xs text-slate-300 font-medium py-4 text-center">Нет данных</div>
+      <div className="text-xs text-slate-300 dark:text-slate-600 font-medium py-4 text-center">Нет данных</div>
     ) : (
       <div className="space-y-2.5">
         {items.map(it => (
           <button key={it.category} onClick={() => onSelect(it.category)} className="w-full text-left group">
             <div className="flex justify-between items-baseline text-xs mb-1">
-              <span className="font-semibold text-slate-700 group-hover:text-blue-600 transition-colors">{it.category}</span>
-              <span className="text-slate-400 font-medium">{it.amount.toLocaleString()} ₽</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 transition-colors">{it.category}</span>
+              <span className="text-slate-400 dark:text-slate-500 font-medium">{it.amount.toLocaleString()} ₽</span>
             </div>
-            <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
               <div className={`h-full rounded-full ${accent === 'emerald' ? 'bg-emerald-500' : 'bg-rose-500'}`} style={{ width: `${Math.max(it.pct, 4)}%` }}></div>
             </div>
           </button>
@@ -386,47 +386,47 @@ const CorrectionModal: React.FC<{
 
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
-      <form onSubmit={handleSubmit} className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn relative">
-        <button type="button" onClick={onClose} className="absolute top-8 right-8 w-10 h-10 flex items-center justify-center text-slate-300 hover:text-slate-900 bg-slate-50 rounded-full transition-all">
+      <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn relative">
+        <button type="button" onClick={onClose} className="absolute top-8 right-8 w-10 h-10 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-slate-900 bg-slate-50 dark:bg-slate-700 rounded-full transition-all">
           <i className="fas fa-times"></i>
         </button>
 
-        <h2 className="text-2xl font-semibold text-slate-900 mb-2">Исправить операцию</h2>
-        <p className="text-xs text-slate-400 font-medium mb-6 leading-relaxed">
+        <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-2">Исправить операцию</h2>
+        <p className="text-xs text-slate-400 dark:text-slate-500 font-medium mb-6 leading-relaxed">
           Будут добавлены 2 новые операции: отмена старой суммы и новая — с исправленными данными.
           Исходная запись останется в истории без изменений — это честный способ править кассу задним числом.
         </p>
 
-        <div className="bg-slate-50 rounded-2xl p-4 mb-6 text-xs">
-          <div className="font-semibold text-slate-500 uppercase tracking-wide mb-1">Было</div>
-          <div className="font-bold text-slate-900">{tx.amount.toLocaleString()} ₽ · {tx.category}</div>
-          {tx.description && <div className="text-slate-400 mt-0.5">{tx.description}</div>}
+        <div className="bg-slate-50 dark:bg-slate-700 rounded-2xl p-4 mb-6 text-xs">
+          <div className="font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mb-1">Было</div>
+          <div className="font-bold text-slate-900 dark:text-white">{tx.amount.toLocaleString()} ₽ · {tx.category}</div>
+          {tx.description && <div className="text-slate-400 dark:text-slate-500 mt-0.5">{tx.description}</div>}
         </div>
 
         <div className="space-y-4 mb-8">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Сумма (₽)</label>
-              <input name="amount" type="number" required defaultValue={tx.amount} className="w-full p-4 bg-slate-50 rounded-2xl font-bold text-xl text-slate-900 outline-none border-2 border-transparent focus:border-blue-500" />
+              <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2 mb-1 block">Сумма (₽)</label>
+              <input name="amount" type="number" required defaultValue={tx.amount} className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold text-xl text-slate-900 dark:text-white outline-none border-2 border-transparent focus:border-blue-500" />
             </div>
             <div>
-              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Дата</label>
-              <input name="date" type="date" required defaultValue={initialDate} max={new Date().toLocaleDateString('en-CA')} className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 text-slate-900" />
+              <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2 mb-1 block">Дата</label>
+              <input name="date" type="date" required defaultValue={initialDate} max={new Date().toLocaleDateString('en-CA')} className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 text-slate-900 dark:text-white" />
             </div>
           </div>
           <div>
-            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Категория</label>
-            <select name="category" required defaultValue={categories.includes(tx.category) ? tx.category : ''} className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900">
+            <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2 mb-1 block">Категория</label>
+            <select name="category" required defaultValue={categories.includes(tx.category) ? tx.category : ''} className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900 dark:text-white">
               {!categories.includes(tx.category) && <option value={tx.category}>{tx.category}</option>}
               {categories.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
           </div>
           <div>
-            <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Описание</label>
-            <input name="description" defaultValue={tx.description} placeholder="Детали для истории" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
+            <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2 mb-1 block">Описание</label>
+            <input name="description" defaultValue={tx.description} placeholder="Детали для истории" className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
           </div>
           {(tx.carId || tx.staffId || tx.investorId) && (
-            <div className="text-[10px] text-blue-500 font-bold ml-2">
+            <div className="text-[10px] text-blue-500 dark:text-blue-400 font-bold ml-2">
               <i className="fas fa-info-circle mr-1"></i>
               Привязка к авто/сотруднику/инвестору сохранится без изменений. Чтобы поменять саму привязку — удалите операцию и создайте новую.
             </div>

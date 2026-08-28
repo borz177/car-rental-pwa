@@ -240,14 +240,14 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
     const monthName = viewDate.toLocaleString('ru-RU', { month: 'long', year: 'numeric' });
 
     return (
-      <div className="bg-slate-50 p-4 rounded-2xl select-none border border-slate-100">
+      <div className="bg-slate-50 dark:bg-slate-700 p-4 rounded-2xl select-none border border-slate-100 dark:border-slate-700">
         <div className="flex justify-between items-center mb-4 px-2">
-          <button type="button" onClick={() => changeMonth(-1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-slate-400 hover:text-slate-900 shadow-sm"><i className="fas fa-chevron-left"></i></button>
-          <div className="font-semibold text-slate-900 capitalize text-sm">{monthName}</div>
-          <button type="button" onClick={() => changeMonth(1)} className="w-8 h-8 flex items-center justify-center bg-white rounded-full text-slate-400 hover:text-slate-900 shadow-sm"><i className="fas fa-chevron-right"></i></button>
+          <button type="button" onClick={() => changeMonth(-1)} className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-full text-slate-400 dark:text-slate-500 hover:text-slate-900 shadow-sm"><i className="fas fa-chevron-left"></i></button>
+          <div className="font-semibold text-slate-900 dark:text-white capitalize text-sm">{monthName}</div>
+          <button type="button" onClick={() => changeMonth(1)} className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-full text-slate-400 dark:text-slate-500 hover:text-slate-900 shadow-sm"><i className="fas fa-chevron-right"></i></button>
         </div>
         <div className="grid grid-cols-7 gap-1 md:gap-2 text-center mb-2">
-          {['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(d => <div key={d} className="text-[10px] font-bold text-slate-400 uppercase">{d}</div>)}
+          {['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(d => <div key={d} className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">{d}</div>)}
         </div>
         <div className="grid grid-cols-7 gap-1 md:gap-2">
           {days.map((date, idx) => {
@@ -265,14 +265,14 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
             const inRange = bookingForm.start && bookingForm.end && dateStr > bookingForm.start && dateStr < bookingForm.end;
 
             if (disabled) {
-                className += "bg-slate-100 text-slate-300 cursor-not-allowed";
-                if (busy) className += " line-through opacity-50 bg-rose-50 text-rose-300";
+                className += "bg-slate-100 dark:bg-slate-700 text-slate-300 dark:text-slate-600 cursor-not-allowed";
+                if (busy) className += " line-through opacity-50 bg-rose-50 dark:bg-rose-500/10 text-rose-300";
             } else if (isStart || isEnd) {
                 className += "bg-blue-600 text-white shadow-lg scale-105 z-10";
             } else if (inRange) {
-                className += "bg-blue-100 text-blue-600";
+                className += "bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400";
             } else {
-                className += "bg-white text-slate-700 hover:bg-blue-50 hover:text-blue-600 cursor-pointer shadow-sm";
+                className += "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-blue-50 hover:text-blue-600 cursor-pointer shadow-sm";
             }
 
             return (
@@ -289,13 +289,13 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
           })}
         </div>
         <div className="flex items-center justify-center gap-4 mt-4 px-2">
-           <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
-              <div className="w-3 h-3 bg-white rounded-full border border-slate-200"></div> <span>Своб.</span>
+           <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-500">
+              <div className="w-3 h-3 bg-white dark:bg-slate-800 rounded-full border border-slate-200 dark:border-slate-600"></div> <span>Своб.</span>
            </div>
-           <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
-              <div className="w-3 h-3 bg-rose-50 rounded-full border border-rose-200 opacity-50 line-through"></div> <span>Занято</span>
+           <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-500">
+              <div className="w-3 h-3 bg-rose-50 dark:bg-rose-500/10 rounded-full border border-rose-200 dark:border-rose-500/20 opacity-50 line-through"></div> <span>Занято</span>
            </div>
-           <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400">
+           <div className="flex items-center gap-2 text-[10px] font-bold text-slate-400 dark:text-slate-500">
               <div className="w-3 h-3 bg-blue-600 rounded-full"></div> <span>Выбор</span>
            </div>
         </div>
@@ -306,12 +306,12 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
   return (
     <div className="max-w-[1600px] mx-auto space-y-5 animate-fadeIn pb-24 md:pb-0 p-4">
       {/* Public Header */}
-      <div className="bg-white p-5 md:p-8 rounded-2xl shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div className="bg-white dark:bg-slate-800 p-5 md:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col md:flex-row justify-between items-center gap-4">
         <div>
-          <h2 className="text-4xl font-semibold text-slate-900 mb-2 tracking-tight">
+          <h2 className="text-4xl font-semibold text-slate-900 dark:text-white mb-2 tracking-tight">
             {fleetOwner?.publicBrandName || 'Наш автопарк'}
           </h2>
-          <p className="text-slate-500 font-bold uppercase text-[10px] tracking-[0.2em]">
+          <p className="text-slate-500 dark:text-slate-400 font-bold uppercase text-[10px] tracking-[0.2em]">
             Аренда автомобилей премиум и бизнес-класса
           </p>
         </div>
@@ -332,13 +332,13 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
           const isBookable = avail.status !== 'REPAIR';
 
           return (
-            <div key={car.id} className="bg-white rounded-2xl overflow-hidden shadow-md border border-slate-50 group hover:-translate-y-2 transition-all duration-300">
+            <div key={car.id} className="bg-white dark:bg-slate-800 rounded-2xl overflow-hidden shadow-md border border-slate-50 dark:border-slate-800 group hover:-translate-y-2 transition-all duration-300">
               {/* Reduced height from h-48 to h-44 for better compactness */}
               <div className="h-44 relative overflow-hidden">
                 <img src={car.images[0]} className={`w-full h-full object-cover transition-transform duration-700 ${isBookable ? 'group-hover:scale-110' : 'grayscale opacity-80'}`} alt={car.model} />
 
                 <div className="absolute top-4 left-4 flex gap-2">
-                  <div className="bg-white/90 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-semibold text-blue-600 shadow-sm uppercase tracking-wide">
+                  <div className="bg-white/90 dark:bg-slate-800 backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-semibold text-blue-600 dark:text-blue-400 shadow-sm uppercase tracking-wide">
                     {car.category}
                   </div>
                 </div>
@@ -351,22 +351,22 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
               <div className="p-4">
                 <div className="flex justify-between items-start mb-4">
                   <div>
-                    <h3 className="text-lg font-semibold text-slate-900">{car.brand} {car.model}</h3>
-                    <p className="text-slate-400 font-bold uppercase text-[9px] tracking-wide mt-0.5">{car.year} г.в. • {car.transmission}</p>
+                    <h3 className="text-lg font-semibold text-slate-900 dark:text-white">{car.brand} {car.model}</h3>
+                    <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[9px] tracking-wide mt-0.5">{car.year} г.в. • {car.transmission}</p>
                   </div>
                   <div className="text-right">
-                    <div className="text-xl font-bold text-blue-600">{car.pricePerDay} ₽</div>
-                    <div className="text-[9px] text-slate-400 uppercase font-semibold tracking-wide">в сутки</div>
+                    <div className="text-xl font-bold text-blue-600 dark:text-blue-400">{car.pricePerDay} ₽</div>
+                    <div className="text-[9px] text-slate-400 dark:text-slate-500 uppercase font-semibold tracking-wide">в сутки</div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 mb-6">
-                   <div className="bg-slate-50 p-2 rounded-xl text-center">
-                      <div className="text-[8px] font-semibold text-slate-400 uppercase mb-0.5">Топливо</div>
+                   <div className="bg-slate-50 dark:bg-slate-700 p-2 rounded-xl text-center">
+                      <div className="text-[8px] font-semibold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Топливо</div>
                       <div className="text-[10px] font-bold">{car.fuel}</div>
                    </div>
-                   <div className="bg-slate-50 p-2 rounded-xl text-center">
-                      <div className="text-[8px] font-semibold text-slate-400 uppercase mb-0.5">Пробег</div>
+                   <div className="bg-slate-50 dark:bg-slate-700 p-2 rounded-xl text-center">
+                      <div className="text-[8px] font-semibold text-slate-400 dark:text-slate-500 uppercase mb-0.5">Пробег</div>
                       <div className="text-[10px] font-bold">{car.mileage.toLocaleString()} км</div>
                    </div>
                 </div>
@@ -374,7 +374,7 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
                 <button
                   onClick={() => handleRequestClick(car)}
                   disabled={!isBookable}
-                  className={`w-full py-4 rounded-xl font-semibold uppercase tracking-wide text-[10px] transition-all shadow-lg active:scale-95 ${isBookable ? 'bg-slate-900 text-white hover:bg-blue-600' : 'bg-slate-100 text-slate-400 cursor-not-allowed'}`}
+                  className={`w-full py-4 rounded-xl font-semibold uppercase tracking-wide text-[10px] transition-all shadow-lg active:scale-95 ${isBookable ? 'bg-slate-900 text-white hover:bg-blue-600' : 'bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 cursor-not-allowed'}`}
                 >
                   {avail.status === 'BUSY' ? 'Забронировать на будущее' : (isBookable ? 'Забронировать' : 'В ремонте')}
                 </button>
@@ -384,10 +384,10 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
         })}
         {visibleCars.length === 0 && (
           <div className="col-span-full py-32 text-center">
-            <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300 text-3xl">
+            <div className="w-14 h-14 bg-slate-100 dark:bg-slate-700 rounded-full flex items-center justify-center mx-auto mb-6 text-slate-300 dark:text-slate-600 text-3xl">
               <i className="fas fa-car-side"></i>
             </div>
-            <p className="text-slate-400 font-bold uppercase tracking-wide text-sm">К сожалению, доступных авто сейчас нет.</p>
+            <p className="text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wide text-sm">К сожалению, доступных авто сейчас нет.</p>
           </div>
         )}
       </div>
@@ -395,32 +395,32 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
       {/* Booking Modal */}
       {selectedCar && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
-          <form onSubmit={handleFinalSubmit} className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn my-auto">
-            <h2 className="text-3xl font-semibold mb-2 text-slate-900 tracking-tight">Заявка на бронь</h2>
-            <p className="text-blue-600 mb-8 font-semibold uppercase text-[10px] tracking-wide">{selectedCar.brand} {selectedCar.model}</p>
+          <form onSubmit={handleFinalSubmit} className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn my-auto">
+            <h2 className="text-3xl font-semibold mb-2 text-slate-900 dark:text-white tracking-tight">Заявка на бронь</h2>
+            <p className="text-blue-600 dark:text-blue-400 mb-8 font-semibold uppercase text-[10px] tracking-wide">{selectedCar.brand} {selectedCar.model}</p>
 
             <div className="space-y-4 mb-10">
               {/* Personal Data Section */}
-              <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-4">
-                 <h4 className="text-xs font-semibold uppercase text-slate-400 tracking-wide">Личные данные</h4>
+              <div className="bg-slate-50 dark:bg-slate-700 p-4 rounded-xl border border-slate-100 dark:border-slate-700 space-y-4">
+                 <h4 className="text-xs font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide">Личные данные</h4>
                  <input
                    required placeholder="ФИО полностью"
                    value={bookingForm.name} onChange={e => setBookingForm({...bookingForm, name: e.target.value})}
-                   className="w-full p-4 bg-white rounded-2xl font-bold outline-none border border-slate-200 focus:border-blue-500"
+                   className="w-full p-4 bg-white dark:bg-slate-800 rounded-2xl font-bold outline-none border border-slate-200 dark:border-slate-600 focus:border-blue-500"
                    readOnly={!!currentUser}
                  />
                  <div className="grid grid-cols-2 gap-4">
                     <input
                       required placeholder="+7 (999) 000-00-00" type="tel"
                       value={bookingForm.phone} onChange={e => setBookingForm({...bookingForm, phone: e.target.value})}
-                      className="w-full p-4 bg-white rounded-2xl font-bold outline-none border border-slate-200 focus:border-blue-500"
+                      className="w-full p-4 bg-white dark:bg-slate-800 rounded-2xl font-bold outline-none border border-slate-200 dark:border-slate-600 focus:border-blue-500"
                     />
                     <div>
-                      <label className="text-[9px] font-bold text-slate-400 uppercase ml-2 mb-1 block">Дата рождения</label>
+                      <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase ml-2 mb-1 block">Дата рождения</label>
                       <input
                         required type="date"
                         value={bookingForm.dob} onChange={e => setBookingForm({...bookingForm, dob: e.target.value})}
-                        className="w-full p-4 bg-white rounded-2xl font-bold outline-none border border-slate-200 focus:border-blue-500"
+                        className="w-full p-4 bg-white dark:bg-slate-800 rounded-2xl font-bold outline-none border border-slate-200 dark:border-slate-600 focus:border-blue-500"
                       />
                     </div>
                  </div>
@@ -429,8 +429,8 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
               {/* Calendar Section */}
               <div>
                 <div className="flex justify-between items-end mb-2">
-                   <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2">Выберите даты аренды (МСК)</div>
-                   <div className="text-xs font-bold text-blue-600">
+                   <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2">Выберите даты аренды (МСК)</div>
+                   <div className="text-xs font-bold text-blue-600 dark:text-blue-400">
                       {new Date(bookingForm.start).toLocaleDateString()}
                       {bookingForm.end ? ` — ${new Date(bookingForm.end).toLocaleDateString()}` : ''}
                    </div>
@@ -441,16 +441,16 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
                 {/* Time Selection */}
                 <div className="grid grid-cols-2 gap-4 mt-4">
                    <div>
-                      <label className="text-[9px] font-bold text-slate-400 uppercase ml-2 block mb-1">Время начала</label>
+                      <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase ml-2 block mb-1">Время начала</label>
                       <input
-                        type="time" required className="w-full p-3 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 text-center"
+                        type="time" required className="w-full p-3 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 text-center"
                         value={bookingForm.startTime} onChange={e => setBookingForm({...bookingForm, startTime: e.target.value})}
                       />
                    </div>
                    <div>
-                      <label className="text-[9px] font-bold text-slate-400 uppercase ml-2 block mb-1">Время окончания</label>
+                      <label className="text-[9px] font-bold text-slate-400 dark:text-slate-500 uppercase ml-2 block mb-1">Время окончания</label>
                       <input
-                        type="time" required className="w-full p-3 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 text-center"
+                        type="time" required className="w-full p-3 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 text-center"
                         value={bookingForm.endTime} onChange={e => setBookingForm({...bookingForm, endTime: e.target.value})}
                       />
                    </div>
@@ -459,7 +459,7 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
             </div>
 
             <div className="flex gap-4">
-              <button type="button" onClick={() => setSelectedCar(null)} className="flex-1 py-5 bg-slate-100 rounded-2xl font-bold text-slate-600 hover:bg-slate-200 transition-all">
+              <button type="button" onClick={() => setSelectedCar(null)} className="flex-1 py-5 bg-slate-100 dark:bg-slate-700 rounded-2xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-all">
                 Отмена
               </button>
               <button type="submit" className="flex-1 py-5 bg-blue-600 text-white rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-blue-700 transition-all shadow-md">
@@ -473,18 +473,18 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
       {/* Success Modal */}
       {showSuccessModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/80 backdrop-blur-md">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn text-center">
-            <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-lg">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn text-center">
+            <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-full flex items-center justify-center mx-auto mb-6 text-4xl shadow-lg">
               <i className="fas fa-check"></i>
             </div>
-            <h2 className="text-2xl font-semibold text-slate-900 mb-2 uppercase tracking-tight">Заявка принята!</h2>
-            <p className="text-slate-500 font-medium mb-8">
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-2 uppercase tracking-tight">Заявка принята!</h2>
+            <p className="text-slate-500 dark:text-slate-400 font-medium mb-8">
               Менеджер скоро свяжется с вами для подтверждения.
             </p>
 
             {!currentUser && (
-               <div className="bg-blue-50 p-4 rounded-xl mb-8 border border-blue-100">
-                  <p className="text-sm font-bold text-blue-800 mb-3">Хотите отслеживать статус?</p>
+               <div className="bg-blue-50 dark:bg-blue-500/10 p-4 rounded-xl mb-8 border border-blue-100 dark:border-blue-500/20">
+                  <p className="text-sm font-bold text-blue-800 dark:text-blue-300 mb-3">Хотите отслеживать статус?</p>
                   <button
                     onClick={() => { setShowSuccessModal(false); setShowAuthModal(true); }}
                     className="w-full py-3 bg-blue-600 text-white rounded-xl font-bold uppercase text-[10px] tracking-wide hover:bg-blue-700"
@@ -496,7 +496,7 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
 
             <button
               onClick={() => setShowSuccessModal(false)}
-              className="w-full py-4 bg-slate-100 text-slate-600 rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-slate-200 transition-all"
+              className="w-full py-4 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-slate-200 transition-all"
             >
               Закрыть
             </button>
@@ -507,15 +507,15 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
       {/* Auth Prompt Modal */}
       {showAuthModal && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
-          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn my-auto">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-6 shadow-md animate-scaleIn my-auto">
             <div className="flex justify-between items-center mb-8">
-               <h2 className="text-2xl font-semibold text-slate-900 tracking-tight">
+               <h2 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">
                  {authMode === 'REGISTER' ? 'Регистрация' : 'Вход'}
                </h2>
-               <button onClick={() => setShowAuthModal(false)} className="text-slate-300 hover:text-slate-900"><i className="fas fa-times"></i></button>
+               <button onClick={() => setShowAuthModal(false)} className="text-slate-300 dark:text-slate-600 hover:text-slate-900"><i className="fas fa-times"></i></button>
             </div>
 
-            <p className="text-slate-400 text-sm font-medium mb-8">
+            <p className="text-slate-400 dark:text-slate-500 text-sm font-medium mb-8">
               {authMode === 'REGISTER'
                 ? 'Создайте аккаунт, чтобы видеть историю заказов и статус заявок.'
                 : 'Войдите, чтобы управлять бронированиями.'}
@@ -523,10 +523,10 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
 
             <form onSubmit={handleAuthSubmit} className="space-y-4">
               {authMode === 'REGISTER' && (
-                <input name="name" required placeholder="Ваше ФИО" className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500" />
+                <input name="name" required placeholder="Ваше ФИО" className="w-full p-5 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500" />
               )}
-              <input name="email" type="email" required placeholder="Ваш Email" className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500" />
-              <input name="password" type="password" required placeholder="Придумайте пароль" className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500" />
+              <input name="email" type="email" required placeholder="Ваш Email" className="w-full p-5 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500" />
+              <input name="password" type="password" required placeholder="Придумайте пароль" className="w-full p-5 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none focus:ring-2 focus:ring-blue-500" />
 
               <button
                 type="submit"
@@ -540,7 +540,7 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
 
             <button 
               onClick={() => setAuthMode(authMode === 'REGISTER' ? 'LOGIN' : 'REGISTER')}
-              className="w-full text-center mt-6 text-sm font-bold text-blue-600 hover:underline"
+              className="w-full text-center mt-6 text-sm font-bold text-blue-600 dark:text-blue-400 hover:underline"
             >
               {authMode === 'REGISTER' ? 'Уже есть аккаунт? Войти' : 'Нет аккаунта? Зарегистрироваться'}
             </button>

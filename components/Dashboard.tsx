@@ -35,15 +35,15 @@ const Money: React.FC<{
 }> = ({ label, value, hint, tone = 'default', onClick }) => (
   <div
     onClick={onClick}
-    className={`bg-white p-4 rounded-2xl border border-slate-100 ${onClick ? 'cursor-pointer hover:border-slate-300 transition-colors' : ''}`}
+    className={`bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 ${onClick ? 'cursor-pointer hover:border-slate-300 transition-colors' : ''}`}
   >
-    <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">{label}</div>
+    <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">{label}</div>
     <div className={`text-2xl font-bold mt-1 ${
-      tone === 'emerald' ? 'text-emerald-600' : tone === 'rose' ? 'text-rose-600' : 'text-slate-900'
+      tone === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' : tone === 'rose' ? 'text-rose-600 dark:text-rose-400' : 'text-slate-900 dark:text-white'
     }`}>
       {value.toLocaleString()} ₽
     </div>
-    {hint && <div className="text-[10px] font-medium text-slate-400 mt-0.5">{hint}</div>}
+    {hint && <div className="text-[10px] font-medium text-slate-400 dark:text-slate-500 mt-0.5">{hint}</div>}
   </div>
 );
 
@@ -174,27 +174,27 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     return (
       <div className={`p-3 rounded-xl border flex items-center gap-3 ${
-        overdue ? 'border-rose-200 bg-rose-50/50' : 'border-slate-100 hover:bg-slate-50'
+        overdue ? 'border-rose-200 dark:border-rose-500/20 bg-rose-50/50 dark:bg-rose-500/10' : 'border-slate-100 dark:border-slate-700 hover:bg-slate-50'
       } transition-colors`}>
         <div
           onClick={() => onSelectCar(car.id)}
-          className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 cursor-pointer"
+          className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 flex-shrink-0 cursor-pointer"
         >
           <img src={car.images?.[0] || CAR_PLACEHOLDER_IMAGE} className="w-full h-full object-cover" alt="" />
         </div>
 
         <div className="flex-1 min-w-0">
-          <div className="font-semibold text-slate-900 text-sm truncate">{client.name}</div>
-          <div className="text-[11px] text-slate-400 font-medium truncate">
+          <div className="font-semibold text-slate-900 dark:text-white text-sm truncate">{client.name}</div>
+          <div className="text-[11px] text-slate-400 dark:text-slate-500 font-medium truncate">
             {car.brand} {car.model} • {car.plate}
           </div>
         </div>
 
         <div className="text-right flex-shrink-0">
-          <div className={`text-xs font-bold ${overdue ? 'text-rose-600' : 'text-slate-700'}`}>
+          <div className={`text-xs font-bold ${overdue ? 'text-rose-600 dark:text-rose-400' : 'text-slate-700 dark:text-slate-200'}`}>
             {kind === 'RETURN' ? rental.endTime : rental.startTime}
           </div>
-          {overdue && <div className="text-[9px] font-bold text-rose-600 uppercase">+{overdue}</div>}
+          {overdue && <div className="text-[9px] font-bold text-rose-600 dark:text-rose-400 uppercase">+{overdue}</div>}
         </div>
 
         <div className="flex gap-1.5 flex-shrink-0">
@@ -221,8 +221,8 @@ const Dashboard: React.FC<DashboardProps> = ({
 
   const EmptyState: React.FC<{ icon: string; text: string }> = ({ icon, text }) => (
     <div className="py-10 text-center">
-      <i className={`fas ${icon} text-2xl text-slate-200 mb-2`}></i>
-      <div className="text-xs font-semibold text-slate-400">{text}</div>
+      <i className={`fas ${icon} text-2xl text-slate-200 dark:text-slate-700 mb-2`}></i>
+      <div className="text-xs font-semibold text-slate-400 dark:text-slate-500">{text}</div>
     </div>
   );
 
@@ -245,33 +245,33 @@ const Dashboard: React.FC<DashboardProps> = ({
           hint={money.debt > 0 ? 'требуют внимания' : 'все рассчитались'}
           onClick={() => onNavigate('CLIENTS')}
         />
-        <div className="bg-white p-4 rounded-2xl border border-slate-100">
-          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Загрузка автопарка</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1">{fleet.utilization}%</div>
-          <div className="h-1.5 bg-slate-100 rounded-full overflow-hidden mt-2">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
+          <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Загрузка автопарка</div>
+          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{fleet.utilization}%</div>
+          <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mt-2">
             <div className="h-full bg-blue-500 rounded-full transition-all" style={{ width: `${fleet.utilization}%` }}></div>
           </div>
         </div>
       </div>
 
       {/* Автопарк */}
-      <div className="bg-white p-4 rounded-2xl border border-slate-100">
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
         <div className="flex items-center justify-between mb-3">
-          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Автопарк — {fleet.total} авто</div>
-          <button onClick={() => onNavigate('CARS')} className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide hover:text-blue-700">
+          <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Автопарк — {fleet.total} авто</div>
+          <button onClick={() => onNavigate('CARS')} className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide hover:text-blue-700">
             Открыть <i className="fas fa-arrow-right ml-1"></i>
           </button>
         </div>
         <div className="grid grid-cols-4 gap-2">
           {[
-            { label: 'Свободны', value: fleet.free, color: 'text-emerald-600', bg: 'bg-emerald-50' },
-            { label: 'В аренде', value: fleet.rented, color: 'text-blue-600', bg: 'bg-blue-50' },
-            { label: 'Бронь', value: fleet.reserved, color: 'text-amber-600', bg: 'bg-amber-50' },
-            { label: 'Ремонт', value: fleet.maintenance, color: 'text-slate-600', bg: 'bg-slate-100' }
+            { label: 'Свободны', value: fleet.free, color: 'text-emerald-600 dark:text-emerald-400', bg: 'bg-emerald-50 dark:bg-emerald-500/10' },
+            { label: 'В аренде', value: fleet.rented, color: 'text-blue-600 dark:text-blue-400', bg: 'bg-blue-50 dark:bg-blue-500/10' },
+            { label: 'Бронь', value: fleet.reserved, color: 'text-amber-600 dark:text-amber-400', bg: 'bg-amber-50 dark:bg-amber-500/10' },
+            { label: 'Ремонт', value: fleet.maintenance, color: 'text-slate-600 dark:text-slate-300', bg: 'bg-slate-100 dark:bg-slate-700' }
           ].map(s => (
             <button key={s.label} onClick={() => onNavigate('CARS')} className={`${s.bg} p-3 rounded-xl text-center hover:opacity-80 transition-opacity`}>
               <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
-              <div className="text-[9px] font-semibold text-slate-500 uppercase tracking-wide mt-0.5">{s.label}</div>
+              <div className="text-[9px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide mt-0.5">{s.label}</div>
             </button>
           ))}
         </div>
@@ -285,11 +285,11 @@ const Dashboard: React.FC<DashboardProps> = ({
               key={i}
               onClick={a.action}
               className={`w-full p-3 rounded-xl border flex items-center gap-3 text-left transition-colors ${
-                a.tone === 'rose' ? 'bg-rose-50 border-rose-100 hover:bg-rose-100/60' : 'bg-amber-50 border-amber-100 hover:bg-amber-100/60'
+                a.tone === 'rose' ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20 hover:bg-rose-100/60' : 'bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20 hover:bg-amber-100/60'
               }`}
             >
-              <i className={`fas ${a.icon} ${a.tone === 'rose' ? 'text-rose-500' : 'text-amber-500'}`}></i>
-              <span className={`text-xs font-semibold flex-1 ${a.tone === 'rose' ? 'text-rose-700' : 'text-amber-700'}`}>{a.text}</span>
+              <i className={`fas ${a.icon} ${a.tone === 'rose' ? 'text-rose-500 dark:text-rose-400' : 'text-amber-500 dark:text-amber-400'}`}></i>
+              <span className={`text-xs font-semibold flex-1 ${a.tone === 'rose' ? 'text-rose-700 dark:text-rose-400' : 'text-amber-700 dark:text-amber-400'}`}>{a.text}</span>
               <i className={`fas fa-chevron-right text-[10px] ${a.tone === 'rose' ? 'text-rose-400' : 'text-amber-400'}`}></i>
             </button>
           ))}
@@ -298,21 +298,21 @@ const Dashboard: React.FC<DashboardProps> = ({
 
       {/* План на день */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-rose-50 text-rose-500 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-rose-50 dark:bg-rose-500/10 text-rose-500 dark:text-rose-400 flex items-center justify-center">
                 <i className="fas fa-arrow-rotate-left text-xs"></i>
               </div>
               <div>
-                <div className="font-semibold text-slate-900 text-sm">Возвраты</div>
-                <div className="text-[10px] font-medium text-slate-400">
+                <div className="font-semibold text-slate-900 dark:text-white text-sm">Возвраты</div>
+                <div className="text-[10px] font-medium text-slate-400 dark:text-slate-500">
                   {overdueCount > 0 ? `${returns.length} всего • ${overdueCount} просрочено` : 'на сегодня'}
                 </div>
               </div>
             </div>
             {returns.length > 0 && (
-              <span className={`px-2 py-1 rounded-lg text-xs font-bold ${overdueCount > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'}`}>
+              <span className={`px-2 py-1 rounded-lg text-xs font-bold ${overdueCount > 0 ? 'bg-rose-100 dark:bg-rose-500/15 text-rose-700 dark:text-rose-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300'}`}>
                 {returns.length}
               </span>
             )}
@@ -324,19 +324,19 @@ const Dashboard: React.FC<DashboardProps> = ({
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
-          <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+          <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-blue-50 text-blue-500 flex items-center justify-center">
+              <div className="w-8 h-8 rounded-xl bg-blue-50 dark:bg-blue-500/10 text-blue-500 dark:text-blue-400 flex items-center justify-center">
                 <i className="fas fa-key text-xs"></i>
               </div>
               <div>
-                <div className="font-semibold text-slate-900 text-sm">Выдачи</div>
-                <div className="text-[10px] font-medium text-slate-400">брони на сегодня</div>
+                <div className="font-semibold text-slate-900 dark:text-white text-sm">Выдачи</div>
+                <div className="text-[10px] font-medium text-slate-400 dark:text-slate-500">брони на сегодня</div>
               </div>
             </div>
             {pickups.length > 0 && (
-              <span className="px-2 py-1 rounded-lg text-xs font-bold bg-blue-100 text-blue-700">{pickups.length}</span>
+              <span className="px-2 py-1 rounded-lg text-xs font-bold bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400">{pickups.length}</span>
             )}
           </div>
           <div className="p-3 space-y-2 max-h-96 overflow-y-auto">

@@ -51,10 +51,10 @@ const InvestorList: React.FC<InvestorListProps> = ({ investors, cars, rentals, t
 
   return (
     <div className="space-y-5 animate-fadeIn pb-24 md:pb-0">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white p-4 rounded-2xl border border-slate-100 shadow-sm">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm">
         <div>
-          <h2 className="text-3xl font-semibold text-slate-900">Инвесторы</h2>
-          <p className="text-slate-400 font-bold uppercase text-[10px] tracking-wide mt-1">Учет вложений и доходности партнеров</p>
+          <h2 className="text-3xl font-semibold text-slate-900 dark:text-white">Инвесторы</h2>
+          <p className="text-slate-400 dark:text-slate-500 font-bold uppercase text-[10px] tracking-wide mt-1">Учет вложений и доходности партнеров</p>
         </div>
         <button
           onClick={() => { setEditingInvestor(null); setIsModalOpen(true); }}
@@ -69,33 +69,33 @@ const InvestorList: React.FC<InvestorListProps> = ({ investors, cars, rentals, t
         {investors.map(inv => {
           const rentalEarnings = calculateEarnings(inv.id);
           return (
-            <div key={inv.id} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-all relative group">
+            <div key={inv.id} className="bg-white dark:bg-slate-800 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all relative group">
               <div className="flex items-start justify-between mb-6">
                 <div className="flex items-center space-x-4">
-                  <div className="w-14 h-14 bg-indigo-50 text-indigo-600 rounded-2xl flex items-center justify-center text-xl font-semibold shadow-inner uppercase">
+                  <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-2xl flex items-center justify-center text-xl font-semibold shadow-inner uppercase">
                     {inv.name.charAt(0)}
                   </div>
                   <div>
-                    <h3 className="text-xl font-bold text-slate-900 tracking-tight">{inv.name}</h3>
-                    <p className="text-sm text-slate-400 font-medium">{inv.phone}</p>
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">{inv.name}</h3>
+                    <p className="text-sm text-slate-400 dark:text-slate-500 font-medium">{inv.phone}</p>
                   </div>
                 </div>
 
                 <div className="relative">
-                  <button onClick={() => setShowActions(showActions === inv.id ? null : inv.id)} className="w-10 h-10 flex items-center justify-center text-slate-300 hover:text-slate-900 bg-slate-50 rounded-xl">
+                  <button onClick={() => setShowActions(showActions === inv.id ? null : inv.id)} className="w-10 h-10 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-slate-900 bg-slate-50 dark:bg-slate-700 rounded-xl">
                     <i className="fas fa-ellipsis-v"></i>
                   </button>
                   {showActions === inv.id && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setShowActions(null)}></div>
-                      <div className="absolute right-0 top-12 w-48 bg-white rounded-2xl shadow-md border border-slate-50 z-50 overflow-hidden animate-scaleIn">
-                        <button onClick={() => { onSelectInvestor(inv.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 border-b border-slate-50">
-                          <i className="fas fa-id-card text-indigo-500"></i> <span>Инфо</span>
+                      <div className="absolute right-0 top-12 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-50 dark:border-slate-800 z-50 overflow-hidden animate-scaleIn">
+                        <button onClick={() => { onSelectInvestor(inv.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800">
+                          <i className="fas fa-id-card text-indigo-500 dark:text-indigo-400"></i> <span>Инфо</span>
                         </button>
-                        <button onClick={() => { setEditingInvestor(inv); setIsModalOpen(true); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 border-b border-slate-50">
-                          <i className="fas fa-edit text-amber-500"></i> <span>Изменить</span>
+                        <button onClick={() => { setEditingInvestor(inv); setIsModalOpen(true); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800">
+                          <i className="fas fa-edit text-amber-500 dark:text-amber-400"></i> <span>Изменить</span>
                         </button>
-                        <button onClick={() => { if(window.confirm('Удалить инвестора?')) onDelete(inv.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-rose-50 text-rose-500 flex items-center space-x-3">
+                        <button onClick={() => { if(window.confirm('Удалить инвестора?')) onDelete(inv.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-rose-50 text-rose-500 dark:text-rose-400 flex items-center space-x-3">
                           <i className="fas fa-trash-alt"></i> <span>Удалить</span>
                         </button>
                       </div>
@@ -105,13 +105,13 @@ const InvestorList: React.FC<InvestorListProps> = ({ investors, cars, rentals, t
               </div>
 
               <div className="grid grid-cols-1 gap-4">
-                <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 flex justify-between items-center">
+                <div className="bg-slate-50 dark:bg-slate-700 p-5 rounded-2xl border border-slate-100 dark:border-slate-700 flex justify-between items-center">
                    <div>
-                      <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Доход</div>
-                      <div className="text-xl font-bold text-indigo-700">{rentalEarnings.toLocaleString()} ₽</div>
+                      <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">Доход</div>
+                      <div className="text-xl font-bold text-indigo-700 dark:text-indigo-400">{rentalEarnings.toLocaleString()} ₽</div>
                    </div>
                    <div className="text-right">
-                      <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Вложено</div>
+                      <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">Вложено</div>
                       <div className="font-bold">{inv.totalInvested.toLocaleString()} ₽</div>
                    </div>
                 </div>
@@ -120,7 +120,7 @@ const InvestorList: React.FC<InvestorListProps> = ({ investors, cars, rentals, t
           );
         })}
         {investors.length === 0 && (
-          <div className="col-span-full py-20 bg-white rounded-2xl border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-300">
+          <div className="col-span-full py-20 bg-white dark:bg-slate-800 rounded-2xl border-2 border-dashed border-slate-100 dark:border-slate-700 flex flex-col items-center justify-center text-slate-300 dark:text-slate-600">
             <i className="fas fa-handshake text-4xl mb-4 opacity-20"></i>
             <p className="font-bold uppercase tracking-wide text-sm">Инвесторы отсутствуют</p>
           </div>
@@ -129,16 +129,16 @@ const InvestorList: React.FC<InvestorListProps> = ({ investors, cars, rentals, t
 
       {isModalOpen && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-          <form onSubmit={handleSubmit} className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn">
+          <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn">
             <h2 className="text-2xl font-semibold mb-8 text-indigo-900">{editingInvestor ? 'Редактировать' : 'Новый партнер'}</h2>
             <div className="space-y-4 mb-10">
-              <input name="name" defaultValue={editingInvestor?.name} placeholder="ФИО инвестора" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-500 transition-all" />
-              <input name="phone" defaultValue={editingInvestor?.phone} placeholder="Телефон" required className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-500 transition-all" />
-              <input name="email" defaultValue={editingInvestor?.email} type="email" placeholder="Email (необязательно)" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-500 transition-all" />
-              <input name="invested" defaultValue={editingInvestor?.totalInvested} type="number" placeholder="Сумма инвестиций" className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-500 transition-all" />
+              <input name="name" defaultValue={editingInvestor?.name} placeholder="ФИО инвестора" required className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-500 transition-all" />
+              <input name="phone" defaultValue={editingInvestor?.phone} placeholder="Телефон" required className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-500 transition-all" />
+              <input name="email" defaultValue={editingInvestor?.email} type="email" placeholder="Email (необязательно)" className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-500 transition-all" />
+              <input name="invested" defaultValue={editingInvestor?.totalInvested} type="number" placeholder="Сумма инвестиций" className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-500 transition-all" />
             </div>
             <div className="flex gap-4">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-slate-100 rounded-2xl font-bold text-slate-600 hover:bg-slate-200 transition-all">Отмена</button>
+              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-slate-100 dark:bg-slate-700 rounded-2xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-all">Отмена</button>
               <button type="submit" className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg transition-all">Сохранить</button>
             </div>
           </form>

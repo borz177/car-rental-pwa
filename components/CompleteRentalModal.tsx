@@ -35,59 +35,59 @@ const CompleteRentalModal: React.FC<CompleteRentalModalProps> = ({ rental, car, 
 
   return (
     <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-      <div className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn relative">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn relative">
         <button
           onClick={onClose}
-          className="absolute top-8 right-8 text-slate-300 hover:text-slate-900 transition-all"
+          className="absolute top-8 right-8 text-slate-300 dark:text-slate-600 hover:text-slate-900 transition-all"
         >
           <i className="fas fa-times"></i>
         </button>
 
-        <h2 className="text-2xl font-semibold text-slate-900 mb-2 uppercase tracking-tight">Завершение аренды</h2>
-        <p className="text-sm font-medium text-slate-400 mb-8">
+        <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-2 uppercase tracking-tight">Завершение аренды</h2>
+        <p className="text-sm font-medium text-slate-400 dark:text-slate-500 mb-8">
           Вы уверены, что хотите завершить договор №{rental.contractNumber}?
         </p>
 
         <div className="space-y-4">
           {/* Details */}
-          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-4">
+          <div className="bg-slate-50 dark:bg-slate-700 p-4 rounded-xl border border-slate-100 dark:border-slate-700 space-y-4">
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-blue-100 rounded-2xl flex items-center justify-center text-blue-600">
+              <div className="w-12 h-12 bg-blue-100 dark:bg-blue-500/15 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400">
                 <i className="fas fa-car"></i>
               </div>
               <div>
-                <div className="font-bold text-slate-900">{car.brand} {car.model}</div>
-                <div className="text-xs font-medium text-slate-400">{car.plate}</div>
+                <div className="font-bold text-slate-900 dark:text-white">{car.brand} {car.model}</div>
+                <div className="text-xs font-medium text-slate-400 dark:text-slate-500">{car.plate}</div>
               </div>
             </div>
             <div className="flex items-center space-x-4">
-              <div className="w-12 h-12 bg-indigo-100 rounded-2xl flex items-center justify-center text-indigo-600">
+              <div className="w-12 h-12 bg-indigo-100 dark:bg-indigo-500/15 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400">
                 <i className="fas fa-user"></i>
               </div>
               <div>
-                <div className="font-bold text-slate-900">{client.name}</div>
-                <div className="text-xs font-medium text-slate-400">{client.phone}</div>
+                <div className="font-bold text-slate-900 dark:text-white">{client.name}</div>
+                <div className="text-xs font-medium text-slate-400 dark:text-slate-500">{client.phone}</div>
               </div>
             </div>
           </div>
 
           {/* Payment Section */}
-          <div className="bg-emerald-50 p-4 rounded-xl border-2 border-emerald-100">
+          <div className="bg-emerald-50 dark:bg-emerald-500/10 p-4 rounded-xl border-2 border-emerald-100 dark:border-emerald-500/20">
             <div className="flex justify-between items-center">
               <div>
-                <label className="text-[10px] font-semibold text-emerald-600 uppercase tracking-wide mb-1 block">
+                <label className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide mb-1 block">
                   Сумма к оприходованию (₽)
                 </label>
                 <input
                   type="number"
                   value={amountReceived}
                   onChange={(e) => setAmountReceived(Number(e.target.value))}
-                  className="w-full bg-transparent text-4xl font-bold text-emerald-700 outline-none p-0 border-none"
+                  className="w-full bg-transparent text-4xl font-bold text-emerald-700 dark:text-emerald-400 outline-none p-0 border-none"
                 />
               </div>
               <div className="text-right">
-                <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Долг по сделке</div>
-                <div className="text-lg font-bold text-slate-500">{amountOwed.toLocaleString()} ₽</div>
+                <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">Долг по сделке</div>
+                <div className="text-lg font-bold text-slate-500 dark:text-slate-400">{amountOwed.toLocaleString()} ₽</div>
               </div>
             </div>
           </div>
@@ -97,7 +97,7 @@ const CompleteRentalModal: React.FC<CompleteRentalModalProps> = ({ rental, car, 
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-5 bg-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-200 transition-all"
+            className="flex-1 py-5 bg-slate-100 dark:bg-slate-700 rounded-2xl font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-200 transition-all"
           >
             Отмена
           </button>

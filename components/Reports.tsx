@@ -146,7 +146,7 @@ const Reports: React.FC<ReportsProps> = ({
               className={`flex-shrink-0 px-4 py-2.5 text-sm font-medium rounded-xl transition-all active:scale-95 ${
                 activeCategory === cat.id
                   ? 'bg-slate-900 text-white shadow-lg'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200 active:bg-slate-300'
+                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 active:bg-slate-300'
               }`}
               style={{ minHeight: '44px' }} // Минимальная тач-зона
             >
@@ -156,7 +156,7 @@ const Reports: React.FC<ReportsProps> = ({
         </div>
         {/* Индикатор скролла для мобильных */}
         <div className="flex justify-center mt-1 md:hidden">
-          <div className="w-12 h-1 bg-slate-200 rounded-full"></div>
+          <div className="w-12 h-1 bg-slate-200 dark:bg-slate-600 rounded-full"></div>
         </div>
       </div>
     );
@@ -172,15 +172,15 @@ const Reports: React.FC<ReportsProps> = ({
     ];
 
     return (
-      <div className="flex gap-1 p-1 bg-slate-100 rounded-xl w-fit mb-4 overflow-x-auto">
+      <div className="flex gap-1 p-1 bg-slate-100 dark:bg-slate-700 rounded-xl w-fit mb-4 overflow-x-auto">
         {variants.map((v) => (
           <button
             key={v.id}
             onClick={() => setActiveVariant(v.id as ReportVariant)}
             className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${
               activeVariant === v.id
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-500 hover:text-slate-700'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
             }`}
             style={{ minHeight: '40px' }}
           >
@@ -194,34 +194,34 @@ const Reports: React.FC<ReportsProps> = ({
 
   // 🎯 Адаптивные фильтры
   const renderFilters = () => (
-    <div className="bg-slate-50 rounded-2xl p-4 mb-6">
+    <div className="bg-slate-50 dark:bg-slate-700 rounded-2xl p-4 mb-6">
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Начало</label>
+          <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Начало</label>
           <input
             type="date"
             value={filters.startDate}
             onChange={e => setFilters({ ...filters, startDate: e.target.value })}
-            className="px-3 py-2.5 text-sm bg-white border border-slate-200 rounded-xl outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
+            className="px-3 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
             style={{ minHeight: '44px' }}
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Конец</label>
+          <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Конец</label>
           <input
             type="date"
             value={filters.endDate}
             onChange={e => setFilters({ ...filters, endDate: e.target.value })}
-            className="px-3 py-2.5 text-sm bg-white border border-slate-200 rounded-xl outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
+            className="px-3 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
             style={{ minHeight: '44px' }}
           />
         </div>
         <div className="flex flex-col gap-1.5 sm:col-span-2 lg:col-span-2">
-          <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Объект</label>
+          <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Объект</label>
           <select
             value={filters.searchId}
             onChange={e => setFilters({ ...filters, searchId: e.target.value })}
-            className="px-3 py-2.5 text-sm bg-white border border-slate-200 rounded-xl outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all appearance-none"
+            className="px-3 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all appearance-none"
             style={{ minHeight: '44px' }}
           >
             <option value="">Все объекты</option>
@@ -235,7 +235,7 @@ const Reports: React.FC<ReportsProps> = ({
       <div className="mt-3 flex justify-end">
         <button
           onClick={() => setFilters({ startDate: '', endDate: '', searchId: '' })}
-          className="text-xs text-slate-400 hover:text-slate-600 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+          className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
         >
           Сбросить фильтры
         </button>
@@ -246,41 +246,41 @@ const Reports: React.FC<ReportsProps> = ({
   // 🎯 Сводные метрики (адаптивная сетка)
   const renderSummary = () => (
     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-      <div className="bg-white p-4 rounded-2xl border border-slate-100">
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
         <div className="flex items-center justify-between mb-2">
-          <div className="text-xs text-slate-400 font-medium">{stats.label1}</div>
-          <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center">
-            <i className="fas fa-arrow-up text-emerald-500 text-xs"></i>
+          <div className="text-xs text-slate-400 dark:text-slate-500 font-medium">{stats.label1}</div>
+          <div className="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-500/10 flex items-center justify-center">
+            <i className="fas fa-arrow-up text-emerald-500 dark:text-emerald-400 text-xs"></i>
           </div>
         </div>
-        <div className="text-lg font-bold text-emerald-600">{stats.income.toLocaleString()} ₽</div>
+        <div className="text-lg font-bold text-emerald-600 dark:text-emerald-400">{stats.income.toLocaleString()} ₽</div>
       </div>
-      <div className="bg-white p-4 rounded-2xl border border-slate-100">
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
         <div className="flex items-center justify-between mb-2">
-          <div className="text-xs text-slate-400 font-medium">{stats.label2}</div>
-          <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center">
-            <i className="fas fa-arrow-down text-rose-500 text-xs"></i>
+          <div className="text-xs text-slate-400 dark:text-slate-500 font-medium">{stats.label2}</div>
+          <div className="w-8 h-8 rounded-lg bg-rose-50 dark:bg-rose-500/10 flex items-center justify-center">
+            <i className="fas fa-arrow-down text-rose-500 dark:text-rose-400 text-xs"></i>
           </div>
         </div>
-        <div className="text-lg font-bold text-rose-600">{stats.expense.toLocaleString()} ₽</div>
+        <div className="text-lg font-bold text-rose-600 dark:text-rose-400">{stats.expense.toLocaleString()} ₽</div>
       </div>
-      <div className="bg-white p-4 rounded-2xl border border-slate-100">
+      <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
         <div className="flex items-center justify-between mb-2">
-          <div className="text-xs text-slate-400 font-medium">{stats.label3}</div>
-          <div className="w-8 h-8 rounded-lg bg-indigo-50 flex items-center justify-center">
-            <i className="fas fa-chart-pie text-indigo-500 text-xs"></i>
+          <div className="text-xs text-slate-400 dark:text-slate-500 font-medium">{stats.label3}</div>
+          <div className="w-8 h-8 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 flex items-center justify-center">
+            <i className="fas fa-chart-pie text-indigo-500 dark:text-indigo-400 text-xs"></i>
           </div>
         </div>
-        <div className="text-lg font-bold text-slate-900">{stats.profit.toLocaleString()} ₽</div>
+        <div className="text-lg font-bold text-slate-900 dark:text-white">{stats.profit.toLocaleString()} ₽</div>
       </div>
     </div>
   );
 
   // 🎯 График (адаптивная высота)
   const renderChart = () => (
-    <div className="bg-white p-4 rounded-2xl border border-slate-100 mb-6">
+    <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 mb-6">
       <div className="flex items-center justify-between mb-4">
-        <h4 className="text-sm font-semibold text-slate-700">Динамика</h4>
+        <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200">Динамика</h4>
         <div className="flex gap-2 text-[10px]">
           <span className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-emerald-500"></span>Доход
@@ -325,8 +325,8 @@ const Reports: React.FC<ReportsProps> = ({
 
   // 🎯 Круговая диаграмма
   const renderPie = () => (
-    <div className="bg-white p-4 rounded-2xl border border-slate-100 mb-6">
-      <h4 className="text-sm font-semibold text-slate-700 mb-4">Распределение</h4>
+    <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 mb-6">
+      <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-200 mb-4">Распределение</h4>
       <div className="h-48 sm:h-64">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -358,8 +358,8 @@ const Reports: React.FC<ReportsProps> = ({
         {pieData.slice(0, 8).map((item, idx) => (
           <div key={item.name} className="flex items-center gap-2 text-xs p-2 rounded-lg hover:bg-slate-50">
             <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
-            <span className="text-slate-600 truncate flex-1">{item.name}</span>
-            <span className="text-slate-400 font-medium">{item.value.toLocaleString()}</span>
+            <span className="text-slate-600 dark:text-slate-300 truncate flex-1">{item.name}</span>
+            <span className="text-slate-400 dark:text-slate-500 font-medium">{item.value.toLocaleString()}</span>
           </div>
         ))}
       </div>
@@ -368,36 +368,36 @@ const Reports: React.FC<ReportsProps> = ({
 
   // 🎯 Таблица (горизонтальный скролл для мобильных)
   const renderTable = () => (
-    <div className="bg-white rounded-2xl border border-slate-100 overflow-hidden">
+    <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
       <div className="overflow-x-auto">
         <table className="w-full text-sm min-w-[600px]">
-          <thead className="bg-slate-50">
-            <tr className="text-left text-xs text-slate-400 font-semibold uppercase tracking-wide">
+          <thead className="bg-slate-50 dark:bg-slate-700">
+            <tr className="text-left text-xs text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wide">
               <th className="px-4 py-3">Дата</th>
               <th className="px-4 py-3">Категория</th>
               <th className="px-4 py-3 text-right">Сумма</th>
               <th className="px-4 py-3">Тип</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
             {filteredData.slice(0, 20).map((t: any) => (
               <tr key={t.id} className="hover:bg-slate-50 transition-colors">
-                <td className="px-4 py-3 text-slate-600 whitespace-nowrap">
+                <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
                   {new Date(t.date).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' })}
                 </td>
-                <td className="px-4 py-3 text-slate-600 max-w-[150px] truncate">
+                <td className="px-4 py-3 text-slate-600 dark:text-slate-300 max-w-[150px] truncate">
                   {t.category || t.status || '—'}
                 </td>
                 <td className={`px-4 py-3 text-right font-semibold whitespace-nowrap ${
-                  t.type === TransactionType.INCOME ? 'text-emerald-600' : 'text-rose-600'
+                  t.type === TransactionType.INCOME ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'
                 }`}>
                   {t.amount.toLocaleString()} ₽
                 </td>
                 <td className="px-4 py-3">
                   <span className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-semibold ${
                     t.type === TransactionType.INCOME 
-                      ? 'bg-emerald-50 text-emerald-700' 
-                      : 'bg-rose-50 text-rose-700'
+                      ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400' 
+                      : 'bg-rose-50 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400'
                   }`}>
                     {t.type === TransactionType.INCOME ? 'Доход' : 'Расход'}
                   </span>
@@ -408,8 +408,8 @@ const Reports: React.FC<ReportsProps> = ({
         </table>
       </div>
       {filteredData.length > 20 && (
-        <div className="px-4 py-3 text-center text-xs text-slate-400 bg-slate-50 border-t border-slate-100">
-          Показано 20 из {filteredData.length} • <button className="text-indigo-600 font-medium hover:underline">Показать все</button>
+        <div className="px-4 py-3 text-center text-xs text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-700 border-t border-slate-100 dark:border-slate-700">
+          Показано 20 из {filteredData.length} • <button className="text-indigo-600 dark:text-indigo-400 font-medium hover:underline">Показать все</button>
         </div>
       )}
     </div>
@@ -422,36 +422,36 @@ const Reports: React.FC<ReportsProps> = ({
     if (!car) return null;
 
     return (
-      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-2xl border border-blue-100 mb-6">
+      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-2xl border border-blue-100 dark:border-blue-500/20 mb-6">
         <div className="flex items-start justify-between mb-3">
           <div>
-            <div className="text-sm font-semibold text-slate-900">{car.brand} {car.model}</div>
-            <div className="text-xs text-slate-400">{car.plate}</div>
+            <div className="text-sm font-semibold text-slate-900 dark:text-white">{car.brand} {car.model}</div>
+            <div className="text-xs text-slate-400 dark:text-slate-500">{car.plate}</div>
           </div>
           <span className={`px-2.5 py-1 rounded-lg text-[10px] font-semibold ${
-            car.status === CarStatus.AVAILABLE ? 'bg-emerald-100 text-emerald-700' :
-            car.status === CarStatus.RENTED ? 'bg-blue-100 text-blue-700' :
-            'bg-amber-100 text-amber-700'
+            car.status === CarStatus.AVAILABLE ? 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-700 dark:text-emerald-400' :
+            car.status === CarStatus.RENTED ? 'bg-blue-100 dark:bg-blue-500/15 text-blue-700 dark:text-blue-400' :
+            'bg-amber-100 dark:bg-amber-500/15 text-amber-700 dark:text-amber-400'
           }`}>
             {car.status}
           </span>
         </div>
         <div className="grid grid-cols-3 gap-2 text-center">
-          <div className="bg-white p-3 rounded-xl">
-            <div className="text-[10px] text-slate-400 mb-1">В работе</div>
-            <div className="text-base font-bold text-emerald-600">78%</div>
+          <div className="bg-white dark:bg-slate-800 p-3 rounded-xl">
+            <div className="text-[10px] text-slate-400 dark:text-slate-500 mb-1">В работе</div>
+            <div className="text-base font-bold text-emerald-600 dark:text-emerald-400">78%</div>
           </div>
-          <div className="bg-white p-3 rounded-xl">
-            <div className="text-[10px] text-slate-400 mb-1">Простой</div>
-            <div className="text-base font-bold text-slate-600">15%</div>
+          <div className="bg-white dark:bg-slate-800 p-3 rounded-xl">
+            <div className="text-[10px] text-slate-400 dark:text-slate-500 mb-1">Простой</div>
+            <div className="text-base font-bold text-slate-600 dark:text-slate-300">15%</div>
           </div>
-          <div className="bg-white p-3 rounded-xl">
-            <div className="text-[10px] text-slate-400 mb-1">Ремонт</div>
-            <div className="text-base font-bold text-rose-600">7%</div>
+          <div className="bg-white dark:bg-slate-800 p-3 rounded-xl">
+            <div className="text-[10px] text-slate-400 dark:text-slate-500 mb-1">Ремонт</div>
+            <div className="text-base font-bold text-rose-600 dark:text-rose-400">7%</div>
           </div>
         </div>
         {/* Визуальный прогресс-бар */}
-        <div className="mt-3 h-2 bg-slate-200 rounded-full overflow-hidden flex">
+        <div className="mt-3 h-2 bg-slate-200 dark:bg-slate-600 rounded-full overflow-hidden flex">
           <div className="h-full bg-emerald-500" style={{ width: '78%' }}></div>
           <div className="h-full bg-slate-400" style={{ width: '15%' }}></div>
           <div className="h-full bg-rose-400" style={{ width: '7%' }}></div>
@@ -504,10 +504,10 @@ const Reports: React.FC<ReportsProps> = ({
               className="p-2 hover:bg-slate-100 rounded-xl transition-colors active:scale-95"
               style={{ minHeight: '44px', minWidth: '44px' }}
             >
-              <i className="fas fa-arrow-left text-slate-400"></i>
+              <i className="fas fa-arrow-left text-slate-400 dark:text-slate-500"></i>
             </button>
           )}
-          <h1 className="text-lg sm:text-xl font-bold text-slate-900">
+          <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white">
             {activeCategory === 'ALL' ? 'Отчёты' :
              activeCategory === 'CARS' ? 'Автопарк' :
              activeCategory === 'INVESTORS' ? 'Инвесторы' :
@@ -525,7 +525,7 @@ const Reports: React.FC<ReportsProps> = ({
       {activeCategory === 'ALL' ? (
         <>
           {renderCategorySelector()}
-          <div className="text-center py-8 text-slate-400 text-sm">
+          <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-sm">
             <i className="fas fa-chart-pie text-3xl mb-3 opacity-30"></i>
             <p>Выберите категорию отчёта выше</p>
           </div>

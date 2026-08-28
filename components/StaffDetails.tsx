@@ -12,11 +12,11 @@ const StaffDetails: React.FC<StaffDetailsProps> = ({ member, onBack }) => {
 
   return (
     <div className="space-y-5 animate-fadeIn pb-24 md:pb-0">
-      <button onClick={onBack} className="flex items-center space-x-2 text-slate-500 font-bold hover:text-blue-600 transition-all">
+      <button onClick={onBack} className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 font-bold hover:text-blue-600 transition-all">
         <i className="fas fa-arrow-left"></i> <span>Назад к списку</span>
       </button>
 
-      <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-slate-100">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-md overflow-hidden border border-slate-100 dark:border-slate-700">
         <div className="p-5 md:p-8 bg-slate-900 text-white flex flex-col md:flex-row justify-between items-center gap-4 relative">
           <div className="flex items-center space-x-6 relative z-10">
             <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-white text-4xl font-semibold shadow-md">
@@ -41,7 +41,7 @@ const StaffDetails: React.FC<StaffDetailsProps> = ({ member, onBack }) => {
         </div>
 
         <div className="p-5 md:p-8">
-          <h3 className="text-xl font-semibold text-slate-900 uppercase tracking-tight mb-6">Права доступа</h3>
+          <h3 className="text-xl font-semibold text-slate-900 dark:text-white uppercase tracking-tight mb-6">Права доступа</h3>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <PermissionCard label="Полный доступ" enabled={perms?.fullAccess} icon="fa-star" />
             <PermissionCard label="Оформление сделок" enabled={perms?.fullAccess || perms?.canCreateBooking} icon="fa-file-signature" />
@@ -57,13 +57,13 @@ const StaffDetails: React.FC<StaffDetailsProps> = ({ member, onBack }) => {
 };
 
 const PermissionCard = ({ label, enabled, icon }: {label: string, enabled?: boolean, icon: string}) => (
-  <div className={`p-4 rounded-2xl border-2 flex items-center space-x-4 ${enabled ? 'bg-emerald-50 border-emerald-200' : 'bg-rose-50 border-rose-200 opacity-60'}`}>
-    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${enabled ? 'bg-white text-emerald-500' : 'bg-white text-rose-400'}`}>
+  <div className={`p-4 rounded-2xl border-2 flex items-center space-x-4 ${enabled ? 'bg-emerald-50 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-500/20' : 'bg-rose-50 dark:bg-rose-500/10 border-rose-200 dark:border-rose-500/20 opacity-60'}`}>
+    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${enabled ? 'bg-white dark:bg-slate-800 text-emerald-500 dark:text-emerald-400' : 'bg-white dark:bg-slate-800 text-rose-400'}`}>
       <i className={`fas ${icon}`}></i>
     </div>
     <div>
-      <div className="font-bold text-sm text-slate-800">{label}</div>
-      <div className={`text-xs font-semibold uppercase tracking-wide ${enabled ? 'text-emerald-600' : 'text-rose-500'}`}>{enabled ? 'Включено' : 'Отключено'}</div>
+      <div className="font-bold text-sm text-slate-800 dark:text-slate-100">{label}</div>
+      <div className={`text-xs font-semibold uppercase tracking-wide ${enabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500 dark:text-rose-400'}`}>{enabled ? 'Включено' : 'Отключено'}</div>
     </div>
   </div>
 );

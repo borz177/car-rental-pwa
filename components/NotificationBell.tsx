@@ -41,7 +41,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ notifications, onMa
     <div className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className={`relative p-2 transition-colors ${dark ? 'text-slate-400 hover:text-blue-600' : 'text-white/70 hover:text-white'}`}
+        className={`relative p-2 transition-colors ${dark ? 'text-slate-400 dark:text-slate-500 hover:text-blue-600' : 'text-white/70 hover:text-white'}`}
       >
         <i className="fas fa-bell"></i>
         {unreadCount > 0 && (
@@ -58,45 +58,45 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ notifications, onMa
         <>
           <div className="fixed inset-0 z-[94] bg-slate-900/20 md:bg-transparent" onClick={() => setOpen(false)} />
           <div
-            className="fixed left-4 right-4 top-20 md:left-auto md:right-4 md:top-16 md:w-96 bg-white rounded-2xl shadow-lg border border-slate-100 z-[95] overflow-hidden animate-scaleIn"
+            className="fixed left-4 right-4 top-20 md:left-auto md:right-4 md:top-16 md:w-96 bg-white dark:bg-slate-800 rounded-2xl shadow-lg border border-slate-100 dark:border-slate-700 z-[95] overflow-hidden animate-scaleIn"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-              <span className="font-semibold text-slate-900 text-sm">Уведомления</span>
+            <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
+              <span className="font-semibold text-slate-900 dark:text-white text-sm">Уведомления</span>
               {unreadCount > 0 && (
-                <button onClick={onMarkAllRead} className="text-[10px] font-semibold text-blue-600 uppercase tracking-wide hover:text-blue-700">
+                <button onClick={onMarkAllRead} className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide hover:text-blue-700">
                   Прочитать все
                 </button>
               )}
             </div>
 
-            <div className="max-h-[60vh] overflow-y-auto divide-y divide-slate-50">
+            <div className="max-h-[60vh] overflow-y-auto divide-y divide-slate-50 dark:divide-slate-800">
               {notifications.map(n => (
                 <button
                   key={n.id}
                   onClick={() => handleClick(n)}
-                  className={`w-full px-4 py-3 flex items-start gap-3 text-left hover:bg-slate-50 transition-colors ${!n.isRead ? 'bg-blue-50/40' : ''}`}
+                  className={`w-full px-4 py-3 flex items-start gap-3 text-left hover:bg-slate-50 transition-colors ${!n.isRead ? 'bg-blue-50/40 dark:bg-blue-500/10' : ''}`}
                 >
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                    n.type === 'SUPPORT_MESSAGE' ? 'bg-indigo-100 text-indigo-600' : 'bg-blue-100 text-blue-600'
+                    n.type === 'SUPPORT_MESSAGE' ? 'bg-indigo-100 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' : 'bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400'
                   }`}>
                     <i className={`fas ${ICONS[n.type] || 'fa-bell'} text-xs`}></i>
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <span className="font-semibold text-slate-900 text-sm truncate">{n.title}</span>
+                      <span className="font-semibold text-slate-900 dark:text-white text-sm truncate">{n.title}</span>
                       {!n.isRead && <span className="w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0"></span>}
                     </div>
-                    <div className="text-xs text-slate-500 truncate">{n.body}</div>
-                    <div className="text-[10px] text-slate-400 font-medium mt-0.5">{timeAgo(n.createdAt)}</div>
+                    <div className="text-xs text-slate-500 dark:text-slate-400 truncate">{n.body}</div>
+                    <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium mt-0.5">{timeAgo(n.createdAt)}</div>
                   </div>
                 </button>
               ))}
 
               {notifications.length === 0 && (
                 <div className="py-12 text-center">
-                  <i className="fas fa-bell-slash text-2xl text-slate-200 mb-2"></i>
-                  <div className="text-xs font-semibold text-slate-400">Уведомлений пока нет</div>
+                  <i className="fas fa-bell-slash text-2xl text-slate-200 dark:text-slate-700 mb-2"></i>
+                  <div className="text-xs font-semibold text-slate-400 dark:text-slate-500">Уведомлений пока нет</div>
                 </div>
               )}
             </div>

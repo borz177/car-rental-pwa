@@ -82,22 +82,22 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
       {/* Header & Stats */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-2">
         <div>
-          <h2 className="text-3xl font-semibold text-slate-900 tracking-tight">Панель Владельца</h2>
-          <p className="text-slate-400 font-bold mt-1 uppercase text-[10px] tracking-wide">Управление клиентами SaaS</p>
+          <h2 className="text-3xl font-semibold text-slate-900 dark:text-white tracking-tight">Панель Владельца</h2>
+          <p className="text-slate-400 dark:text-slate-500 font-bold mt-1 uppercase text-[10px] tracking-wide">Управление клиентами SaaS</p>
         </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <StatCard title="Всего клиентов" value={stats.total} icon="fa-users" color="bg-blue-50 text-blue-600" />
-        <StatCard title="Активные подписки" value={stats.active} icon="fa-check-circle" color="bg-emerald-50 text-emerald-600" />
-        <StatCard title="На триале" value={stats.trial} icon="fa-clock" color="bg-amber-50 text-amber-600" />
-        <StatCard title="Истекли / Неактивны" value={stats.expired} icon="fa-times-circle" color="bg-rose-50 text-rose-600" />
+        <StatCard title="Всего клиентов" value={stats.total} icon="fa-users" color="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400" />
+        <StatCard title="Активные подписки" value={stats.active} icon="fa-check-circle" color="bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" />
+        <StatCard title="На триале" value={stats.trial} icon="fa-clock" color="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400" />
+        <StatCard title="Истекли / Неактивны" value={stats.expired} icon="fa-times-circle" color="bg-rose-50 dark:bg-rose-500/10 text-rose-600 dark:text-rose-400" />
       </div>
 
       {/* Filters & Table */}
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-md overflow-hidden">
-        <div className="p-4 border-b border-slate-50 flex flex-col lg:flex-row justify-between items-center gap-4 bg-slate-50/50">
-          <div className="flex bg-slate-200/50 p-1 rounded-2xl">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-md overflow-hidden">
+        <div className="p-4 border-b border-slate-50 dark:border-slate-800 flex flex-col lg:flex-row justify-between items-center gap-4 bg-slate-50/50 dark:bg-slate-700">
+          <div className="flex bg-slate-200/50 dark:bg-slate-600 p-1 rounded-2xl">
              {([
                { id: 'ALL', label: 'Все' },
                { id: 'ACTIVE', label: 'Активные' },
@@ -107,7 +107,7 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
                <button
                  key={tab.id}
                  onClick={() => setFilterStatus(tab.id)}
-                 className={`px-6 py-2 rounded-xl text-xs font-semibold uppercase transition-all ${filterStatus === tab.id ? 'bg-white shadow-md text-slate-900' : 'text-slate-500 hover:text-slate-700'}`}
+                 className={`px-6 py-2 rounded-xl text-xs font-semibold uppercase transition-all ${filterStatus === tab.id ? 'bg-white dark:bg-slate-800 shadow-md text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'}`}
                >
                  {tab.label}
                </button>
@@ -115,10 +115,10 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
           </div>
 
           <div className="relative w-full lg:w-72">
-             <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400"></i>
+             <i className="fas fa-search absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500"></i>
              <input
                placeholder="Поиск клиента..."
-               className="w-full pl-10 pr-4 py-3 bg-white rounded-xl text-sm font-bold outline-none border border-slate-200 focus:border-blue-500 transition-all"
+               className="w-full pl-10 pr-4 py-3 bg-white dark:bg-slate-800 rounded-xl text-sm font-bold outline-none border border-slate-200 dark:border-slate-600 focus:border-blue-500 transition-all"
                value={searchQuery}
                onChange={e => setSearchQuery(e.target.value)}
              />
@@ -127,7 +127,7 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
 
         <div className="overflow-x-auto">
           <table className="w-full text-left">
-            <thead className="bg-slate-50 text-slate-400 text-[10px] font-semibold uppercase tracking-wide">
+            <thead className="bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 text-[10px] font-semibold uppercase tracking-wide">
               <tr>
                 <th className="px-8 py-4">Клиент / Компания</th>
                 <th className="px-8 py-4">Тариф</th>
@@ -136,7 +136,7 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
                 <th className="px-8 py-4 text-right">Действия</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-50">
+            <tbody className="divide-y divide-slate-50 dark:divide-slate-800">
               {filteredUsers.map(user => {
                 const expired = isExpired(user.subscriptionUntil);
                 const isSuper = user.role === UserRole.SUPERADMIN;
@@ -144,41 +144,41 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
                   <tr key={user.id} className="hover:bg-slate-50/50 transition-all group">
                     <td className="px-8 py-5">
                       <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-500 font-semibold text-sm">
+                        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-500 dark:text-slate-400 font-semibold text-sm">
                           {user.name.charAt(0)}
                         </div>
                         <div>
-                          <div className="font-bold text-slate-900">{user.publicBrandName || user.name}</div>
-                          <div className="text-xs text-slate-400 font-medium">{user.email}</div>
+                          <div className="font-bold text-slate-900 dark:text-white">{user.publicBrandName || user.name}</div>
+                          <div className="text-xs text-slate-400 dark:text-slate-500 font-medium">{user.email}</div>
                         </div>
                       </div>
                     </td>
                     <td className="px-8 py-5">
                       <span className={`px-3 py-1 rounded-lg text-[10px] font-semibold uppercase tracking-tight border ${
-                        user.activePlan === 'Премиум' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' :
-                        user.activePlan === 'Бизнес' ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                        'bg-slate-50 text-slate-600 border-slate-100'
+                        user.activePlan === 'Премиум' ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-100 dark:border-indigo-500/20' :
+                        user.activePlan === 'Бизнес' ? 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400 border-blue-100 dark:border-blue-500/20' :
+                        'bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 border-slate-100 dark:border-slate-700'
                       }`}>
                         {user.activePlan || 'Нет'}
                       </span>
                     </td>
                     <td className="px-8 py-5">
                       {expired ? (
-                        <span className="flex items-center space-x-1 text-rose-500 text-xs font-bold">
+                        <span className="flex items-center space-x-1 text-rose-500 dark:text-rose-400 text-xs font-bold">
                           <i className="fas fa-times-circle"></i> <span>Истек</span>
                         </span>
                       ) : user.isTrial ? (
-                        <span className="flex items-center space-x-1 text-amber-500 text-xs font-bold">
+                        <span className="flex items-center space-x-1 text-amber-500 dark:text-amber-400 text-xs font-bold">
                           <i className="fas fa-clock"></i> <span>Триал</span>
                         </span>
                       ) : (
-                        <span className="flex items-center space-x-1 text-emerald-500 text-xs font-bold">
+                        <span className="flex items-center space-x-1 text-emerald-500 dark:text-emerald-400 text-xs font-bold">
                           <i className="fas fa-check-circle"></i> <span>Активен</span>
                         </span>
                       )}
                     </td>
                     <td className="px-8 py-5">
-                      <div className={`font-bold text-sm ${expired ? 'text-rose-400' : 'text-slate-700'}`}>
+                      <div className={`font-bold text-sm ${expired ? 'text-rose-400' : 'text-slate-700 dark:text-slate-200'}`}>
                         {formatDate(user.subscriptionUntil)}
                       </div>
                     </td>
@@ -193,21 +193,21 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
                           </button>
                           <button
                             onClick={() => confirm('Удалить пользователя навсегда? Это действие необратимо.') && onDeleteUser(user.id)}
-                            className="w-8 h-8 flex items-center justify-center bg-rose-50 text-rose-500 rounded-xl hover:bg-rose-500 hover:text-white transition-all"
+                            className="w-8 h-8 flex items-center justify-center bg-rose-50 dark:bg-rose-500/10 text-rose-500 dark:text-rose-400 rounded-xl hover:bg-rose-500 hover:text-white transition-all"
                             title="Удалить"
                           >
                             <i className="fas fa-trash-alt text-xs"></i>
                           </button>
                         </div>
                       )}
-                      {isSuper && <span className="text-[10px] font-semibold text-slate-300 uppercase">Это Вы</span>}
+                      {isSuper && <span className="text-[10px] font-semibold text-slate-300 dark:text-slate-600 uppercase">Это Вы</span>}
                     </td>
                   </tr>
                 );
               })}
               {filteredUsers.length === 0 && (
                 <tr>
-                  <td colSpan={5} className="px-8 py-12 text-center text-slate-400 italic">
+                  <td colSpan={5} className="px-8 py-12 text-center text-slate-400 dark:text-slate-500 italic">
                     Пользователи не найдены
                   </td>
                 </tr>
@@ -220,11 +220,11 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
       {/* Manual Activation Modal */}
       {editingUser && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md">
-          <form onSubmit={handleSubscriptionUpdate} className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn relative overflow-hidden">
+          <form onSubmit={handleSubscriptionUpdate} className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn relative overflow-hidden">
             <div className="absolute top-0 left-0 right-0 h-3 bg-gradient-to-r from-blue-500 to-indigo-600"></div>
 
-            <h2 className="text-2xl font-semibold text-slate-900 mb-2 uppercase tracking-tight">Настройка доступа</h2>
-            <p className="text-sm text-slate-400 font-bold mb-8 flex items-center gap-2">
+            <h2 className="text-2xl font-semibold text-slate-900 dark:text-white mb-2 uppercase tracking-tight">Настройка доступа</h2>
+            <p className="text-sm text-slate-400 dark:text-slate-500 font-bold mb-8 flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-blue-500"></span>
               {editingUser.name} ({editingUser.email})
             </p>
@@ -232,7 +232,7 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
             <div className="space-y-4 mb-10">
               {/* Plan Selector */}
               <div>
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Тарифный план</label>
+                <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2 mb-1 block">Тарифный план</label>
                 <div className="grid grid-cols-3 gap-2">
                   {PLANS.map(plan => (
                     <label key={plan} className="cursor-pointer">
@@ -243,7 +243,7 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
                         defaultChecked={editingUser.activePlan === plan || (!editingUser.activePlan && plan === 'Старт')}
                         className="peer hidden"
                       />
-                      <div className="py-3 text-center bg-slate-50 border-2 border-slate-100 rounded-xl text-xs font-bold text-slate-500 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-600 transition-all">
+                      <div className="py-3 text-center bg-slate-50 dark:bg-slate-700 border-2 border-slate-100 dark:border-slate-700 rounded-xl text-xs font-bold text-slate-500 dark:text-slate-400 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-600 transition-all">
                         {plan}
                       </div>
                     </label>
@@ -253,33 +253,33 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
 
               {/* Date & Quick Actions */}
               <div>
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Дата окончания</label>
+                <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2 mb-1 block">Дата окончания</label>
                 <input
                   id="sub-until"
                   name="until"
                   type="date"
                   defaultValue={editingUser.subscriptionUntil ? editingUser.subscriptionUntil.split('T')[0] : ''}
-                  className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 mb-3"
+                  className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 mb-3"
                 />
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => quickSetDate(1)} className="flex-1 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-semibold uppercase hover:bg-emerald-100">+1 Месяц</button>
-                  <button type="button" onClick={() => quickSetDate(3)} className="flex-1 py-2 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-semibold uppercase hover:bg-emerald-100">+3 Месяца</button>
-                  <button type="button" onClick={() => quickSetDate(12)} className="flex-1 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-[10px] font-semibold uppercase hover:bg-indigo-100">+1 Год</button>
+                  <button type="button" onClick={() => quickSetDate(1)} className="flex-1 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-[10px] font-semibold uppercase hover:bg-emerald-100">+1 Месяц</button>
+                  <button type="button" onClick={() => quickSetDate(3)} className="flex-1 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-[10px] font-semibold uppercase hover:bg-emerald-100">+3 Месяца</button>
+                  <button type="button" onClick={() => quickSetDate(12)} className="flex-1 py-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-semibold uppercase hover:bg-indigo-100">+1 Год</button>
                 </div>
               </div>
 
               {/* Trial Switch */}
-              <label className="flex items-center space-x-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 cursor-pointer hover:bg-slate-100 transition-colors">
-                <input type="checkbox" name="isTrial" defaultChecked={editingUser.isTrial} className="w-5 h-5 rounded text-blue-600 focus:ring-blue-500 border-gray-300" />
+              <label className="flex items-center space-x-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl border border-slate-100 dark:border-slate-700 cursor-pointer hover:bg-slate-100 transition-colors">
+                <input type="checkbox" name="isTrial" defaultChecked={editingUser.isTrial} className="w-5 h-5 rounded text-blue-600 dark:text-blue-400 focus:ring-blue-500 border-gray-300" />
                 <div>
-                  <div className="text-sm font-bold text-slate-900">Режим "Пробный период"</div>
-                  <div className="text-[10px] text-slate-400 font-medium">Если включено, отображается уведомление о триале</div>
+                  <div className="text-sm font-bold text-slate-900 dark:text-white">Режим "Пробный период"</div>
+                  <div className="text-[10px] text-slate-400 dark:text-slate-500 font-medium">Если включено, отображается уведомление о триале</div>
                 </div>
               </label>
             </div>
 
-            <div className="flex gap-4 pt-4 border-t border-slate-100">
-              <button type="button" onClick={() => setEditingUser(null)} className="flex-1 py-4 bg-white border-2 border-slate-100 rounded-2xl font-bold text-slate-500 hover:bg-slate-50">Отмена</button>
+            <div className="flex gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
+              <button type="button" onClick={() => setEditingUser(null)} className="flex-1 py-4 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50">Отмена</button>
               <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-md hover:bg-blue-700 active:scale-95 transition-all">
                 Сохранить доступ
               </button>
@@ -292,10 +292,10 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
 };
 
 const StatCard = ({ title, value, icon, color }: any) => (
-  <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+  <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm flex items-center justify-between">
     <div>
-      <div className="text-[10px] font-semibold uppercase text-slate-400 tracking-wide mb-1">{title}</div>
-      <div className="text-3xl font-bold text-slate-900">{value}</div>
+      <div className="text-[10px] font-semibold uppercase text-slate-400 dark:text-slate-500 tracking-wide mb-1">{title}</div>
+      <div className="text-3xl font-bold text-slate-900 dark:text-white">{value}</div>
     </div>
     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl ${color}`}>
       <i className={`fas ${icon}`}></i>

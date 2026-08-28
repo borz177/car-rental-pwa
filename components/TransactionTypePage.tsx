@@ -186,27 +186,27 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
     setTimeout(() => setJustAdded(false), 2500);
   };
 
-  const iconBg = isIncome ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600';
-  const accentText = isIncome ? 'text-emerald-600' : 'text-rose-600';
+  const iconBg = isIncome ? 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400';
+  const accentText = isIncome ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
   const accentBar = isIncome ? 'bg-emerald-500' : 'bg-rose-500';
   const btnBg = isIncome ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-rose-600 hover:bg-rose-700';
 
   return (
     <div className="space-y-5 animate-fadeIn pb-24 md:pb-0">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="w-10 h-10 rounded-full bg-white border border-slate-100 shadow-sm text-slate-500 flex items-center justify-center hover:text-blue-600 hover:border-blue-100 transition-all">
+        <button onClick={onBack} className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm text-slate-500 dark:text-slate-400 flex items-center justify-center hover:text-blue-600 hover:border-blue-100 transition-all">
           <i className="fas fa-arrow-left"></i>
         </button>
         <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${iconBg}`}>
           <i className={`fas ${theme.icon}`}></i>
         </div>
-        <h2 className="text-3xl font-semibold text-slate-900 flex-1">{theme.label}</h2>
+        <h2 className="text-3xl font-semibold text-slate-900 dark:text-white flex-1">{theme.label}</h2>
       </div>
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm p-6 relative">
         <form onSubmit={handleSubmit}>
           <div className="flex items-center justify-between mb-6">
-            <h3 className="text-xl font-semibold text-slate-900">Новый {theme.verb === 'прихода' ? 'приход' : 'расход'}</h3>
+            <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Новый {theme.verb === 'прихода' ? 'приход' : 'расход'}</h3>
             {justAdded && (
               <span className={`text-xs font-semibold flex items-center gap-1.5 animate-fadeIn ${accentText}`}>
                 <i className="fas fa-check-circle"></i> Операция добавлена
@@ -217,30 +217,30 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
           <div className="space-y-5 mb-8">
             {isIncome && (
               <div className="relative">
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Клиент (необязательно)</label>
+                <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2 mb-1 block">Клиент (необязательно)</label>
                 <div
                   onClick={() => setShowClientList(true)}
-                  className="w-full p-5 bg-slate-50 rounded-2xl font-bold border-2 border-transparent cursor-pointer flex justify-between items-center hover:bg-slate-100 transition-all text-slate-700"
+                  className="w-full p-5 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold border-2 border-transparent cursor-pointer flex justify-between items-center hover:bg-slate-100 transition-all text-slate-700 dark:text-slate-200"
                 >
-                  <span className={searchClient ? 'text-slate-900' : 'text-slate-400'}>
+                  <span className={searchClient ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}>
                     {searchClient || 'Нажмите для выбора клиента'}
                   </span>
-                  <i className="fas fa-search text-slate-300"></i>
+                  <i className="fas fa-search text-slate-300 dark:text-slate-600"></i>
                 </div>
 
                 {showClientList && (
                   <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl w-full max-w-md p-8 shadow-md animate-scaleIn flex flex-col max-h-[80vh]">
+                    <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-8 shadow-md animate-scaleIn flex flex-col max-h-[80vh]">
                       <div className="flex justify-between items-center mb-6">
-                        <h4 className="font-semibold text-slate-900 uppercase tracking-tight text-xl">Выбор клиента</h4>
-                        <button type="button" onClick={() => setShowClientList(false)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:bg-slate-50 rounded-full">
+                        <h4 className="font-semibold text-slate-900 dark:text-white uppercase tracking-tight text-xl">Выбор клиента</h4>
+                        <button type="button" onClick={() => setShowClientList(false)} className="w-10 h-10 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:bg-slate-50 rounded-full">
                           <i className="fas fa-times"></i>
                         </button>
                       </div>
                       <input
                         autoFocus
                         placeholder="Поиск..."
-                        className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 mb-4"
+                        className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 mb-4"
                         value={searchClient}
                         onChange={e => setSearchClient(e.target.value)}
                       />
@@ -252,8 +252,8 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
                             onClick={() => { setSelectedClientId(c.id); setSearchClient(c.name); setShowClientList(false); }}
                             className="w-full text-left p-4 hover:bg-blue-600 hover:text-white rounded-2xl font-bold transition-all group"
                           >
-                            <div className="text-slate-900 group-hover:text-white font-bold">{c.name}</div>
-                            <div className="text-[10px] text-slate-400 group-hover:text-white/70 uppercase">{c.phone}</div>
+                            <div className="text-slate-900 dark:text-white group-hover:text-white font-bold">{c.name}</div>
+                            <div className="text-[10px] text-slate-400 dark:text-slate-500 group-hover:text-white/70 uppercase">{c.phone}</div>
                           </button>
                         ))}
                       </div>
@@ -265,19 +265,19 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Сумма (₽)</label>
-                <input name="amount" type="number" required placeholder="0" className="w-full p-5 bg-slate-50 rounded-2xl font-bold text-2xl text-slate-900 outline-none border-2 border-transparent focus:border-blue-500" />
+                <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2 mb-1 block">Сумма (₽)</label>
+                <input name="amount" type="number" required placeholder="0" className="w-full p-5 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold text-2xl text-slate-900 dark:text-white outline-none border-2 border-transparent focus:border-blue-500" />
               </div>
               <div>
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Дата</label>
-                <input name="date" type="date" required defaultValue={todayStr} max={todayStr} className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 text-slate-900" />
+                <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2 mb-1 block">Дата</label>
+                <input name="date" type="date" required defaultValue={todayStr} max={todayStr} className="w-full p-5 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 text-slate-900 dark:text-white" />
               </div>
             </div>
 
             <div>
-              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Категория</label>
+              <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2 mb-1 block">Категория</label>
               {isIncome && selectedClientId && clientDebtRentals.length > 0 ? (
-                <select name="category" required className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900">
+                <select name="category" required className="w-full p-5 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900 dark:text-white">
                   <option value="">-- Оплата долга по договору --</option>
                   {clientDebtRentals.map(r => (
                     <option key={r.id} value={`Аренда ${r.contractNumber}`}>Погасить долг: дог. {r.contractNumber}</option>
@@ -290,7 +290,7 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
                   required
                   value={selectedCategory}
                   onChange={(e) => { setSelectedCategory(e.target.value); setSelectedCarId(''); }}
-                  className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
+                  className="w-full p-5 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900 dark:text-white"
                 >
                   <option value="">-- Выберите категорию --</option>
                   {(isIncome ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(cat => <option key={cat} value={cat}>{cat}</option>)}
@@ -300,12 +300,12 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
 
             {isIncome && selectedCategory === 'Прочее' && (
               <div className="animate-slideDown">
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Уточните категорию (необязательно)</label>
+                <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2 mb-1 block">Уточните категорию (необязательно)</label>
                 <input
                   value={customCategory}
                   onChange={e => setCustomCategory(e.target.value)}
                   placeholder="Напр. Продажа шин"
-                  className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500"
+                  className="w-full p-5 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500"
                 />
               </div>
             )}
@@ -314,12 +314,12 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
               <>
                 {selectedCategory === 'Оклад' && (
                   <div>
-                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Сотрудник</label>
+                    <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2 mb-1 block">Сотрудник</label>
                     <select
                       value={selectedStaffId}
                       onChange={(e) => setSelectedStaffId(e.target.value)}
                       required
-                      className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
+                      className="w-full p-5 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900 dark:text-white"
                     >
                       <option value="">-- Выберите сотрудника --</option>
                       {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -329,12 +329,12 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
 
                 {selectedCategory === 'Инвестиции' && (
                   <div>
-                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Инвестор</label>
+                    <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2 mb-1 block">Инвестор</label>
                     <select
                       value={selectedInvestorId}
                       onChange={(e) => setSelectedInvestorId(e.target.value)}
                       required
-                      className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
+                      className="w-full p-5 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900 dark:text-white"
                     >
                       <option value="">-- Выберите инвестора --</option>
                       {investors.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
@@ -344,17 +344,17 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
 
                 {CAR_RELATED_EXPENSE_CATEGORIES.includes(selectedCategory) && (
                   <div className="animate-slideDown">
-                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Выберите автомобиль</label>
+                    <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2 mb-1 block">Выберите автомобиль</label>
                     <select
                       value={selectedCarId}
                       onChange={(e) => setSelectedCarId(e.target.value)}
                       required
-                      className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
+                      className="w-full p-5 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900 dark:text-white"
                     >
                       <option value="">-- Выберите авто --</option>
                       {cars.map(c => <option key={c.id} value={c.id}>{c.brand} {c.model} ({c.plate})</option>)}
                     </select>
-                    <div className="mt-2 ml-2 text-[10px] text-blue-500 font-bold">
+                    <div className="mt-2 ml-2 text-[10px] text-blue-500 dark:text-blue-400 font-bold">
                       <i className="fas fa-info-circle mr-1"></i>
                       Расход будет учтён в отчёте по выбранному авто.
                     </div>
@@ -364,8 +364,8 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
             )}
 
             <div>
-              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Описание (необязательно)</label>
-              <input name="description" placeholder="Детали для истории" className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
+              <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2 mb-1 block">Описание (необязательно)</label>
+              <input name="description" placeholder="Детали для истории" className="w-full p-5 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
             </div>
           </div>
 
@@ -376,31 +376,31 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
-        <div className="bg-white p-4 rounded-2xl border border-slate-100">
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
           <div className={`text-[10px] font-semibold uppercase tracking-wide ${accentText}`}>Итого {periodLabels[period]}</div>
           <div className={`text-2xl font-bold mt-1 ${accentText}`}>{theme.sign}{total.toLocaleString()} ₽</div>
         </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-100">
-          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Операций</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1">{periodTransactions.length}</div>
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
+          <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Операций</div>
+          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{periodTransactions.length}</div>
         </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-100 col-span-2 md:col-span-1">
-          <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Средний чек</div>
-          <div className="text-2xl font-bold text-slate-900 mt-1">{avg.toLocaleString()} ₽</div>
+        <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 col-span-2 md:col-span-1">
+          <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Средний чек</div>
+          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-1">{avg.toLocaleString()} ₽</div>
         </div>
       </div>
 
       {categoryBreakdown.length > 0 && (
-        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-5">
-          <h3 className="text-sm font-semibold text-slate-700 uppercase tracking-wide mb-4">По категориям — {periodLabels[period]}</h3>
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm p-4 md:p-5">
+          <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-200 uppercase tracking-wide mb-4">По категориям — {periodLabels[period]}</h3>
           <div className="space-y-3">
             {categoryBreakdown.map(c => (
               <div key={c.category}>
                 <div className="flex justify-between items-baseline text-xs mb-1">
-                  <span className="font-semibold text-slate-700">{c.category}</span>
-                  <span className="text-slate-400 font-medium">{c.amount.toLocaleString()} ₽ · {c.share}%</span>
+                  <span className="font-semibold text-slate-700 dark:text-slate-200">{c.category}</span>
+                  <span className="text-slate-400 dark:text-slate-500 font-medium">{c.amount.toLocaleString()} ₽ · {c.share}%</span>
                 </div>
-                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                <div className="h-2 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
                   <div className={`h-full rounded-full ${accentBar}`} style={{ width: `${Math.max(c.pct, 4)}%` }}></div>
                 </div>
               </div>
@@ -409,17 +409,17 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
         </div>
       )}
 
-      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-        <div className="p-4 border-b border-slate-100 space-y-3">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
+        <div className="p-4 border-b border-slate-100 dark:border-slate-700 space-y-3">
           <div className="flex justify-between items-center gap-3 flex-wrap">
-            <h3 className="text-lg font-semibold text-slate-800">
+            <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
               История
-              <span className="ml-2 text-xs font-medium text-slate-400">{visibleTransactions.length}</span>
+              <span className="ml-2 text-xs font-medium text-slate-400 dark:text-slate-500">{visibleTransactions.length}</span>
             </h3>
             <button
               onClick={exportCsv}
               disabled={visibleTransactions.length === 0}
-              className="text-blue-600 font-semibold text-xs uppercase tracking-wide hover:bg-blue-50 px-3 py-2 rounded-xl transition-all disabled:opacity-40"
+              className="text-blue-600 dark:text-blue-400 font-semibold text-xs uppercase tracking-wide hover:bg-blue-50 px-3 py-2 rounded-xl transition-all disabled:opacity-40"
             >
               <i className="fas fa-file-arrow-down mr-1.5"></i>Экспорт в CSV
             </button>
@@ -431,7 +431,7 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
                 key={id}
                 onClick={() => setPeriod(id)}
                 className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors ${
-                  period === id ? 'bg-slate-800 text-white' : 'bg-slate-50 text-slate-400 hover:text-slate-600'
+                  period === id ? 'bg-slate-800 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600'
                 }`}
               >
                 {label}
@@ -440,27 +440,27 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
           </div>
 
           <div className="relative">
-            <i className="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 text-xs"></i>
+            <i className="fas fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 text-xs"></i>
             <input
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Поиск по описанию или категории"
-              className="w-full pl-9 pr-3 py-2 bg-slate-50 rounded-xl text-sm font-medium outline-none border-2 border-transparent focus:border-blue-500 transition-all"
+              className="w-full pl-9 pr-3 py-2 bg-slate-50 dark:bg-slate-700 rounded-xl text-sm font-medium outline-none border-2 border-transparent focus:border-blue-500 transition-all"
             />
           </div>
         </div>
 
-        <div className="divide-y divide-slate-50">
+        <div className="divide-y divide-slate-50 dark:divide-slate-800">
           {pagedTransactions.map(t => (
             <div key={t.id} className="px-4 py-3 hover:bg-slate-50/50 transition-colors flex items-center gap-3">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
                 <i className={`fas ${theme.icon} text-xs`}></i>
               </div>
               <div className="flex-1 min-w-0">
-                <div className="font-semibold text-slate-900 text-sm truncate">
-                  {t.description || <span className="text-slate-300 italic font-medium">Без описания</span>}
+                <div className="font-semibold text-slate-900 dark:text-white text-sm truncate">
+                  {t.description || <span className="text-slate-300 dark:text-slate-600 italic font-medium">Без описания</span>}
                 </div>
-                <div className="text-[11px] text-slate-400 font-medium">
+                <div className="text-[11px] text-slate-400 dark:text-slate-500 font-medium">
                   {new Date(t.date).toLocaleDateString('ru-RU')} • {t.category}
                 </div>
               </div>
@@ -471,8 +471,8 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
           ))}
           {visibleTransactions.length === 0 && (
             <div className="p-12 text-center">
-              <i className={`fas ${theme.icon} text-3xl text-slate-200 mb-3`}></i>
-              <div className="font-semibold text-slate-500">
+              <i className={`fas ${theme.icon} text-3xl text-slate-200 dark:text-slate-700 mb-3`}></i>
+              <div className="font-semibold text-slate-500 dark:text-slate-400">
                 {search ? 'Ничего не найдено' : `Нет операций ${periodLabels[period]}`}
               </div>
             </div>

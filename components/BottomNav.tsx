@@ -40,10 +40,10 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, userRole, user, onNa
             className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm animate-fadeIn"
             onClick={() => setShowMenu(false)}
           ></div>
-          <div className="relative bg-white rounded-2xl p-5 shadow-md animate-slideUp overflow-hidden transition-all duration-500">
+          <div className="relative bg-white dark:bg-slate-800 rounded-2xl p-5 shadow-md animate-slideUp overflow-hidden transition-all duration-500">
             <div className="flex justify-between items-center mb-8 px-2">
-              <h3 className="font-semibold text-slate-900 uppercase tracking-wide text-xs">Быстрые действия</h3>
-              <button onClick={() => setShowMenu(false)} className="w-10 h-10 flex items-center justify-center text-slate-400 bg-slate-50 rounded-full">
+              <h3 className="font-semibold text-slate-900 dark:text-white uppercase tracking-wide text-xs">Быстрые действия</h3>
+              <button onClick={() => setShowMenu(false)} className="w-10 h-10 flex items-center justify-center text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-700 rounded-full">
                 <i className="fas fa-times"></i>
               </button>
             </div>
@@ -51,16 +51,16 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, userRole, user, onNa
             <div className="grid grid-cols-3 gap-y-8 gap-x-4">
               <button onClick={() => handleNavigate('INCOME')} className="flex flex-col items-center space-y-3">
                 <div className="w-14 h-14 rounded-2xl bg-emerald-500 text-white flex items-center justify-center shadow-lg"><i className="fas fa-plus-circle text-xl"></i></div>
-                <span className="text-[10px] font-semibold text-emerald-600 uppercase text-center">Приход</span>
+                <span className="text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase text-center">Приход</span>
               </button>
               <button onClick={() => handleNavigate('EXPENSE')} className="flex flex-col items-center space-y-3">
                 <div className="w-14 h-14 rounded-2xl bg-rose-500 text-white flex items-center justify-center shadow-lg"><i className="fas fa-minus-circle text-xl"></i></div>
-                <span className="text-[10px] font-semibold text-rose-600 uppercase text-center">Расход</span>
+                <span className="text-[10px] font-semibold text-rose-600 dark:text-rose-400 uppercase text-center">Расход</span>
               </button>
               {menuItems.map(item => (
                 <button key={item.id} onClick={() => handleNavigate(item.id as AppView)} className="flex flex-col items-center space-y-3">
-                  <div className="w-14 h-14 rounded-2xl bg-slate-50 text-slate-400 flex items-center justify-center active:scale-90 transition-all"><i className={`fas ${item.icon} text-xl`}></i></div>
-                  <span className="text-[10px] font-bold text-slate-500 text-center uppercase tracking-tighter">{item.label}</span>
+                  <div className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 flex items-center justify-center active:scale-90 transition-all"><i className={`fas ${item.icon} text-xl`}></i></div>
+                  <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400 text-center uppercase tracking-tighter">{item.label}</span>
                 </button>
               ))}
             </div>
@@ -68,7 +68,7 @@ const BottomNav: React.FC<BottomNavProps> = ({ currentView, userRole, user, onNa
         </div>
       )}
 
-      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-200 z-50 px-2 pb-safe shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-800 backdrop-blur-xl border-t border-slate-200 dark:border-slate-600 z-50 px-2 pb-safe shadow-[0_-4px_20px_-5px_rgba(0,0,0,0.1)]">
         <div className={`flex justify-between items-center h-20 pb-2 ${isClientMode ? 'px-8' : ''}`}>
           {!isClientMode ? (
             <>
@@ -102,7 +102,7 @@ const NavItem = ({ id, icon, label, currentView, onNavigate, badge }: any) => {
     <button
       onClick={() => onNavigate(id)}
       className={`flex flex-col items-center justify-center flex-1 h-full space-y-1 transition-all ${
-        isActive ? 'text-blue-600' : 'text-slate-400'
+        isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-400 dark:text-slate-500'
       }`}
     >
       <div className="relative">

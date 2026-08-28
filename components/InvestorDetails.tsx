@@ -51,11 +51,11 @@ const InvestorDetails: React.FC<InvestorDetailsProps> = ({ investor, cars, renta
 
   return (
     <div className="space-y-5 animate-fadeIn pb-24 md:pb-0">
-      <button onClick={onBack} className="flex items-center space-x-2 text-slate-500 font-bold hover:text-blue-600 transition-all">
+      <button onClick={onBack} className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 font-bold hover:text-blue-600 transition-all">
         <i className="fas fa-arrow-left"></i> <span>Назад к списку</span>
       </button>
 
-      <div className="bg-white rounded-2xl shadow-md overflow-hidden border border-slate-100">
+      <div className="bg-white dark:bg-slate-800 rounded-2xl shadow-md overflow-hidden border border-slate-100 dark:border-slate-700">
         <div className="p-5 md:p-8 bg-indigo-900 text-white flex flex-col md:flex-row justify-between items-center gap-8 relative">
           <div className="flex items-center space-x-6 relative z-10">
             <div className="w-16 h-16 rounded-2xl bg-indigo-500 flex items-center justify-center text-white text-4xl font-semibold shadow-md">
@@ -85,17 +85,17 @@ const InvestorDetails: React.FC<InvestorDetailsProps> = ({ investor, cars, renta
         </div>
 
         {/* Вкладки */}
-        <div className="flex border-b border-slate-100 bg-slate-50/50">
+        <div className="flex border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700">
           <button 
             onClick={() => setActiveTab('INFO')} 
-            className={`flex-1 py-5 font-semibold text-xs uppercase tracking-wide transition-all flex items-center justify-center space-x-2 ${activeTab === 'INFO' ? 'bg-white text-indigo-600 border-b-4 border-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`flex-1 py-5 font-semibold text-xs uppercase tracking-wide transition-all flex items-center justify-center space-x-2 ${activeTab === 'INFO' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border-b-4 border-indigo-600 dark:border-indigo-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'}`}
           >
             <i className="fas fa-user-tie"></i>
             <span>Инвестор</span>
           </button>
           <button 
             onClick={() => setActiveTab('HISTORY')} 
-            className={`flex-1 py-5 font-semibold text-xs uppercase tracking-wide transition-all flex items-center justify-center space-x-2 ${activeTab === 'HISTORY' ? 'bg-white text-indigo-600 border-b-4 border-indigo-600' : 'text-slate-400 hover:text-slate-600'}`}
+            className={`flex-1 py-5 font-semibold text-xs uppercase tracking-wide transition-all flex items-center justify-center space-x-2 ${activeTab === 'HISTORY' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border-b-4 border-indigo-600 dark:border-indigo-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'}`}
           >
             <i className="fas fa-history"></i>
             <span>История</span>
@@ -106,28 +106,28 @@ const InvestorDetails: React.FC<InvestorDetailsProps> = ({ investor, cars, renta
           {activeTab === 'INFO' ? (
             <>
               {/* Фильтр по периоду */}
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100">
+              <div className="bg-slate-50 dark:bg-slate-700 p-5 rounded-2xl border border-slate-100 dark:border-slate-700">
                 <div className="flex flex-col md:flex-row justify-between items-center gap-4">
                   <div>
-                    <h3 className="text-xl font-semibold text-slate-900 uppercase tracking-tight">Доход за период</h3>
-                    <p className="text-xs text-slate-400 font-bold uppercase tracking-wide mt-1">Анализ прибыльности ваших авто</p>
+                    <h3 className="text-xl font-semibold text-slate-900 dark:text-white uppercase tracking-tight">Доход за период</h3>
+                    <p className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wide mt-1">Анализ прибыльности ваших авто</p>
                   </div>
                   <div className="flex items-center gap-3">
                     <input 
                       type="date" 
                       value={dateRange.start}
                       onChange={e => setDateRange({...dateRange, start: e.target.value})}
-                      className="p-3 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                      className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
                     />
-                    <i className="fas fa-arrow-right text-slate-300"></i>
+                    <i className="fas fa-arrow-right text-slate-300 dark:text-slate-600"></i>
                     <input 
                       type="date" 
                       value={dateRange.end}
                       onChange={e => setDateRange({...dateRange, end: e.target.value})}
-                      className="p-3 bg-white border border-slate-200 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
+                      className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
                     />
                     {(dateRange.start || dateRange.end) && (
-                      <button onClick={() => setDateRange({start:'', end:''})} className="w-10 h-10 flex items-center justify-center text-rose-500 hover:bg-rose-50 rounded-full transition-all">
+                      <button onClick={() => setDateRange({start:'', end:''})} className="w-10 h-10 flex items-center justify-center text-rose-500 dark:text-rose-400 hover:bg-rose-50 rounded-full transition-all">
                         <i className="fas fa-times"></i>
                       </button>
                     )}
@@ -135,21 +135,21 @@ const InvestorDetails: React.FC<InvestorDetailsProps> = ({ investor, cars, renta
                 </div>
                 
                 <div className="mt-8 grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between">
+                  <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-between">
                     <div>
-                      <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Начислено за период</div>
-                      <div className="text-3xl font-bold text-indigo-600">{periodEarnings.toLocaleString()} ₽</div>
+                      <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">Начислено за период</div>
+                      <div className="text-3xl font-bold text-indigo-600 dark:text-indigo-400">{periodEarnings.toLocaleString()} ₽</div>
                     </div>
-                    <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600 text-xl">
+                    <div className="w-14 h-14 bg-indigo-50 dark:bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-600 dark:text-indigo-400 text-xl">
                       <i className="fas fa-piggy-bank"></i>
                     </div>
                   </div>
-                  <div className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between">
+                  <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-between">
                     <div>
-                      <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Сделок за период</div>
-                      <div className="text-3xl font-bold text-slate-900">{filteredRentals.length}</div>
+                      <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-1">Сделок за период</div>
+                      <div className="text-3xl font-bold text-slate-900 dark:text-white">{filteredRentals.length}</div>
                     </div>
-                    <div className="w-14 h-14 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-400 text-xl">
+                    <div className="w-14 h-14 bg-slate-50 dark:bg-slate-700 rounded-2xl flex items-center justify-center text-slate-400 dark:text-slate-500 text-xl">
                       <i className="fas fa-file-contract"></i>
                     </div>
                   </div>
@@ -157,19 +157,19 @@ const InvestorDetails: React.FC<InvestorDetailsProps> = ({ investor, cars, renta
               </div>
 
               <div className="space-y-4">
-                <h3 className="text-xl font-semibold text-slate-900 uppercase tracking-tight">Авто в управлении</h3>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white uppercase tracking-tight">Авто в управлении</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {investorCars.map(car => (
-                    <div key={car.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center space-x-5 group hover:border-indigo-200 transition-all shadow-sm">
+                    <div key={car.id} className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center space-x-5 group hover:border-indigo-200 transition-all shadow-sm">
                       <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-inner flex-shrink-0">
                         <img src={car.images[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
                       </div>
                       <div className="flex-1 overflow-hidden">
-                        <div className="font-bold text-slate-900 truncate">{car.brand} {car.model}</div>
-                        <div className="text-[10px] text-slate-400 font-semibold tracking-wide uppercase">{car.plate}</div>
+                        <div className="font-bold text-slate-900 dark:text-white truncate">{car.brand} {car.model}</div>
+                        <div className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold tracking-wide uppercase">{car.plate}</div>
                         <div className="mt-2 flex items-center space-x-2">
-                          <span className="text-[10px] font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-lg">Доля: {car.investorShare}%</span>
-                          <span className={`text-[8px] font-semibold px-2 py-1 rounded-lg uppercase ${car.status === 'Свободен' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>
+                          <span className="text-[10px] font-semibold text-indigo-600 dark:text-indigo-400 bg-indigo-50 dark:bg-indigo-500/10 px-2 py-1 rounded-lg">Доля: {car.investorShare}%</span>
+                          <span className={`text-[8px] font-semibold px-2 py-1 rounded-lg uppercase ${car.status === 'Свободен' ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400'}`}>
                             {car.status}
                           </span>
                         </div>
@@ -177,7 +177,7 @@ const InvestorDetails: React.FC<InvestorDetailsProps> = ({ investor, cars, renta
                     </div>
                   ))}
                   {investorCars.length === 0 && (
-                    <div className="col-span-full p-8 text-center text-slate-400 bg-slate-50 border-2 border-dashed border-slate-100 rounded-2xl italic font-medium">
+                    <div className="col-span-full p-8 text-center text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-700 border-2 border-dashed border-slate-100 dark:border-slate-700 rounded-2xl italic font-medium">
                       Нет закрепленных автомобилей
                     </div>
                   )}
@@ -187,31 +187,31 @@ const InvestorDetails: React.FC<InvestorDetailsProps> = ({ investor, cars, renta
           ) : (
             <div className="space-y-4 animate-fadeIn">
               <div className="flex justify-between items-center px-2">
-                <h3 className="text-xl font-semibold text-slate-900 uppercase tracking-tight">История операций</h3>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white uppercase tracking-tight">История операций</h3>
                 <div className="flex gap-4">
                   <div className="text-right">
-                    <div className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">Всего выплачено</div>
-                    <div className="text-lg font-bold text-rose-600">{totalPayouts.toLocaleString()} ₽</div>
+                    <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Всего выплачено</div>
+                    <div className="text-lg font-bold text-rose-600 dark:text-rose-400">{totalPayouts.toLocaleString()} ₽</div>
                   </div>
                 </div>
               </div>
               <div className="space-y-3">
                 {investorTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(t => (
-                  <div key={t.id} className="p-4 bg-white rounded-2xl border border-slate-100 flex items-center justify-between hover:bg-slate-50 transition-all group">
+                  <div key={t.id} className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-between hover:bg-slate-50 transition-all group">
                     <div className="flex items-center space-x-5">
-                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${t.type === TransactionType.EXPENSE ? 'bg-rose-50 text-rose-500' : 'bg-emerald-50 text-emerald-500'}`}>
+                      <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${t.type === TransactionType.EXPENSE ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-500 dark:text-rose-400' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 dark:text-emerald-400'}`}>
                         <i className={`fas ${t.type === TransactionType.EXPENSE ? 'fa-arrow-up' : 'fa-arrow-down'} text-xl`}></i>
                       </div>
                       <div>
-                        <div className="font-bold text-slate-900 text-lg group-hover:text-indigo-600 transition-colors">{t.description || t.category}</div>
+                        <div className="font-bold text-slate-900 dark:text-white text-lg group-hover:text-indigo-600 transition-colors">{t.description || t.category}</div>
                         <div className="flex items-center space-x-3 mt-1">
-                          <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{new Date(t.date).toLocaleDateString()}</div>
-                          <span className="w-1 h-1 bg-slate-200 rounded-full"></span>
-                          <div className="text-[10px] text-slate-400 font-semibold uppercase tracking-wide">{t.category}</div>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wide">{new Date(t.date).toLocaleDateString()}</div>
+                          <span className="w-1 h-1 bg-slate-200 dark:bg-slate-600 rounded-full"></span>
+                          <div className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wide">{t.category}</div>
                         </div>
                       </div>
                     </div>
-                    <div className={`text-right ${t.type === TransactionType.EXPENSE ? 'text-rose-600' : 'text-emerald-600'}`}>
+                    <div className={`text-right ${t.type === TransactionType.EXPENSE ? 'text-rose-600 dark:text-rose-400' : 'text-emerald-600 dark:text-emerald-400'}`}>
                       <div className="font-bold text-2xl">{t.type === TransactionType.EXPENSE ? '-' : '+'}{t.amount.toLocaleString()} ₽</div>
                       <div className="text-[10px] font-semibold uppercase tracking-tighter opacity-60">
                         {t.type === TransactionType.EXPENSE ? 'Выплата' : 'Начисление'}
@@ -220,7 +220,7 @@ const InvestorDetails: React.FC<InvestorDetailsProps> = ({ investor, cars, renta
                   </div>
                 ))}
                 {investorTransactions.length === 0 && (
-                  <div className="p-20 text-center text-slate-400 bg-slate-50/50 border-2 border-dashed border-slate-100 rounded-2xl italic font-medium">
+                  <div className="p-20 text-center text-slate-400 dark:text-slate-500 bg-slate-50/50 dark:bg-slate-700 border-2 border-dashed border-slate-100 dark:border-slate-700 rounded-2xl italic font-medium">
                     История операций пуста
                   </div>
                 )}
