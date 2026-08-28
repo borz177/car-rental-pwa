@@ -31,7 +31,7 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
     ? { accent: 'emerald', label: 'Приход', verb: 'прихода', icon: 'fa-arrow-down', sign: '+' }
     : { accent: 'rose', label: 'Расход', verb: 'расхода', icon: 'fa-arrow-up', sign: '−' };
 
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [customCategory, setCustomCategory] = useState('');
   const [searchClient, setSearchClient] = useState('');
@@ -128,7 +128,7 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
     return rentals.filter(r => r.clientId === selectedClientId && r.paymentStatus === 'DEBT');
   }, [rentals, selectedClientId]);
 
-  const resetModalState = () => {
+  const resetFormState = () => {
     setSelectedClientId(''); setSearchClient(''); setSelectedCategory(''); setCustomCategory('');
     setSelectedInvestorId(''); setSelectedCarId(''); setSelectedStaffId(''); setShowClientList(false);
   };
@@ -180,8 +180,10 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
       staffId: staffId || undefined
     }, selectedClientId || undefined);
 
-    setIsModalOpen(false);
-    resetModalState();
+    e.currentTarget.reset();
+    resetFormState();
+    setJustAdded(true);
+    setTimeout(() => setJustAdded(false), 2500);
   };
 
   const iconBg = isIncome ? 'bg-emerald-100 text-emerald-600' : 'bg-rose-100 text-rose-600';
@@ -199,13 +201,178 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
           <i className={`fas ${theme.icon}`}></i>
         </div>
         <h2 className="text-3xl font-semibold text-slate-900 flex-1">{theme.label}</h2>
-        <button
-          onClick={() => setIsModalOpen(true)}
-          className={`text-white px-6 py-3.5 rounded-2xl font-semibold shadow-md transition-all flex items-center gap-2 ${btnBg}`}
-        >
-          <i className="fas fa-plus"></i>
-          <span className="hidden sm:inline">Добавить {theme.verb}</span>
-        </button>
+      </div>
+
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-6 relative">
+        <form onSubmit={handleSubmit}>
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="text-xl font-semibold text-slate-900">Новый {theme.verb === 'прихода' ? 'приход' : 'расход'}</h3>
+            {justAdded && (
+              <span className={`text-xs font-semibold flex items-center gap-1.5 animate-fadeIn ${accentText}`}>
+                <i className="fas fa-check-circle"></i> Операция добавлена
+              </span>
+            )}
+          </div>
+
+          <div className="space-y-5 mb-8">
+            {isIncome && (
+              <div className="relative">
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Клиент (необязательно)</label>
+                <div
+                  onClick={() => setShowClientList(true)}
+                  className="w-full p-5 bg-slate-50 rounded-2xl font-bold border-2 border-transparent cursor-pointer flex justify-between items-center hover:bg-slate-100 transition-all text-slate-700"
+                >
+                  <span className={searchClient ? 'text-slate-900' : 'text-slate-400'}>
+                    {searchClient || 'Нажмите для выбора клиента'}
+                  </span>
+                  <i className="fas fa-search text-slate-300"></i>
+                </div>
+
+                {showClientList && (
+                  <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl w-full max-w-md p-8 shadow-md animate-scaleIn flex flex-col max-h-[80vh]">
+                      <div className="flex justify-between items-center mb-6">
+                        <h4 className="font-semibold text-slate-900 uppercase tracking-tight text-xl">Выбор клиента</h4>
+                        <button type="button" onClick={() => setShowClientList(false)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:bg-slate-50 rounded-full">
+                          <i className="fas fa-times"></i>
+                        </button>
+                      </div>
+                      <input
+                        autoFocus
+                        placeholder="Поиск..."
+                        className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 mb-4"
+                        value={searchClient}
+                        onChange={e => setSearchClient(e.target.value)}
+                      />
+                      <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
+                        {filteredClients.map(c => (
+                          <button
+                            key={c.id}
+                            type="button"
+                            onClick={() => { setSelectedClientId(c.id); setSearchClient(c.name); setShowClientList(false); }}
+                            className="w-full text-left p-4 hover:bg-blue-600 hover:text-white rounded-2xl font-bold transition-all group"
+                          >
+                            <div className="text-slate-900 group-hover:text-white font-bold">{c.name}</div>
+                            <div className="text-[10px] text-slate-400 group-hover:text-white/70 uppercase">{c.phone}</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Сумма (₽)</label>
+                <input name="amount" type="number" required placeholder="0" className="w-full p-5 bg-slate-50 rounded-2xl font-bold text-2xl text-slate-900 outline-none border-2 border-transparent focus:border-blue-500" />
+              </div>
+              <div>
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Дата</label>
+                <input name="date" type="date" required defaultValue={todayStr} max={todayStr} className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 text-slate-900" />
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Категория</label>
+              {isIncome && selectedClientId && clientDebtRentals.length > 0 ? (
+                <select name="category" required className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900">
+                  <option value="">-- Оплата долга по договору --</option>
+                  {clientDebtRentals.map(r => (
+                    <option key={r.id} value={`Аренда ${r.contractNumber}`}>Погасить долг: дог. {r.contractNumber}</option>
+                  ))}
+                  <option value="Прочее">Прочее / Бонус</option>
+                </select>
+              ) : (
+                <select
+                  name="category"
+                  required
+                  value={selectedCategory}
+                  onChange={(e) => { setSelectedCategory(e.target.value); setSelectedCarId(''); }}
+                  className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
+                >
+                  <option value="">-- Выберите категорию --</option>
+                  {(isIncome ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                </select>
+              )}
+            </div>
+
+            {isIncome && selectedCategory === 'Прочее' && (
+              <div className="animate-slideDown">
+                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Уточните категорию (необязательно)</label>
+                <input
+                  value={customCategory}
+                  onChange={e => setCustomCategory(e.target.value)}
+                  placeholder="Напр. Продажа шин"
+                  className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500"
+                />
+              </div>
+            )}
+
+            {!isIncome && (
+              <>
+                {selectedCategory === 'Оклад' && (
+                  <div>
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Сотрудник</label>
+                    <select
+                      value={selectedStaffId}
+                      onChange={(e) => setSelectedStaffId(e.target.value)}
+                      required
+                      className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
+                    >
+                      <option value="">-- Выберите сотрудника --</option>
+                      {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                {selectedCategory === 'Инвестиции' && (
+                  <div>
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Инвестор</label>
+                    <select
+                      value={selectedInvestorId}
+                      onChange={(e) => setSelectedInvestorId(e.target.value)}
+                      required
+                      className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
+                    >
+                      <option value="">-- Выберите инвестора --</option>
+                      {investors.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                {CAR_RELATED_EXPENSE_CATEGORIES.includes(selectedCategory) && (
+                  <div className="animate-slideDown">
+                    <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Выберите автомобиль</label>
+                    <select
+                      value={selectedCarId}
+                      onChange={(e) => setSelectedCarId(e.target.value)}
+                      required
+                      className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
+                    >
+                      <option value="">-- Выберите авто --</option>
+                      {cars.map(c => <option key={c.id} value={c.id}>{c.brand} {c.model} ({c.plate})</option>)}
+                    </select>
+                    <div className="mt-2 ml-2 text-[10px] text-blue-500 font-bold">
+                      <i className="fas fa-info-circle mr-1"></i>
+                      Расход будет учтён в отчёте по выбранному авто.
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            <div>
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Описание (необязательно)</label>
+              <input name="description" placeholder="Детали для истории" className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
+            </div>
+          </div>
+
+          <button type="submit" className={`w-full py-5 text-white rounded-xl font-semibold text-lg shadow-md transition-all active:scale-[0.98] ${btnBg}`}>
+            Провести {theme.verb === 'прихода' ? 'приход' : 'расход'}
+          </button>
+        </form>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -321,180 +488,6 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
         />
       </div>
 
-      {isModalOpen && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
-          <form onSubmit={handleSubmit} className="bg-white rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn relative">
-            <button
-              type="button"
-              onClick={() => { setIsModalOpen(false); resetModalState(); }}
-              className="absolute top-8 right-8 w-10 h-10 flex items-center justify-center text-slate-300 hover:text-slate-900 bg-slate-50 rounded-full transition-all"
-            >
-              <i className="fas fa-times"></i>
-            </button>
-
-            <h2 className="text-2xl font-semibold text-slate-900 mb-8">Новый {theme.verb === 'прихода' ? 'приход' : 'расход'}</h2>
-
-            <div className="space-y-5 mb-10">
-              {isIncome && (
-                <div className="relative">
-                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Клиент (необязательно)</label>
-                  <div
-                    onClick={() => setShowClientList(true)}
-                    className="w-full p-5 bg-slate-50 rounded-2xl font-bold border-2 border-transparent cursor-pointer flex justify-between items-center hover:bg-slate-100 transition-all text-slate-700"
-                  >
-                    <span className={searchClient ? 'text-slate-900' : 'text-slate-400'}>
-                      {searchClient || 'Нажмите для выбора клиента'}
-                    </span>
-                    <i className="fas fa-search text-slate-300"></i>
-                  </div>
-
-                  {showClientList && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
-                      <div className="bg-white rounded-2xl w-full max-w-md p-8 shadow-md animate-scaleIn flex flex-col max-h-[80vh]">
-                        <div className="flex justify-between items-center mb-6">
-                          <h4 className="font-semibold text-slate-900 uppercase tracking-tight text-xl">Выбор клиента</h4>
-                          <button type="button" onClick={() => setShowClientList(false)} className="w-10 h-10 flex items-center justify-center text-slate-400 hover:bg-slate-50 rounded-full">
-                            <i className="fas fa-times"></i>
-                          </button>
-                        </div>
-                        <input
-                          autoFocus
-                          placeholder="Поиск..."
-                          className="w-full p-4 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 mb-4"
-                          value={searchClient}
-                          onChange={e => setSearchClient(e.target.value)}
-                        />
-                        <div className="flex-1 overflow-y-auto space-y-2 pr-2 custom-scrollbar">
-                          {filteredClients.map(c => (
-                            <button
-                              key={c.id}
-                              type="button"
-                              onClick={() => { setSelectedClientId(c.id); setSearchClient(c.name); setShowClientList(false); }}
-                              className="w-full text-left p-4 hover:bg-blue-600 hover:text-white rounded-2xl font-bold transition-all group"
-                            >
-                              <div className="text-slate-900 group-hover:text-white font-bold">{c.name}</div>
-                              <div className="text-[10px] text-slate-400 group-hover:text-white/70 uppercase">{c.phone}</div>
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Сумма (₽)</label>
-                  <input name="amount" type="number" required placeholder="0" className="w-full p-5 bg-slate-50 rounded-2xl font-bold text-2xl text-slate-900 outline-none border-2 border-transparent focus:border-blue-500" />
-                </div>
-                <div>
-                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Дата</label>
-                  <input name="date" type="date" required defaultValue={todayStr} max={todayStr} className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 text-slate-900" />
-                </div>
-              </div>
-
-              <div>
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Категория</label>
-                {isIncome && selectedClientId && clientDebtRentals.length > 0 ? (
-                  <select name="category" required className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900">
-                    <option value="">-- Оплата долга по договору --</option>
-                    {clientDebtRentals.map(r => (
-                      <option key={r.id} value={`Аренда ${r.contractNumber}`}>Погасить долг: дог. {r.contractNumber}</option>
-                    ))}
-                    <option value="Прочее">Прочее / Бонус</option>
-                  </select>
-                ) : (
-                  <select
-                    name="category"
-                    required
-                    value={selectedCategory}
-                    onChange={(e) => { setSelectedCategory(e.target.value); setSelectedCarId(''); }}
-                    className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
-                  >
-                    <option value="">-- Выберите категорию --</option>
-                    {(isIncome ? INCOME_CATEGORIES : EXPENSE_CATEGORIES).map(cat => <option key={cat} value={cat}>{cat}</option>)}
-                  </select>
-                )}
-              </div>
-
-              {isIncome && selectedCategory === 'Прочее' && (
-                <div className="animate-slideDown">
-                  <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Уточните категорию (необязательно)</label>
-                  <input
-                    value={customCategory}
-                    onChange={e => setCustomCategory(e.target.value)}
-                    placeholder="Напр. Продажа шин"
-                    className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500"
-                  />
-                </div>
-              )}
-
-              {!isIncome && (
-                <>
-                  {selectedCategory === 'Оклад' && (
-                    <div>
-                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Сотрудник</label>
-                      <select
-                        value={selectedStaffId}
-                        onChange={(e) => setSelectedStaffId(e.target.value)}
-                        required
-                        className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
-                      >
-                        <option value="">-- Выберите сотрудника --</option>
-                        {staff.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-                      </select>
-                    </div>
-                  )}
-
-                  {selectedCategory === 'Инвестиции' && (
-                    <div>
-                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Инвестор</label>
-                      <select
-                        value={selectedInvestorId}
-                        onChange={(e) => setSelectedInvestorId(e.target.value)}
-                        required
-                        className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
-                      >
-                        <option value="">-- Выберите инвестора --</option>
-                        {investors.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
-                      </select>
-                    </div>
-                  )}
-
-                  {CAR_RELATED_EXPENSE_CATEGORIES.includes(selectedCategory) && (
-                    <div className="animate-slideDown">
-                      <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Выберите автомобиль</label>
-                      <select
-                        value={selectedCarId}
-                        onChange={(e) => setSelectedCarId(e.target.value)}
-                        required
-                        className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 appearance-none text-slate-900"
-                      >
-                        <option value="">-- Выберите авто --</option>
-                        {cars.map(c => <option key={c.id} value={c.id}>{c.brand} {c.model} ({c.plate})</option>)}
-                      </select>
-                      <div className="mt-2 ml-2 text-[10px] text-blue-500 font-bold">
-                        <i className="fas fa-info-circle mr-1"></i>
-                        Расход будет учтён в отчёте по выбранному авто.
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
-
-              <div>
-                <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide ml-2 mb-1 block">Описание (необязательно)</label>
-                <input name="description" placeholder="Детали для истории" className="w-full p-5 bg-slate-50 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500" />
-              </div>
-            </div>
-
-            <button type="submit" className={`w-full py-5 text-white rounded-xl font-semibold text-lg shadow-md transition-all active:scale-[0.98] ${btnBg}`}>
-              Провести {theme.verb === 'прихода' ? 'приход' : 'расход'}
-            </button>
-          </form>
-        </div>
-      )}
     </div>
   );
 };
