@@ -3,6 +3,7 @@ import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { Car, CarStatus, FuelType, Transmission, Investor, Rental, Client, User, UserRole } from '../types';
 import BackendAPI from '../services/api';
 import { getBlockedCarIds } from '../services/planFeatures';
+import { CAR_PLACEHOLDER_IMAGE } from '../constants';
 
 interface CarListProps {
   cars: Car[];
@@ -100,7 +101,7 @@ const CarCard: React.FC<{
   return (
     <div className={`bg-white rounded-2xl overflow-hidden shadow-sm border transition-all group hover:shadow-md relative ${isBlocked ? 'border-rose-200' : 'border-slate-100'}`}>
       <div className={`h-40 md:h-40 relative overflow-hidden bg-slate-100 cursor-pointer ${isBlocked ? 'grayscale opacity-70' : ''}`} onClick={handleImageClick}>
-        <img src={car.images[0] || 'https://images.unsplash.com/photo-1494905998402-395d579af36f?q=80&w=400'} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
+        <img src={car.images[0] || CAR_PLACEHOLDER_IMAGE} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" alt="" />
 
         <div
           title={isBlocked ? 'Превышен лимит текущего тарифа — обновите тариф, чтобы разблокировать' : undefined}

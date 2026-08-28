@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Car, CarStatus, Rental, Client } from '../types';
+import { CAR_PLACEHOLDER_IMAGE } from '../constants';
 
 interface BookingCalendarProps {
   cars: Car[];
@@ -200,7 +201,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ cars, rentals, client
                   >
                     <div className="w-9 h-9 rounded-lg overflow-hidden bg-slate-100 flex-shrink-0">
                       <img
-                        src={car.images?.[0] || 'https://images.unsplash.com/photo-1494905998402-395d579af36f?q=80&w=200'}
+                        src={car.images?.[0] || CAR_PLACEHOLDER_IMAGE}
                         className="w-full h-full object-cover"
                         alt=""
                       />

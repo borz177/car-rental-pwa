@@ -1,6 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Car, CarStatus, Rental, Client, Transaction, TransactionType, Investor, Fine, FineStatus } from '../types';
+import { CAR_PLACEHOLDER_IMAGE } from '../constants';
 
 interface CarDetailsProps {
   car: Car;
@@ -168,7 +169,7 @@ const CarDetails: React.FC<CarDetailsProps> = ({
         <div className="p-4 md:p-5 bg-slate-50 border-b border-slate-100 flex flex-col md:flex-row md:items-center gap-4">
           <div className="w-full md:w-40 h-28 rounded-xl overflow-hidden bg-slate-200 flex-shrink-0">
             <img
-              src={car.images?.[0] || 'https://images.unsplash.com/photo-1494905998402-395d579af36f?q=80&w=400'}
+              src={car.images?.[0] || CAR_PLACEHOLDER_IMAGE}
               className="w-full h-full object-cover"
               alt={`${car.brand} ${car.model}`}
             />

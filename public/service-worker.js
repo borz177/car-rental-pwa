@@ -1,10 +1,14 @@
 // Версию поднимаем при изменениях воркера: на activate все остальные кеши
 // удаляются, что вычищает у пользователей устаревший index.html.
-const CACHE_NAME = 'autopro-v3';
+const CACHE_NAME = 'autopro-v4';
 const APP_SHELL = [
   '/',
   '/index.html',
-  'https://cdn.tailwindcss.com',
+  // cdn.tailwindcss.com сюда специально не входит: cache.add() запрашивает
+  // ресурс в режиме 'cors', а этот CDN не шлёт Access-Control-Allow-Origin —
+  // запрос гарантированно падает с CORS-ошибкой в консоли при каждой установке
+  // воркера, при этом сам скрипт как <script src> на странице грузится
+  // отдельно, в режиме 'no-cors', и в этом кэшировании не нуждается.
   'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css'
 ];
 
@@ -70,18 +74,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Same-origin static assets (including Vite's hashed JS/CSS bundle) and CDN assets:
-  // cache-first, then network + runtime cache.
+  // Same-origin static assets (including Vite's hashed JS/CSS bundle) и кросс-доменные
+  // ресурсы (иконки, картинки-заглушки и т.п.): cache-first, затем сеть + runtime-кэш.
+  // .catch() обязателен: без него неудачный fetch (в т.ч. до сторонних CDN, которые
+  // могут быть недоступны в конкретной сети пользователя) оставлял respondWith()
+  // с отклонённым промисом — "Uncaught (in promise) TypeError: Failed to fetch" в
+  // консоли и сломанный запрос вместо честного сетевого сбоя.
   event.respondWith(
     caches.match(request).then((cached) => {
       if (cached) return cached;
-      return fetch(request).then((response) => {
-        if (response.ok) {
-          const copy = response.clone();
-          caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-        }
-        return response;
-      });
+      return fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
+          }
+          return response;
+        })
+        .catch(() => Response.error());
     })
   );
 });

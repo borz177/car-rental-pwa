@@ -10,6 +10,22 @@ export const CAR_CATEGORIES = ['Эконом', 'Комфорт', 'Бизнес',
 export const FUEL_TYPES = Object.values(FuelType);
 export const TRANSMISSIONS = Object.values(Transmission);
 
+// Раньше заглушкой для авто без фото была картинка с images.unsplash.com — внешняя
+// зависимость, которая рвётся у части пользователей (недоступность конкретного CDN
+// в их сети) и совершенно не нужна для простого "фото нет". Инлайновый SVG работает
+// всегда, без сети.
+export const CAR_PLACEHOLDER_IMAGE = `data:image/svg+xml,${encodeURIComponent(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300">
+    <rect width="400" height="300" fill="#f1f5f9"/>
+    <path d="M100 178 L128 128 Q138 118 153 118 L247 118 Q262 118 272 128 L300 178 Z" fill="#cbd5e1"/>
+    <rect x="78" y="173" width="244" height="38" rx="12" fill="#cbd5e1"/>
+    <circle cx="140" cy="215" r="23" fill="#cbd5e1"/>
+    <circle cx="260" cy="215" r="23" fill="#cbd5e1"/>
+    <circle cx="140" cy="215" r="9" fill="#f1f5f9"/>
+    <circle cx="260" cy="215" r="9" fill="#f1f5f9"/>
+  </svg>`
+)}`;
+
 export const NAVIGATION_ITEMS = [
   // Панель Суперадмина (Система)
   { id: 'SUPERADMIN_PANEL', label: 'Контроль системы', icon: 'fa-user-shield', roles: [UserRole.SUPERADMIN] },

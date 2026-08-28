@@ -1,6 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Car, CarStatus, Rental, Client, User, Transaction, TransactionType, Fine, FineStatus, AppView } from '../types';
+import { CAR_PLACEHOLDER_IMAGE } from '../constants';
 
 interface DashboardProps {
   cars: Car[];
@@ -179,7 +180,7 @@ const Dashboard: React.FC<DashboardProps> = ({
           onClick={() => onSelectCar(car.id)}
           className="w-12 h-12 rounded-xl overflow-hidden bg-slate-100 flex-shrink-0 cursor-pointer"
         >
-          <img src={car.images?.[0] || 'https://images.unsplash.com/photo-1494905998402-395d579af36f?q=80&w=200'} className="w-full h-full object-cover" alt="" />
+          <img src={car.images?.[0] || CAR_PLACEHOLDER_IMAGE} className="w-full h-full object-cover" alt="" />
         </div>
 
         <div className="flex-1 min-w-0">
