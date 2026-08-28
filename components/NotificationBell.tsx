@@ -41,7 +41,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ notifications, onMa
     <div className="relative">
       <button
         onClick={() => setOpen(o => !o)}
-        className={`relative p-2 transition-colors ${dark ? 'text-slate-400 dark:text-slate-500 hover:text-blue-600' : 'text-white/70 hover:text-white'}`}
+        className={`relative p-2 transition-colors ${dark ? 'text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400' : 'text-white/70 hover:text-white'}`}
       >
         <i className="fas fa-bell"></i>
         {unreadCount > 0 && (
@@ -64,7 +64,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ notifications, onMa
             <div className="px-4 py-3 border-b border-slate-100 dark:border-slate-700 flex items-center justify-between">
               <span className="font-semibold text-slate-900 dark:text-white text-sm">Уведомления</span>
               {unreadCount > 0 && (
-                <button onClick={onMarkAllRead} className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide hover:text-blue-700">
+                <button onClick={onMarkAllRead} className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide hover:text-blue-700 dark:hover:text-blue-400">
                   Прочитать все
                 </button>
               )}
@@ -75,7 +75,7 @@ const NotificationBell: React.FC<NotificationBellProps> = ({ notifications, onMa
                 <button
                   key={n.id}
                   onClick={() => handleClick(n)}
-                  className={`w-full px-4 py-3 flex items-start gap-3 text-left hover:bg-slate-50 transition-colors ${!n.isRead ? 'bg-blue-50/40 dark:bg-blue-500/10' : ''}`}
+                  className={`w-full px-4 py-3 flex items-start gap-3 text-left hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${!n.isRead ? 'bg-blue-50/40 dark:bg-blue-500/10' : ''}`}
                 >
                   <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${
                     n.type === 'SUPPORT_MESSAGE' ? 'bg-indigo-100 dark:bg-indigo-500/15 text-indigo-600 dark:text-indigo-400' : 'bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400'

@@ -109,7 +109,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ cars, rentals, client
           <div className="flex items-center gap-2">
             <button
               onClick={() => setOffset(o => o - rangeLength)}
-              className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 transition-colors"
+              className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               title="Предыдущий период"
             >
               <i className="fas fa-chevron-left text-xs"></i>
@@ -117,14 +117,14 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ cars, rentals, client
             <button
               onClick={() => setOffset(0)}
               className={`px-3 h-9 rounded-xl text-[10px] font-semibold uppercase tracking-wide transition-colors ${
-                offset === 0 ? 'bg-blue-600 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100'
+                offset === 0 ? 'bg-blue-600 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
               }`}
             >
               Сегодня
             </button>
             <button
               onClick={() => setOffset(o => o + rangeLength)}
-              className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 transition-colors"
+              className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
               title="Следующий период"
             >
               <i className="fas fa-chevron-right text-xs"></i>
@@ -138,7 +138,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ cars, rentals, client
                 key={n}
                 onClick={() => { setRangeLength(n); setOffset(0); }}
                 className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors ${
-                  rangeLength === n ? 'bg-slate-800 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600'
+                  rangeLength === n ? 'bg-slate-800 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
                 }`}
               >
                 {n} дн.
@@ -194,10 +194,10 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ cars, rentals, client
             {/* Строки автомобилей */}
             <div className="divide-y divide-slate-100 dark:divide-slate-700">
               {visibleCars.map(car => (
-                <div key={car.id} className="grid items-stretch hover:bg-slate-50/40 transition-colors" style={gridCols}>
+                <div key={car.id} className="grid items-stretch hover:bg-slate-50/40 dark:hover:bg-slate-700 transition-colors" style={gridCols}>
                   <button
                     onClick={() => onSelectCar(car.id)}
-                    className="p-2.5 border-r border-slate-100 dark:border-slate-700 flex items-center gap-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 sticky left-0 z-10 text-left transition-colors"
+                    className="p-2.5 border-r border-slate-100 dark:border-slate-700 flex items-center gap-2.5 bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 sticky left-0 z-10 text-left transition-colors"
                   >
                     <div className="w-9 h-9 rounded-lg overflow-hidden bg-slate-100 dark:bg-slate-700 flex-shrink-0">
                       <img
@@ -233,7 +233,7 @@ const BookingCalendar: React.FC<BookingCalendarProps> = ({ cars, rentals, client
                             disabled={isPast}
                             title={isPast ? '' : 'Оформить на этот автомобиль'}
                             className={`w-full h-9 rounded-lg transition-colors ${
-                              isPast ? 'bg-slate-50 dark:bg-slate-700' : 'bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 cursor-pointer'
+                              isPast ? 'bg-slate-50 dark:bg-slate-700' : 'bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/15 cursor-pointer'
                             }`}
                           ></button>
                         </div>

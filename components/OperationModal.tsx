@@ -17,7 +17,7 @@ const OperationModal: React.FC<OperationModalProps> = ({ item, cars, onClose }) 
       <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn relative overflow-hidden">
         <div className={`absolute top-0 left-0 right-0 h-2 ${isRental ? 'bg-blue-600' : (item.type === TransactionType.INCOME ? 'bg-emerald-500' : 'bg-rose-500')}`}></div>
         
-        <button onClick={onClose} className="absolute top-8 right-8 text-slate-300 dark:text-slate-600 hover:text-slate-900 transition-all">
+        <button onClick={onClose} className="absolute top-8 right-8 text-slate-300 dark:text-slate-600 hover:text-slate-900 dark:hover:text-white transition-all">
           <i className="fas fa-times"></i>
         </button>
 

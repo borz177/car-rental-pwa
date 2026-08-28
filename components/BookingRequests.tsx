@@ -58,7 +58,7 @@ const BookingRequests: React.FC<BookingRequestsProps> = ({ requests, cars, onAct
             <button
               onClick={() => setActiveTab('PENDING')}
               className={`px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-2 ${
-                activeTab === 'PENDING' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'
+                activeTab === 'PENDING' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
               }`}
             >
               Новые
@@ -67,7 +67,7 @@ const BookingRequests: React.FC<BookingRequestsProps> = ({ requests, cars, onAct
             <button
               onClick={() => setActiveTab('REJECTED')}
               className={`px-4 py-2 rounded-lg text-xs font-semibold uppercase tracking-wider transition-all flex items-center gap-2 ${
-                activeTab === 'REJECTED' ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'
+                activeTab === 'REJECTED' ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 shadow-sm' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
               }`}
             >
               Отклоненные
@@ -143,17 +143,17 @@ const BookingRequests: React.FC<BookingRequestsProps> = ({ requests, cars, onAct
                 {!isReadOnly && onAction && req.status === RequestStatus.PENDING && (
                   <div className="flex flex-col space-y-3 w-full lg:w-auto min-w-[200px]">
                     <div className="flex space-x-2">
-                      <a href={`tel:${req.clientPhone}`} className="flex-1 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 rounded-xl text-center font-bold transition-all">
+                      <a href={`tel:${req.clientPhone}`} className="flex-1 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-700 dark:text-slate-200 rounded-xl text-center font-bold transition-all">
                           <i className="fas fa-phone"></i>
                       </a>
-                      <a href={`https://wa.me/${cleanPhone}`} target="_blank" rel="noreferrer" className="flex-1 py-2 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 text-emerald-600 dark:text-emerald-400 rounded-xl text-center font-bold transition-all">
+                      <a href={`https://wa.me/${cleanPhone}`} target="_blank" rel="noreferrer" className="flex-1 py-2 bg-emerald-50 dark:bg-emerald-500/10 hover:bg-emerald-100 dark:hover:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 rounded-xl text-center font-bold transition-all">
                           <i className="fab fa-whatsapp"></i>
                       </a>
                     </div>
                     <div className="flex items-center space-x-2">
                       <button
                           onClick={() => onAction(req.id, 'REJECT')}
-                          className="flex-1 px-4 py-3 rounded-xl border-2 border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-500 font-bold hover:bg-rose-50 hover:text-rose-500 hover:border-rose-100 transition-all text-xs uppercase tracking-wider"
+                          className="flex-1 px-4 py-3 rounded-xl border-2 border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-500 font-bold hover:bg-rose-50 dark:hover:bg-rose-500/10 hover:text-rose-500 dark:hover:text-rose-400 hover:border-rose-100 dark:hover:border-rose-500/30 transition-all text-xs uppercase tracking-wider"
                       >
                           Отклонить
                       </button>
@@ -171,7 +171,7 @@ const BookingRequests: React.FC<BookingRequestsProps> = ({ requests, cars, onAct
                 {!isReadOnly && onAction && req.status === RequestStatus.REJECTED && (
                    <button
                       onClick={() => { if(confirm('Удалить заявку из истории?')) onAction(req.id, undefined as any); }} // Hack: passing undefined/delete action logic if handled
-                      className="px-4 py-2 text-slate-300 dark:text-slate-600 hover:text-rose-500 transition-colors"
+                      className="px-4 py-2 text-slate-300 dark:text-slate-600 hover:text-rose-500 dark:hover:text-rose-400 transition-colors"
                       title="Удалить из истории"
                    >
                       <i className="fas fa-trash-alt"></i>

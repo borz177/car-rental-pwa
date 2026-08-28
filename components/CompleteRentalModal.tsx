@@ -38,7 +38,7 @@ const CompleteRentalModal: React.FC<CompleteRentalModalProps> = ({ rental, car, 
       <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn relative">
         <button
           onClick={onClose}
-          className="absolute top-8 right-8 text-slate-300 dark:text-slate-600 hover:text-slate-900 transition-all"
+          className="absolute top-8 right-8 text-slate-300 dark:text-slate-600 hover:text-slate-900 dark:hover:text-white transition-all"
         >
           <i className="fas fa-times"></i>
         </button>
@@ -97,7 +97,7 @@ const CompleteRentalModal: React.FC<CompleteRentalModalProps> = ({ rental, car, 
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 py-5 bg-slate-100 dark:bg-slate-700 rounded-2xl font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-200 transition-all"
+            className="flex-1 py-5 bg-slate-100 dark:bg-slate-700 rounded-2xl font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
           >
             Отмена
           </button>

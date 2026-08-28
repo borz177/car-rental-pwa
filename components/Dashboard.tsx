@@ -35,7 +35,7 @@ const Money: React.FC<{
 }> = ({ label, value, hint, tone = 'default', onClick }) => (
   <div
     onClick={onClick}
-    className={`bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 ${onClick ? 'cursor-pointer hover:border-slate-300 transition-colors' : ''}`}
+    className={`bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 ${onClick ? 'cursor-pointer hover:border-slate-300 dark:hover:border-slate-500 transition-colors' : ''}`}
   >
     <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">{label}</div>
     <div className={`text-2xl font-bold mt-1 ${
@@ -174,7 +174,7 @@ const Dashboard: React.FC<DashboardProps> = ({
 
     return (
       <div className={`p-3 rounded-xl border flex items-center gap-3 ${
-        overdue ? 'border-rose-200 dark:border-rose-500/20 bg-rose-50/50 dark:bg-rose-500/10' : 'border-slate-100 dark:border-slate-700 hover:bg-slate-50'
+        overdue ? 'border-rose-200 dark:border-rose-500/20 bg-rose-50/50 dark:bg-rose-500/10' : 'border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'
       } transition-colors`}>
         <div
           onClick={() => onSelectCar(car.id)}
@@ -258,7 +258,7 @@ const Dashboard: React.FC<DashboardProps> = ({
       <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700">
         <div className="flex items-center justify-between mb-3">
           <div className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide">Автопарк — {fleet.total} авто</div>
-          <button onClick={() => onNavigate('CARS')} className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide hover:text-blue-700">
+          <button onClick={() => onNavigate('CARS')} className="text-[10px] font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wide hover:text-blue-700 dark:hover:text-blue-400">
             Открыть <i className="fas fa-arrow-right ml-1"></i>
           </button>
         </div>
@@ -285,7 +285,7 @@ const Dashboard: React.FC<DashboardProps> = ({
               key={i}
               onClick={a.action}
               className={`w-full p-3 rounded-xl border flex items-center gap-3 text-left transition-colors ${
-                a.tone === 'rose' ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20 hover:bg-rose-100/60' : 'bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20 hover:bg-amber-100/60'
+                a.tone === 'rose' ? 'bg-rose-50 dark:bg-rose-500/10 border-rose-100 dark:border-rose-500/20 hover:bg-rose-100/60 dark:hover:bg-rose-500/15' : 'bg-amber-50 dark:bg-amber-500/10 border-amber-100 dark:border-amber-500/20 hover:bg-amber-100/60 dark:hover:bg-amber-500/15'
               }`}
             >
               <i className={`fas ${a.icon} ${a.tone === 'rose' ? 'text-rose-500 dark:text-rose-400' : 'text-amber-500 dark:text-amber-400'}`}></i>

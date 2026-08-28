@@ -20,7 +20,7 @@ const SubscriptionExpiredModal: React.FC<SubscriptionExpiredModalProps> = ({
 
         <button
           onClick={onClose}
-          className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-slate-700 rounded-full text-slate-400 dark:text-slate-500 hover:bg-slate-200 hover:text-slate-900 transition-all z-20"
+          className="absolute top-6 right-6 w-8 h-8 flex items-center justify-center bg-slate-100 dark:bg-slate-700 rounded-full text-slate-400 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600 hover:text-slate-900 dark:hover:text-white transition-all z-20"
         >
           <i className="fas fa-times"></i>
         </button>
@@ -54,7 +54,7 @@ const SubscriptionExpiredModal: React.FC<SubscriptionExpiredModalProps> = ({
 
             <button
               onClick={onClose}
-              className="w-full py-4 bg-transparent text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wide text-[10px] hover:text-slate-600 transition-colors"
+              className="w-full py-4 bg-transparent text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wide text-[10px] hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
             >
               Отмена
             </button>

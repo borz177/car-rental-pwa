@@ -44,7 +44,7 @@ const Pagination: React.FC<PaginationProps> = ({
           <button
             onClick={() => onPageChange(page - 1)}
             disabled={page <= 1}
-            className="w-8 h-8 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            className="w-8 h-8 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
             title="Назад"
           >
             <i className="fas fa-chevron-left text-[10px]"></i>
@@ -58,7 +58,7 @@ const Pagination: React.FC<PaginationProps> = ({
                 key={p}
                 onClick={() => onPageChange(p)}
                 className={`min-w-8 h-8 px-2 rounded-lg text-xs font-semibold transition-colors ${
-                  p === page ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100'
+                  p === page ? 'bg-blue-600 text-white' : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700'
                 }`}
               >
                 {p}
@@ -69,7 +69,7 @@ const Pagination: React.FC<PaginationProps> = ({
           <button
             onClick={() => onPageChange(page + 1)}
             disabled={page >= totalPages}
-            className="w-8 h-8 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
+            className="w-8 h-8 rounded-lg text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700 disabled:opacity-30 disabled:hover:bg-transparent transition-colors"
             title="Вперёд"
           >
             <i className="fas fa-chevron-right text-[10px]"></i>

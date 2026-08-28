@@ -49,3 +49,9 @@ export const NAVIGATION_ITEMS = [
   { id: 'CLIENT_CATALOG', label: 'Каталог', icon: 'fa-search', roles: [UserRole.CLIENT] },
   { id: 'CLIENT_MY_BOOKINGS', label: 'Мои брони', icon: 'fa-calendar-check', roles: [UserRole.CLIENT] },
 ];
+
+// Разделы верхнего уровня — то, что доступно из меню. Переход между ними это смена
+// раздела, а не шаг вперёд: стек возврата сбрасывается и анимации нет (как переключение
+// вкладок в нативных приложениях). Всё остальное — карточки, подстраницы — кладётся
+// в стек и возвращается свайпом от левого края (см. components/SwipeNavigator.tsx).
+export const ROOT_VIEWS = new Set<string>(NAVIGATION_ITEMS.map(item => item.id));

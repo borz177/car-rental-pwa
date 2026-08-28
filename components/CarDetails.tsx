@@ -160,7 +160,7 @@ const CarDetails: React.FC<CarDetailsProps> = ({
 
   return (
     <div className="space-y-4 animate-fadeIn pb-24 md:pb-0">
-      <button onClick={onBack} className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 font-bold hover:text-blue-600 transition-all">
+      <button onClick={onBack} className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 font-bold hover:text-blue-600 dark:hover:text-blue-400 transition-all">
         <i className="fas fa-arrow-left"></i> <span>Назад к автопарку</span>
       </button>
 
@@ -198,10 +198,10 @@ const CarDetails: React.FC<CarDetailsProps> = ({
             </div>
           </div>
           <div className="flex md:flex-col gap-2">
-            <button onClick={onEdit} className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-semibold text-[10px] uppercase tracking-wide hover:bg-slate-100 transition-all">
+            <button onClick={onEdit} className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-semibold text-[10px] uppercase tracking-wide hover:bg-slate-100 dark:hover:bg-slate-700 transition-all">
               <i className="fas fa-edit mr-1.5"></i>Изменить
             </button>
-            <button onClick={onViewReport} className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-semibold text-[10px] uppercase tracking-wide hover:bg-slate-100 transition-all">
+            <button onClick={onViewReport} className="px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 rounded-xl font-semibold text-[10px] uppercase tracking-wide hover:bg-slate-100 dark:hover:bg-slate-700 transition-all">
               <i className="fas fa-chart-line mr-1.5"></i>Отчёт
             </button>
           </div>
@@ -222,7 +222,7 @@ const CarDetails: React.FC<CarDetailsProps> = ({
               key={t.id}
               onClick={() => setActiveTab(t.id)}
               className={`flex-1 min-w-[110px] py-4 font-semibold text-[11px] uppercase tracking-wide transition-all ${
-                activeTab === t.id ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 bg-slate-50 dark:bg-slate-700'
+                activeTab === t.id ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-50 dark:bg-slate-700'
               }`}
             >
               {t.label}
@@ -353,7 +353,7 @@ const CarDetails: React.FC<CarDetailsProps> = ({
                 const c = clients.find(cl => cl.id === r.clientId);
                 const isActive = r.status === 'ACTIVE';
                 return (
-                  <div key={r.id} className="p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:bg-slate-50 transition-all flex items-center justify-between gap-3">
+                  <div key={r.id} className="p-3 rounded-xl border border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <div className={`w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 ${
                         r.isReservation ? 'bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400' : isActive ? 'bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400' : 'bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400'

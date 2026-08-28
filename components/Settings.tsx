@@ -5,7 +5,7 @@ import BackendAPI from '../services/offlineApi';
 import { isPushSupported, getPushSubscriptionState, enablePush, disablePush } from '../services/push';
 import { getPlanFeatures } from '../services/planFeatures';
 
-type SubView = 'MENU' | 'BRANDING' | 'INTERFACE' | 'NOTIFICATIONS' | 'DATA';
+export type SettingsSubView = 'MENU' | 'BRANDING' | 'INTERFACE' | 'NOTIFICATIONS' | 'DATA';
 
 interface SettingsProps {
   user: User | null;
@@ -18,10 +18,13 @@ interface SettingsProps {
   onSyncNow: () => Promise<void>;
   themePref: 'system' | 'light' | 'dark';
   onSetThemePref: (pref: 'system' | 'light' | 'dark') => void;
+  subView: SettingsSubView;
+  onOpenSubView: (sub: SettingsSubView) => void;
+  onBackToMenu: () => void;
 }
 
-const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogout, isOnline, onGetPendingSyncCount, onClearLocalData, onSyncNow, themePref, onSetThemePref }) => {
-  const [view, setView] = useState<SubView>('MENU');
+const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogout, isOnline, onGetPendingSyncCount, onClearLocalData, onSyncNow, themePref, onSetThemePref, subView, onOpenSubView, onBackToMenu }) => {
+  const view = subView;
   const [contractsExpanded, setContractsExpanded] = useState(false);
 
   // Бренд
@@ -190,7 +193,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
   if (view === 'BRANDING' && isAdmin) {
     return (
       <div className="max-w-4xl mx-auto space-y-5 animate-fadeIn pb-24 md:pb-0">
-        <SubPageHeader title="Бренд и каталог" onBack={() => setView('MENU')} />
+        <SubPageHeader title="Бренд и каталог" onBack={onBackToMenu} />
 
         <div className="bg-white dark:bg-slate-800 p-5 md:p-8 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
           <div className="flex justify-between items-center mb-8">
@@ -260,7 +263,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
   if (view === 'INTERFACE') {
     return (
       <div className="max-w-2xl mx-auto space-y-5 animate-fadeIn pb-24 md:pb-0">
-        <SubPageHeader title="Интерфейс" onBack={() => setView('MENU')} />
+        <SubPageHeader title="Интерфейс" onBack={onBackToMenu} />
 
         <SettingsGroup title="Тема">
           <div className="p-4">
@@ -311,7 +314,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
   if (view === 'NOTIFICATIONS') {
     return (
       <div className="max-w-2xl mx-auto space-y-5 animate-fadeIn pb-24 md:pb-0">
-        <SubPageHeader title="Уведомления" onBack={() => setView('MENU')} />
+        <SubPageHeader title="Уведомления" onBack={onBackToMenu} />
         <SettingsGroup>
           <ToggleRow
             icon="fa-bell" iconColor="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
@@ -334,7 +337,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
   if (view === 'DATA') {
     return (
       <div className="max-w-2xl mx-auto space-y-5 animate-fadeIn pb-24 md:pb-0">
-        <SubPageHeader title="Данные и хранилище" onBack={() => setView('MENU')} />
+        <SubPageHeader title="Данные и хранилище" onBack={onBackToMenu} />
 
         <SettingsGroup title="Синхронизация">
           <SettingsRow
@@ -447,7 +450,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
             {!showPasswordForm ? (
               <button
                 onClick={() => setShowPasswordForm(true)}
-                className="w-full mt-3 py-3 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl font-semibold text-xs uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-slate-100 transition-all border border-slate-100 dark:border-slate-700"
+                className="w-full mt-3 py-3 bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl font-semibold text-xs uppercase tracking-wide flex items-center justify-center gap-2 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all border border-slate-100 dark:border-slate-700"
               >
                 <i className="fas fa-key"></i>
                 <span>Сменить пароль</span>
@@ -496,7 +499,7 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
 
           <button
             onClick={onLogout}
-            className="w-full mt-8 py-5 bg-rose-50 dark:bg-rose-500/10 text-rose-500 dark:text-rose-400 rounded-2xl font-semibold flex items-center justify-center space-x-3 hover:bg-rose-100 transition-all border-2 border-transparent hover:border-rose-200"
+            className="w-full mt-8 py-5 bg-rose-50 dark:bg-rose-500/10 text-rose-500 dark:text-rose-400 rounded-2xl font-semibold flex items-center justify-center space-x-3 hover:bg-rose-100 dark:hover:bg-rose-500/15 transition-all border-2 border-transparent hover:border-rose-200 dark:hover:border-rose-500/30"
           >
             <i className="fas fa-sign-out-alt"></i>
             <span>Выйти из системы</span>
@@ -510,28 +513,28 @@ const Settings: React.FC<SettingsProps> = ({ user, onUpdate, onNavigate, onLogou
               <SettingsRow
                 icon="fa-paint-brush" iconColor="bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400"
                 label="Бренд и каталог"
-                onClick={() => setView('BRANDING')}
+                onClick={() => onOpenSubView('BRANDING')}
                 trailing={<i className="fas fa-chevron-right text-slate-300 dark:text-slate-600 text-xs"></i>}
               />
             )}
             <SettingsRow
               icon="fa-palette" iconColor="bg-purple-50 text-purple-600"
               label="Интерфейс"
-              onClick={() => setView('INTERFACE')}
+              onClick={() => onOpenSubView('INTERFACE')}
               trailing={<i className="fas fa-chevron-right text-slate-300 dark:text-slate-600 text-xs"></i>}
             />
             {user.role !== UserRole.CLIENT && (
               <SettingsRow
                 icon="fa-bell" iconColor="bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400"
                 label="Уведомления"
-                onClick={() => setView('NOTIFICATIONS')}
+                onClick={() => onOpenSubView('NOTIFICATIONS')}
                 trailing={<i className="fas fa-chevron-right text-slate-300 dark:text-slate-600 text-xs"></i>}
               />
             )}
             <SettingsRow
               icon="fa-database" iconColor="bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400"
               label="Данные и хранилище"
-              onClick={() => setView('DATA')}
+              onClick={() => onOpenSubView('DATA')}
               trailing={<i className="fas fa-chevron-right text-slate-300 dark:text-slate-600 text-xs"></i>}
             />
           </SettingsGroup>
@@ -593,7 +596,7 @@ const SubPageHeader: React.FC<{ title: string; onBack: () => void }> = ({ title,
   <div className="flex items-center gap-3 px-1">
     <button
       onClick={onBack}
-      className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm text-slate-500 dark:text-slate-400 flex items-center justify-center hover:text-blue-600 hover:border-blue-100 transition-all"
+      className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm text-slate-500 dark:text-slate-400 flex items-center justify-center hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-100 dark:hover:border-blue-500/30 transition-all"
       aria-label="Назад"
     >
       <i className="fas fa-arrow-left"></i>
@@ -624,7 +627,7 @@ const SettingsRow: React.FC<{
   return (
     <Tag
       onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors ${onClick ? 'hover:bg-slate-50 active:bg-slate-100' : ''} ${!onClick && !description ? 'opacity-90' : ''}`}
+      className={`w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors ${onClick ? 'hover:bg-slate-50 dark:hover:bg-slate-700 active:bg-slate-100 dark:active:bg-slate-700' : ''} ${!onClick && !description ? 'opacity-90' : ''}`}
     >
       <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${iconColor}`}>
         <i className={`fas ${icon} text-sm`}></i>

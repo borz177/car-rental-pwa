@@ -82,20 +82,20 @@ const InvestorList: React.FC<InvestorListProps> = ({ investors, cars, rentals, t
                 </div>
 
                 <div className="relative">
-                  <button onClick={() => setShowActions(showActions === inv.id ? null : inv.id)} className="w-10 h-10 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-slate-900 bg-slate-50 dark:bg-slate-700 rounded-xl">
+                  <button onClick={() => setShowActions(showActions === inv.id ? null : inv.id)} className="w-10 h-10 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-slate-900 dark:hover:text-white bg-slate-50 dark:bg-slate-700 rounded-xl">
                     <i className="fas fa-ellipsis-v"></i>
                   </button>
                   {showActions === inv.id && (
                     <>
                       <div className="fixed inset-0 z-40" onClick={() => setShowActions(null)}></div>
                       <div className="absolute right-0 top-12 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-50 dark:border-slate-800 z-50 overflow-hidden animate-scaleIn">
-                        <button onClick={() => { onSelectInvestor(inv.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800">
+                        <button onClick={() => { onSelectInvestor(inv.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center space-x-3 text-slate-600 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800">
                           <i className="fas fa-id-card text-indigo-500 dark:text-indigo-400"></i> <span>Инфо</span>
                         </button>
-                        <button onClick={() => { setEditingInvestor(inv); setIsModalOpen(true); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800">
+                        <button onClick={() => { setEditingInvestor(inv); setIsModalOpen(true); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center space-x-3 text-slate-600 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800">
                           <i className="fas fa-edit text-amber-500 dark:text-amber-400"></i> <span>Изменить</span>
                         </button>
-                        <button onClick={() => { if(window.confirm('Удалить инвестора?')) onDelete(inv.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-rose-50 text-rose-500 dark:text-rose-400 flex items-center space-x-3">
+                        <button onClick={() => { if(window.confirm('Удалить инвестора?')) onDelete(inv.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-rose-50 dark:hover:bg-rose-500/10 text-rose-500 dark:text-rose-400 flex items-center space-x-3">
                           <i className="fas fa-trash-alt"></i> <span>Удалить</span>
                         </button>
                       </div>
@@ -138,7 +138,7 @@ const InvestorList: React.FC<InvestorListProps> = ({ investors, cars, rentals, t
               <input name="invested" defaultValue={editingInvestor?.totalInvested} type="number" placeholder="Сумма инвестиций" className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-indigo-500 transition-all" />
             </div>
             <div className="flex gap-4">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-slate-100 dark:bg-slate-700 rounded-2xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-all">Отмена</button>
+              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-slate-100 dark:bg-slate-700 rounded-2xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">Отмена</button>
               <button type="submit" className="flex-1 py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-lg transition-all">Сохранить</button>
             </div>
           </form>

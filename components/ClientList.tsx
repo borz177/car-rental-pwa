@@ -150,7 +150,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
         </div>
         <button
           onClick={() => setShowDebtorsOnly(!showDebtorsOnly)}
-          className={`px-6 py-4 rounded-xl font-semibold uppercase text-[10px] tracking-wide transition-all shadow-sm flex items-center gap-2 ${showDebtorsOnly ? 'bg-rose-500 text-white' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700 hover:bg-slate-50'}`}
+          className={`px-6 py-4 rounded-xl font-semibold uppercase text-[10px] tracking-wide transition-all shadow-sm flex items-center gap-2 ${showDebtorsOnly ? 'bg-rose-500 text-white' : 'bg-white dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
         >
           <i className={`fas ${showDebtorsOnly ? 'fa-check-square' : 'fa-square'}`}></i>
           <span>Только должники</span>
@@ -183,7 +183,7 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
               <div className="relative">
                 <button
                   onClick={() => setShowActions(showActions === client.id ? null : client.id)}
-                  className="w-10 h-10 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-slate-900 transition-colors bg-slate-50 dark:bg-slate-700 rounded-xl"
+                  className="w-10 h-10 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-slate-900 dark:hover:text-white transition-colors bg-slate-50 dark:bg-slate-700 rounded-xl"
                 >
                   <i className="fas fa-ellipsis-h"></i>
                 </button>
@@ -192,13 +192,13 @@ const ClientList: React.FC<ClientListProps> = ({ clients, rentals, transactions,
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowActions(null)}></div>
                     <div className="absolute right-0 top-12 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-50 dark:border-slate-800 z-50 overflow-hidden animate-scaleIn">
-                      <button onClick={() => { onSelectClient(client.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800">
+                      <button onClick={() => { onSelectClient(client.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center space-x-3 text-slate-600 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800">
                         <i className="fas fa-info-circle w-4 text-blue-500 dark:text-blue-400"></i> <span>Информация</span>
                       </button>
-                      <button onClick={() => { setEditingClient(client); setIsModalOpen(true); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800">
+                      <button onClick={() => { setEditingClient(client); setIsModalOpen(true); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center space-x-3 text-slate-600 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800">
                         <i className="fas fa-edit w-4 text-amber-500 dark:text-amber-400"></i> <span>Изменить</span>
                       </button>
-                      <button onClick={() => { handleDelete(client); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-rose-50 text-rose-500 dark:text-rose-400 flex items-center space-x-3">
+                      <button onClick={() => { handleDelete(client); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-rose-50 dark:hover:bg-rose-500/10 text-rose-500 dark:text-rose-400 flex items-center space-x-3">
                         <i className="fas fa-trash-alt w-4"></i> <span>Удалить</span>
                       </button>
                     </div>

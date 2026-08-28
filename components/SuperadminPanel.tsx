@@ -107,7 +107,7 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
                <button
                  key={tab.id}
                  onClick={() => setFilterStatus(tab.id)}
-                 className={`px-6 py-2 rounded-xl text-xs font-semibold uppercase transition-all ${filterStatus === tab.id ? 'bg-white dark:bg-slate-800 shadow-md text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'}`}
+                 className={`px-6 py-2 rounded-xl text-xs font-semibold uppercase transition-all ${filterStatus === tab.id ? 'bg-white dark:bg-slate-800 shadow-md text-slate-900 dark:text-white' : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'}`}
                >
                  {tab.label}
                </button>
@@ -141,7 +141,7 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
                 const expired = isExpired(user.subscriptionUntil);
                 const isSuper = user.role === UserRole.SUPERADMIN;
                 return (
-                  <tr key={user.id} className="hover:bg-slate-50/50 transition-all group">
+                  <tr key={user.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-700 transition-all group">
                     <td className="px-8 py-5">
                       <div className="flex items-center space-x-3">
                         <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center text-slate-500 dark:text-slate-400 font-semibold text-sm">
@@ -262,14 +262,14 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
                   className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold outline-none border-2 border-transparent focus:border-blue-500 mb-3"
                 />
                 <div className="flex gap-2">
-                  <button type="button" onClick={() => quickSetDate(1)} className="flex-1 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-[10px] font-semibold uppercase hover:bg-emerald-100">+1 Месяц</button>
-                  <button type="button" onClick={() => quickSetDate(3)} className="flex-1 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-[10px] font-semibold uppercase hover:bg-emerald-100">+3 Месяца</button>
-                  <button type="button" onClick={() => quickSetDate(12)} className="flex-1 py-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-semibold uppercase hover:bg-indigo-100">+1 Год</button>
+                  <button type="button" onClick={() => quickSetDate(1)} className="flex-1 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-[10px] font-semibold uppercase hover:bg-emerald-100 dark:hover:bg-emerald-500/15">+1 Месяц</button>
+                  <button type="button" onClick={() => quickSetDate(3)} className="flex-1 py-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 rounded-xl text-[10px] font-semibold uppercase hover:bg-emerald-100 dark:hover:bg-emerald-500/15">+3 Месяца</button>
+                  <button type="button" onClick={() => quickSetDate(12)} className="flex-1 py-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 rounded-xl text-[10px] font-semibold uppercase hover:bg-indigo-100 dark:hover:bg-indigo-500/15">+1 Год</button>
                 </div>
               </div>
 
               {/* Trial Switch */}
-              <label className="flex items-center space-x-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl border border-slate-100 dark:border-slate-700 cursor-pointer hover:bg-slate-100 transition-colors">
+              <label className="flex items-center space-x-4 p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl border border-slate-100 dark:border-slate-700 cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors">
                 <input type="checkbox" name="isTrial" defaultChecked={editingUser.isTrial} className="w-5 h-5 rounded text-blue-600 dark:text-blue-400 focus:ring-blue-500 border-gray-300" />
                 <div>
                   <div className="text-sm font-bold text-slate-900 dark:text-white">Режим "Пробный период"</div>
@@ -279,7 +279,7 @@ const SuperadminPanel: React.FC<SuperadminPanelProps> = ({ allUsers, onUpdateUse
             </div>
 
             <div className="flex gap-4 pt-4 border-t border-slate-100 dark:border-slate-700">
-              <button type="button" onClick={() => setEditingUser(null)} className="flex-1 py-4 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50">Отмена</button>
+              <button type="button" onClick={() => setEditingUser(null)} className="flex-1 py-4 bg-white dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-700">Отмена</button>
               <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-md hover:bg-blue-700 active:scale-95 transition-all">
                 Сохранить доступ
               </button>

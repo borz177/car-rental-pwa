@@ -66,7 +66,7 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, onNavigate }) => {
               key={id}
               onClick={() => setPeriod(id)}
               className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors ${
-                period === id ? 'bg-slate-800 text-white' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600'
+                period === id ? 'bg-slate-800 text-white' : 'bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
               }`}
             >
               {label}
@@ -105,7 +105,7 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, onNavigate }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <button
           onClick={() => onNavigate('INCOME')}
-          className="group bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-emerald-200 transition-all text-left flex items-center gap-4"
+          className="group bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-emerald-200 dark:hover:border-emerald-500/30 transition-all text-left flex items-center gap-4"
         >
           <div className="w-14 h-14 rounded-2xl bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
             <i className="fas fa-arrow-down"></i>
@@ -115,12 +115,12 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, onNavigate }) => {
             <div className="text-xs text-slate-400 dark:text-slate-500 font-medium mt-0.5">{periodIncome.length} операций · {periodLabels[period]}</div>
             <div className="text-emerald-600 dark:text-emerald-400 font-bold mt-1">+{incomeTotal.toLocaleString()} ₽</div>
           </div>
-          <i className="fas fa-chevron-right text-slate-300 dark:text-slate-600 group-hover:text-emerald-500 transition-colors"></i>
+          <i className="fas fa-chevron-right text-slate-300 dark:text-slate-600 group-hover:text-emerald-500 dark:group-hover:text-emerald-400 transition-colors"></i>
         </button>
 
         <button
           onClick={() => onNavigate('EXPENSE')}
-          className="group bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-rose-200 transition-all text-left flex items-center gap-4"
+          className="group bg-white dark:bg-slate-800 p-6 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md hover:border-rose-200 dark:hover:border-rose-500/30 transition-all text-left flex items-center gap-4"
         >
           <div className="w-14 h-14 rounded-2xl bg-rose-100 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400 flex items-center justify-center text-2xl shrink-0 group-hover:scale-105 transition-transform">
             <i className="fas fa-arrow-up"></i>
@@ -130,14 +130,14 @@ const Cashbox: React.FC<CashboxProps> = ({ transactions, onNavigate }) => {
             <div className="text-xs text-slate-400 dark:text-slate-500 font-medium mt-0.5">{periodExpenses.length} операций · {periodLabels[period]}</div>
             <div className="text-rose-600 dark:text-rose-400 font-bold mt-1">−{expenseTotal.toLocaleString()} ₽</div>
           </div>
-          <i className="fas fa-chevron-right text-slate-300 dark:text-slate-600 group-hover:text-rose-500 transition-colors"></i>
+          <i className="fas fa-chevron-right text-slate-300 dark:text-slate-600 group-hover:text-rose-500 dark:group-hover:text-rose-400 transition-colors"></i>
         </button>
       </div>
 
       <div className="bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-100 dark:border-slate-700 flex justify-between items-center gap-3">
           <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">Последние операции</h3>
-          <button onClick={() => onNavigate('TRANSACTIONS')} className="text-blue-600 dark:text-blue-400 font-semibold text-xs uppercase tracking-wide hover:bg-blue-50 px-3 py-2 rounded-xl transition-all whitespace-nowrap">
+          <button onClick={() => onNavigate('TRANSACTIONS')} className="text-blue-600 dark:text-blue-400 font-semibold text-xs uppercase tracking-wide hover:bg-blue-50 dark:hover:bg-blue-500/10 px-3 py-2 rounded-xl transition-all whitespace-nowrap">
             Все операции <i className="fas fa-arrow-right ml-1"></i>
           </button>
         </div>

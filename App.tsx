@@ -13,7 +13,7 @@ import CarList from './components/CarList';
 import ClientList from './components/ClientList';
 import BookingCalendar from './components/BookingCalendar';
 import BookingRequests from './components/BookingRequests';
-import Settings from './components/Settings';
+import Settings, { SettingsSubView } from './components/Settings';
 import ManualBooking from './components/ManualBooking';
 import ContractList from './components/ContractList';
 import Cashbox from './components/Cashbox';
@@ -31,6 +31,8 @@ import SuperadminPanel from './components/SuperadminPanel';
 import ClientCatalog from './components/ClientCatalog';
 import SubscriptionExpiredModal from './components/SubscriptionExpiredModal';
 import CompleteRentalModal from './components/CompleteRentalModal';
+import SwipeNavigator, { NavEntry, NavDirection } from './components/SwipeNavigator';
+import { ROOT_VIEWS } from './constants';
 import BackendAPI from './services/offlineApi';
 import { flushQueue } from './services/offlineSync';
 import { getQueue as getOfflineQueue, clearAllData as clearOfflineData } from './services/offlineDb';
@@ -50,9 +52,79 @@ const App: React.FC = () => {
   const [themePref, setThemePref] = useState<'system' | 'light' | 'dark'>(
     () => (localStorage.getItem('theme') as 'light' | 'dark' | null) || 'system'
   );
-  const [currentView, setCurrentView] = useState<AppView>('DASHBOARD');
+  const [currentView, setCurrentViewRaw] = useState<AppView>('DASHBOARD');
   const [selectedEntityId, setSelectedEntityId] = useState<string | null>(null);
   const [fleetOwner, setFleetOwner] = useState<User | null>(null);
+
+  // --- НАВИГАЦИЯ ---
+  // Стек экранов, на которые можно вернуться. Пополняется только «вглубь» (карточка,
+  // подстраница); переход в раздел верхнего уровня стек сбрасывает — см. ROOT_VIEWS.
+  const [history, setHistory] = useState<NavEntry[]>([]);
+  // Токен меняется на каждой навигации: по нему SwipeNavigator понимает, что пора
+  // проигрывать переход, и в какую сторону.
+  const [navIntent, setNavIntent] = useState<{ token: number; direction: NavDirection }>(
+    { token: 0, direction: 'none' }
+  );
+  // Жесты и анимации — только там, где нет боковой панели, то есть на телефоне.
+  const [isCompactLayout, setIsCompactLayout] = useState(
+    () => typeof window !== 'undefined' && window.matchMedia('(max-width: 767px)').matches
+  );
+  useEffect(() => {
+    const media = window.matchMedia('(max-width: 767px)');
+    const apply = () => setIsCompactLayout(media.matches);
+    media.addEventListener('change', apply);
+    return () => media.removeEventListener('change', apply);
+  }, []);
+
+  const goBack = () => {
+    const target = history[history.length - 1];
+    if (!target) return;
+    setHistory(h => h.slice(0, -1));
+    setSelectedEntityId(target.entityId);
+    setCurrentViewRaw(target.view);
+    setNavIntent(n => ({ token: n.token + 1, direction: 'pop' }));
+  };
+
+  // Обёртка над setCurrentView: все существующие вызовы навигации по приложению идут
+  // через неё и автоматически попадают в стек — отдельно ничего звать не нужно.
+  // Подстраница внутри раздела (например, Настройки → Бренд). Экран тот же, меняется
+  // только параметр — но в стек это кладётся как обычный шаг вперёд, поэтому и свайп,
+  // и анимация работают так же, как на карточках.
+  const pushSubPage = (next: AppView, subId: string | null) => {
+    setHistory(h => [...h, { view: currentView, entityId: selectedEntityId }]);
+    setNavIntent(n => ({ token: n.token + 1, direction: 'push' }));
+    setSelectedEntityId(subId);
+    setCurrentViewRaw(next);
+  };
+
+  const setCurrentView = (next: AppView) => {
+    const top = history[history.length - 1];
+
+    if (next === currentView) {
+      // Повторный тап по разделу, в котором мы уже находимся: возвращаемся к его корню,
+      // как это делают вкладки в нативных приложениях.
+      if (history.length > 0) {
+        setHistory([]);
+        setNavIntent(n => ({ token: n.token + 1, direction: 'none' }));
+      }
+      return;
+    }
+
+    if (top && top.view === next) {
+      // Уход туда, откуда пришли (кнопка «Назад» на экране) — это возврат, а не новый шаг.
+      goBack();
+      return;
+    }
+
+    if (ROOT_VIEWS.has(next)) {
+      setHistory([]);
+      setNavIntent(n => ({ token: n.token + 1, direction: 'none' }));
+    } else {
+      setHistory(h => [...h, { view: currentView, entityId: selectedEntityId }]);
+      setNavIntent(n => ({ token: n.token + 1, direction: 'push' }));
+    }
+    setCurrentViewRaw(next);
+  };
 
   // Auth State
   const [authMode, setAuthMode] = useState<'LOGIN' | 'REGISTER' | 'FORGOT'>('LOGIN');
@@ -725,7 +797,7 @@ useEffect(() => {
                 <button
                   type="button"
                   onClick={() => { setAuthMode('FORGOT'); setAuthNotice(null); }}
-                  className="text-slate-400 dark:text-slate-500 font-semibold text-xs hover:text-blue-600 transition-colors"
+                  className="text-slate-400 dark:text-slate-500 font-semibold text-xs hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
                 >
                   Забыли пароль?
                 </button>
@@ -745,7 +817,7 @@ useEffect(() => {
           <div className="mt-6 text-center">
             <button
               onClick={() => { setAuthMode(authMode === 'LOGIN' ? 'REGISTER' : 'LOGIN'); setAuthNotice(null); }}
-              className="text-slate-400 dark:text-slate-500 font-bold text-xs uppercase tracking-wide hover:text-blue-600 transition-colors"
+              className="text-slate-400 dark:text-slate-500 font-bold text-xs uppercase tracking-wide hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
               {authMode === 'LOGIN' ? 'Нет аккаунта? Регистрация' : authMode === 'FORGOT' ? 'Назад ко входу' : 'Уже есть аккаунт? Войти'}
             </button>
@@ -786,13 +858,13 @@ useEffect(() => {
             <button
               onClick={handleResendVerification}
               disabled={resendCooldown > 0}
-              className="w-full py-4 bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-slate-100 transition-all disabled:opacity-50"
+              className="w-full py-4 bg-slate-50 dark:bg-slate-700 text-slate-500 dark:text-slate-400 rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-slate-100 dark:hover:bg-slate-700 transition-all disabled:opacity-50"
             >
               {resendCooldown > 0 ? `Отправить ещё раз (${resendCooldown}с)` : 'Отправить письмо ещё раз'}
             </button>
             <button
               onClick={() => BackendAPI.logout()}
-              className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wide hover:text-blue-600 transition-colors"
+              className="text-slate-400 dark:text-slate-500 font-semibold text-xs uppercase tracking-wide hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
             >
               Выйти
             </button>
@@ -814,8 +886,339 @@ useEffect(() => {
   const permissions = currentUser.permissions;
   const isStaff = currentUser.role === UserRole.STAFF;
 
+  // Экран рендерится по переданным (viewName, entityId), а не по currentView/selectedEntityId
+  // напрямую: во время свайпа-назад на экране одновременно живут два экрана — уходящий и тот,
+  // что под ним, — и каждому нужен свой набор параметров (см. components/SwipeNavigator.tsx).
+  const renderPage = (viewName: AppView, entityId: string | null) => (
+        <div className="max-w-7xl mx-auto mt-4">
+          {viewName === 'DASHBOARD' &&
+              <Dashboard
+                  cars={cars}
+                  rentals={rentals}
+                  clients={clients}
+                  transactions={transactions}
+                  fines={fines}
+                  user={currentUser}
+                  onCompleteRental={setCompletingRental}
+                  onNavigate={(view) => { setSelectedEntityId(null); setCurrentView(view); }}
+                  onSelectCar={(id) => { setSelectedEntityId(id); setCurrentView('CAR_DETAILS'); }}
+              />
+          }
+
+          {viewName === 'CARS' && (
+              <CarList
+                  cars={cars}
+                  investors={investors}
+                  rentals={rentals}
+                  clients={clients}
+                  onAdd={handleAddCar}
+                  onUpdate={apiAction(BackendAPI.saveCar)}
+                  onDelete={apiAction(BackendAPI.deleteCar)}
+                  onIssue={(id) => {
+                    setSelectedEntityId(id);
+                    setCurrentView('MANUAL_BOOKING');
+                  }}
+                  onReserve={(id) => {
+                    setSelectedEntityId(id);
+                    setCurrentView('MANUAL_BOOKING');
+                  }}
+                  onInfo={(id) => {
+                    setSelectedEntityId(id);
+                    setCurrentView('CAR_DETAILS');
+                  }}
+                  onComplete={setCompletingRental}
+                  currentUser={currentUser}
+                  planLimit={getPlanLimit()}
+                  onUpgrade={() => setCurrentView('TARIFFS')}
+                  autoEditCarId={autoEditCarId}
+                  onAutoEditHandled={() => setAutoEditCarId(null)}
+              />
+          )}
+
+          {viewName === 'CLIENTS' && (
+              <ClientList
+                  clients={clients}
+                  rentals={rentals}
+                  transactions={transactions}
+                  onAdd={apiAction(BackendAPI.saveClient)}
+                  onUpdate={apiAction(BackendAPI.saveClient)}
+                  onDelete={apiAction(BackendAPI.deleteClient)}
+                  onSelectClient={(id) => {
+                    setSelectedEntityId(id);
+                    setCurrentView('CLIENT_DETAILS');
+                  }}
+              />
+          )}
+
+          {(viewName === 'CONTRACTS' || viewName === 'BOOKINGS' || viewName === 'CONTRACTS_ARCHIVE') && (
+              <ContractList
+                  rentals={rentals}
+                  cars={cars}
+                  clients={clients}
+                  onUpdate={apiAction(BackendAPI.saveRental)}
+                  onDelete={apiAction(BackendAPI.deleteRental)}
+                  onIssueFromBooking={(id) => {
+                    setSelectedEntityId(id);
+                    setCurrentView('MANUAL_BOOKING');
+                  }}
+                  onComplete={setCompletingRental}
+                  viewMode={viewName === 'BOOKINGS' ? 'BOOKINGS' : (viewName === 'CONTRACTS_ARCHIVE' ? 'ARCHIVE' : 'CONTRACTS')}
+                  brandName={currentUser.publicBrandName}
+                  canPrint={planFeatures.contractPrint}
+                  onUpgrade={() => { setUpgradeModalContent({ title: 'Недоступно на вашем тарифе', message: 'Печать договоров доступна начиная с тарифа Бизнес. Обновите тариф в разделе «Подписка».' }); setShowUpgradeModal(true); }}
+              />
+          )}
+
+          {viewName === 'CASHBOX' && (!isStaff || permissions?.canViewDocs) && (
+              <Cashbox
+                  transactions={transactions}
+                  onNavigate={setCurrentView}
+              />
+          )}
+
+          {(viewName === 'INCOME' || viewName === 'EXPENSE') && (!isStaff || permissions?.canViewDocs) && (
+              <TransactionTypePage
+                  type={viewName === 'INCOME' ? TransactionType.INCOME : TransactionType.EXPENSE}
+                  transactions={transactions}
+                  clients={clients}
+                  rentals={rentals}
+                  staff={staff}
+                  investors={investors}
+                  cars={cars}
+                  onAddTransaction={apiAction(BackendAPI.saveTransaction)}
+                  onBack={() => setCurrentView('CASHBOX')}
+              />
+          )}
+
+          {viewName === 'TRANSACTIONS' && (!isStaff || permissions?.canViewDocs) && (
+              <AllTransactions
+                  transactions={transactions}
+                  cars={cars}
+                  investors={investors}
+                  staff={staff}
+                  onAddTransaction={apiAction(BackendAPI.saveTransaction)}
+                  onDeleteTransaction={apiAction(BackendAPI.deleteTransaction)}
+                  onBack={() => setCurrentView('CASHBOX')}
+              />
+          )}
+
+          {viewName === 'REPORTS' && (!isStaff || permissions?.canViewDocs) && (
+              <Reports
+                  transactions={transactions}
+                  cars={cars}
+                  investors={investors}
+                  rentals={rentals}
+                  clients={clients}
+                  fines={fines}
+                  initialSearchId={entityId}
+                  initialCategory={entityId ? 'CARS' : 'ALL'}
+              />
+          )}
+
+          {viewName === 'INVESTORS' && (!isStaff || permissions?.canViewDocs) && planFeatures.investors && (
+              <InvestorList
+                  investors={investors}
+                  cars={cars}
+                  rentals={rentals}
+                  transactions={transactions}
+                  onAdd={apiAction(BackendAPI.saveInvestor)}
+                  onUpdate={apiAction(BackendAPI.saveInvestor)}
+                  onDelete={apiAction(BackendAPI.deleteInvestor)}
+                  onSelectInvestor={(id) => {
+                    setSelectedEntityId(id);
+                    setCurrentView('INVESTOR_DETAILS');
+                  }}
+              />
+          )}
+
+          {viewName === 'STAFF' && !isStaff && planFeatures.staff && (
+              <StaffList
+                  staff={staff}
+                  onAdd={apiAction(BackendAPI.saveStaff)}
+                  onUpdate={apiAction(BackendAPI.saveStaff)}
+                  onDelete={apiAction(BackendAPI.deleteStaff)}
+                  onSelectStaff={(id) => {
+                    setSelectedEntityId(id);
+                    setCurrentView('STAFF_DETAILS');
+                  }}
+              />
+          )}
+
+          {viewName === 'CLIENT_DETAILS' && (
+              <ClientDetails
+                  client={clients.find(c => c.id === entityId)!}
+                  rentals={rentals}
+                  transactions={transactions}
+                  cars={cars}
+                  fines={fines}
+                  onBack={() => setCurrentView('CLIENTS')}
+                  onAddFine={apiAction(BackendAPI.saveFine)}
+                  onPayFine={apiAction(BackendAPI.payFine)}
+              />
+          )}
+
+          {viewName === 'CAR_DETAILS' && cars.find(c => c.id === entityId) && (
+              <CarDetails
+                  car={cars.find(c => c.id === entityId)!}
+                  rentals={rentals}
+                  clients={clients}
+                  transactions={transactions}
+                  investors={investors}
+                  fines={fines}
+                  onBack={() => setCurrentView('CARS')}
+                  onUpdate={apiAction(BackendAPI.saveCar)}
+                  onEdit={() => { setAutoEditCarId(entityId); setCurrentView('CARS'); }}
+                  onViewReport={() => setCurrentView('REPORTS')}
+              />
+          )}
+
+          {viewName === 'INVESTOR_DETAILS' && (
+              <InvestorDetails
+                  investor={investors.find(i => i.id === entityId)!}
+                  cars={cars}
+                  rentals={rentals}
+                  transactions={transactions}
+                  onBack={() => setCurrentView('INVESTORS')}
+              />
+          )}
+
+          {viewName === 'STAFF_DETAILS' && (
+              <StaffDetails
+                  member={staff.find(s => s.id === entityId)!}
+                  onBack={() => setCurrentView('STAFF')}
+              />
+          )}
+
+          {viewName === 'SUPERADMIN_PANEL' && (
+              <SuperadminPanel
+                  allUsers={allUsers}
+                  onUpdateUser={apiAction(BackendAPI.updateGlobalUser)}
+                  onDeleteUser={apiAction(BackendAPI.deleteGlobalUser)}
+              />
+          )}
+
+          {viewName === 'MANUAL_BOOKING' && (
+              <ManualBooking
+                  cars={cars}
+                  clients={clients}
+                  rentals={rentals}
+                  currentUser={currentUser}
+                  preSelectedRentalId={viewName === 'MANUAL_BOOKING' && rentals.find(r => r.id === entityId) ? entityId : null}
+                  preSelectedCarId={!rentals.find(r => r.id === entityId) ? entityId || undefined : undefined}
+                  onCreate={handleSaveRental}
+                  onNavigate={setCurrentView}
+                  onQuickAddClient={async (c) => {
+                    const res = await BackendAPI.saveClient(c as Client);
+                    return res.id;
+                  }}
+              />
+          )}
+
+          {viewName === 'CALENDAR' && planFeatures.calendar && (
+              <BookingCalendar
+                  cars={cars}
+                  rentals={rentals}
+                  clients={clients}
+                  onSelectCar={(id) => { setSelectedEntityId(id); setCurrentView('CAR_DETAILS'); }}
+                  onBookCar={(id) => { setSelectedEntityId(id); setCurrentView('MANUAL_BOOKING'); }}
+              />
+          )}
+
+          {viewName === 'REQUESTS' && (
+              <BookingRequests
+                  requests={requests}
+                  cars={cars}
+                  onAction={apiAction(BackendAPI.deleteRequest)}
+              />
+          )}
+
+          {viewName === 'CLIENT_CATALOG' && (
+              <ClientCatalog
+                  cars={cars}
+                  rentals={rentals}
+                  currentUser={currentUser}
+                  onSubmitRequest={async (req) => {
+                    // Use public endpoint here too to ensure ownerId is respected correctly
+                    await BackendAPI.submitBookingRequest(req);
+                    // Refresh requests list
+                    const reqs = await BackendAPI.getRequests();
+                    setRequests(reqs);
+                  }}
+                  fleetOwner={fleetOwner}
+                  onAuthRequest={() => {
+                  }}
+                  onRegisterClient={async (u) => {
+                    const user = await BackendAPI.register({...u, role: UserRole.CLIENT});
+                    setCurrentUser(user);
+                  }}
+                  onLoginClient={async (e, p) => {
+                    const user = await BackendAPI.login({email: e, password: p});
+                    setCurrentUser(user);
+                  }}
+              />
+          )}
+
+          {/* New View for Client Bookings */}
+          {viewName === 'CLIENT_MY_BOOKINGS' && (
+              <BookingRequests
+                  requests={requests}
+                  cars={cars}
+                  isReadOnly={true}
+              />
+          )}
+
+          {viewName === 'SETTINGS' && (
+              <Settings
+                  user={currentUser}
+                  onUpdate={async (updates) => {
+                    // Optimistic update for UI
+                    setCurrentUser(prev => prev ? ({
+                      ...prev, ...updates,
+                      settings: {...prev.settings, ...updates.settings}
+                    }) : null);
+                    await apiAction((u) => BackendAPI.updateGlobalUser(currentUser.id, u))(updates);
+                  }}
+                  // Настройки используют entityId под свою подстраницу — уходя в другой
+                  // раздел, его надо сбросить, иначе 'BRANDING' утечёт туда, где entityId
+                  // означает id записи (например, в Отчёты как initialSearchId).
+                  onNavigate={(v) => { setSelectedEntityId(null); setCurrentView(v); }}
+                  onLogout={() => BackendAPI.logout()}
+                  isOnline={isOnline}
+                  onGetPendingSyncCount={() => getOfflineQueue().then(q => q.length)}
+                  onClearLocalData={handleClearLocalData}
+                  onSyncNow={handleSyncNow}
+                  themePref={themePref}
+                  onSetThemePref={handleSetThemePref}
+                  subView={(entityId as SettingsSubView) || 'MENU'}
+                  onOpenSubView={(sub) => pushSubPage('SETTINGS', sub)}
+                  onBackToMenu={goBack}
+              />
+          )}
+
+          {viewName === 'TARIFFS' && (
+              <Tariffs
+                  user={currentUser}
+                  carCount={cars.length}
+                  onUpdate={apiAction((u) => BackendAPI.updateGlobalUser(currentUser.id, u))}
+                  onBack={() => setCurrentView('SETTINGS')}
+              />
+          )}
+
+          {viewName === 'SUPPORT_CHAT' && (
+              <SupportChat currentUser={currentUser} />
+          )}
+        </div>
+  );
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 relative flex overflow-hidden">
+    // h-screen (а не min-h-screen) — экраны внутри <main> позиционируются абсолютно,
+    // и контейнеру нужна определённая высота, иначе они схлопнутся. Инлайновый 100dvh
+    // поверх — чтобы на телефонах учитывалась убирающаяся адресная строка; если браузер
+    // не знает dvh, объявление просто отбрасывается и работает h-screen.
+    <div
+      className="h-screen bg-slate-50 dark:bg-slate-900 relative flex overflow-hidden"
+      style={{ height: '100dvh' }}
+    >
       {/* RESTRICTION MODAL (Only shows when action blocked) */}
       {showUpgradeModal && (
         <SubscriptionExpiredModal
@@ -878,323 +1281,19 @@ useEffect(() => {
         onMarkAllNotificationsRead={handleMarkAllNotificationsRead}
       />
 
-      {/* bg-slate-50/dark:bg-slate-900 продублирован здесь (а не только на родителе) — этот
-          элемент сам является скролл-контейнером (overflow-y-auto), и на мобильных при
-          overscroll/моментум-скролле без собственного фона он мог на миг отрисоваться
-          белым поверх тёмной темы, независимо от фона родителя. */}
-      <main className="flex-1 overflow-y-auto pt-32 md:pt-12 pb-44 md:pb-12 md:ml-64 p-6 bg-slate-50 dark:bg-slate-900">
-        <div className="max-w-7xl mx-auto mt-4">
-          {currentView === 'DASHBOARD' &&
-              <Dashboard
-                  cars={cars}
-                  rentals={rentals}
-                  clients={clients}
-                  transactions={transactions}
-                  fines={fines}
-                  user={currentUser}
-                  onCompleteRental={setCompletingRental}
-                  onNavigate={(view) => { setSelectedEntityId(null); setCurrentView(view); }}
-                  onSelectCar={(id) => { setSelectedEntityId(id); setCurrentView('CAR_DETAILS'); }}
-              />
-          }
-
-          {currentView === 'CARS' && (
-              <CarList
-                  cars={cars}
-                  investors={investors}
-                  rentals={rentals}
-                  clients={clients}
-                  onAdd={handleAddCar}
-                  onUpdate={apiAction(BackendAPI.saveCar)}
-                  onDelete={apiAction(BackendAPI.deleteCar)}
-                  onIssue={(id) => {
-                    setSelectedEntityId(id);
-                    setCurrentView('MANUAL_BOOKING');
-                  }}
-                  onReserve={(id) => {
-                    setSelectedEntityId(id);
-                    setCurrentView('MANUAL_BOOKING');
-                  }}
-                  onInfo={(id) => {
-                    setSelectedEntityId(id);
-                    setCurrentView('CAR_DETAILS');
-                  }}
-                  onComplete={setCompletingRental}
-                  currentUser={currentUser}
-                  planLimit={getPlanLimit()}
-                  onUpgrade={() => setCurrentView('TARIFFS')}
-                  autoEditCarId={autoEditCarId}
-                  onAutoEditHandled={() => setAutoEditCarId(null)}
-              />
-          )}
-
-          {currentView === 'CLIENTS' && (
-              <ClientList
-                  clients={clients}
-                  rentals={rentals}
-                  transactions={transactions}
-                  onAdd={apiAction(BackendAPI.saveClient)}
-                  onUpdate={apiAction(BackendAPI.saveClient)}
-                  onDelete={apiAction(BackendAPI.deleteClient)}
-                  onSelectClient={(id) => {
-                    setSelectedEntityId(id);
-                    setCurrentView('CLIENT_DETAILS');
-                  }}
-              />
-          )}
-
-          {(currentView === 'CONTRACTS' || currentView === 'BOOKINGS' || currentView === 'CONTRACTS_ARCHIVE') && (
-              <ContractList
-                  rentals={rentals}
-                  cars={cars}
-                  clients={clients}
-                  onUpdate={apiAction(BackendAPI.saveRental)}
-                  onDelete={apiAction(BackendAPI.deleteRental)}
-                  onIssueFromBooking={(id) => {
-                    setSelectedEntityId(id);
-                    setCurrentView('MANUAL_BOOKING');
-                  }}
-                  onComplete={setCompletingRental}
-                  viewMode={currentView === 'BOOKINGS' ? 'BOOKINGS' : (currentView === 'CONTRACTS_ARCHIVE' ? 'ARCHIVE' : 'CONTRACTS')}
-                  brandName={currentUser.publicBrandName}
-                  canPrint={planFeatures.contractPrint}
-                  onUpgrade={() => { setUpgradeModalContent({ title: 'Недоступно на вашем тарифе', message: 'Печать договоров доступна начиная с тарифа Бизнес. Обновите тариф в разделе «Подписка».' }); setShowUpgradeModal(true); }}
-              />
-          )}
-
-          {currentView === 'CASHBOX' && (!isStaff || permissions?.canViewDocs) && (
-              <Cashbox
-                  transactions={transactions}
-                  onNavigate={setCurrentView}
-              />
-          )}
-
-          {(currentView === 'INCOME' || currentView === 'EXPENSE') && (!isStaff || permissions?.canViewDocs) && (
-              <TransactionTypePage
-                  type={currentView === 'INCOME' ? TransactionType.INCOME : TransactionType.EXPENSE}
-                  transactions={transactions}
-                  clients={clients}
-                  rentals={rentals}
-                  staff={staff}
-                  investors={investors}
-                  cars={cars}
-                  onAddTransaction={apiAction(BackendAPI.saveTransaction)}
-                  onBack={() => setCurrentView('CASHBOX')}
-              />
-          )}
-
-          {currentView === 'TRANSACTIONS' && (!isStaff || permissions?.canViewDocs) && (
-              <AllTransactions
-                  transactions={transactions}
-                  cars={cars}
-                  investors={investors}
-                  staff={staff}
-                  onAddTransaction={apiAction(BackendAPI.saveTransaction)}
-                  onDeleteTransaction={apiAction(BackendAPI.deleteTransaction)}
-                  onBack={() => setCurrentView('CASHBOX')}
-              />
-          )}
-
-          {currentView === 'REPORTS' && (!isStaff || permissions?.canViewDocs) && (
-              <Reports
-                  transactions={transactions}
-                  cars={cars}
-                  investors={investors}
-                  rentals={rentals}
-                  clients={clients}
-                  fines={fines}
-                  initialSearchId={selectedEntityId}
-                  initialCategory={selectedEntityId ? 'CARS' : 'ALL'}
-              />
-          )}
-
-          {currentView === 'INVESTORS' && (!isStaff || permissions?.canViewDocs) && planFeatures.investors && (
-              <InvestorList
-                  investors={investors}
-                  cars={cars}
-                  rentals={rentals}
-                  transactions={transactions}
-                  onAdd={apiAction(BackendAPI.saveInvestor)}
-                  onUpdate={apiAction(BackendAPI.saveInvestor)}
-                  onDelete={apiAction(BackendAPI.deleteInvestor)}
-                  onSelectInvestor={(id) => {
-                    setSelectedEntityId(id);
-                    setCurrentView('INVESTOR_DETAILS');
-                  }}
-              />
-          )}
-
-          {currentView === 'STAFF' && !isStaff && planFeatures.staff && (
-              <StaffList
-                  staff={staff}
-                  onAdd={apiAction(BackendAPI.saveStaff)}
-                  onUpdate={apiAction(BackendAPI.saveStaff)}
-                  onDelete={apiAction(BackendAPI.deleteStaff)}
-                  onSelectStaff={(id) => {
-                    setSelectedEntityId(id);
-                    setCurrentView('STAFF_DETAILS');
-                  }}
-              />
-          )}
-
-          {currentView === 'CLIENT_DETAILS' && (
-              <ClientDetails
-                  client={clients.find(c => c.id === selectedEntityId)!}
-                  rentals={rentals}
-                  transactions={transactions}
-                  cars={cars}
-                  fines={fines}
-                  onBack={() => setCurrentView('CLIENTS')}
-                  onAddFine={apiAction(BackendAPI.saveFine)}
-                  onPayFine={apiAction(BackendAPI.payFine)}
-              />
-          )}
-
-          {currentView === 'CAR_DETAILS' && cars.find(c => c.id === selectedEntityId) && (
-              <CarDetails
-                  car={cars.find(c => c.id === selectedEntityId)!}
-                  rentals={rentals}
-                  clients={clients}
-                  transactions={transactions}
-                  investors={investors}
-                  fines={fines}
-                  onBack={() => setCurrentView('CARS')}
-                  onUpdate={apiAction(BackendAPI.saveCar)}
-                  onEdit={() => { setAutoEditCarId(selectedEntityId); setCurrentView('CARS'); }}
-                  onViewReport={() => setCurrentView('REPORTS')}
-              />
-          )}
-
-          {currentView === 'INVESTOR_DETAILS' && (
-              <InvestorDetails
-                  investor={investors.find(i => i.id === selectedEntityId)!}
-                  cars={cars}
-                  rentals={rentals}
-                  transactions={transactions}
-                  onBack={() => setCurrentView('INVESTORS')}
-              />
-          )}
-
-          {currentView === 'STAFF_DETAILS' && (
-              <StaffDetails
-                  member={staff.find(s => s.id === selectedEntityId)!}
-                  onBack={() => setCurrentView('STAFF')}
-              />
-          )}
-
-          {currentView === 'SUPERADMIN_PANEL' && (
-              <SuperadminPanel
-                  allUsers={allUsers}
-                  onUpdateUser={apiAction(BackendAPI.updateGlobalUser)}
-                  onDeleteUser={apiAction(BackendAPI.deleteGlobalUser)}
-              />
-          )}
-
-          {currentView === 'MANUAL_BOOKING' && (
-              <ManualBooking
-                  cars={cars}
-                  clients={clients}
-                  rentals={rentals}
-                  currentUser={currentUser}
-                  preSelectedRentalId={currentView === 'MANUAL_BOOKING' && rentals.find(r => r.id === selectedEntityId) ? selectedEntityId : null}
-                  preSelectedCarId={!rentals.find(r => r.id === selectedEntityId) ? selectedEntityId || undefined : undefined}
-                  onCreate={handleSaveRental}
-                  onNavigate={setCurrentView}
-                  onQuickAddClient={async (c) => {
-                    const res = await BackendAPI.saveClient(c as Client);
-                    return res.id;
-                  }}
-              />
-          )}
-
-          {currentView === 'CALENDAR' && planFeatures.calendar && (
-              <BookingCalendar
-                  cars={cars}
-                  rentals={rentals}
-                  clients={clients}
-                  onSelectCar={(id) => { setSelectedEntityId(id); setCurrentView('CAR_DETAILS'); }}
-                  onBookCar={(id) => { setSelectedEntityId(id); setCurrentView('MANUAL_BOOKING'); }}
-              />
-          )}
-
-          {currentView === 'REQUESTS' && (
-              <BookingRequests
-                  requests={requests}
-                  cars={cars}
-                  onAction={apiAction(BackendAPI.deleteRequest)}
-              />
-          )}
-
-          {currentView === 'CLIENT_CATALOG' && (
-              <ClientCatalog
-                  cars={cars}
-                  rentals={rentals}
-                  currentUser={currentUser}
-                  onSubmitRequest={async (req) => {
-                    // Use public endpoint here too to ensure ownerId is respected correctly
-                    await BackendAPI.submitBookingRequest(req);
-                    // Refresh requests list
-                    const reqs = await BackendAPI.getRequests();
-                    setRequests(reqs);
-                  }}
-                  fleetOwner={fleetOwner}
-                  onAuthRequest={() => {
-                  }}
-                  onRegisterClient={async (u) => {
-                    const user = await BackendAPI.register({...u, role: UserRole.CLIENT});
-                    setCurrentUser(user);
-                  }}
-                  onLoginClient={async (e, p) => {
-                    const user = await BackendAPI.login({email: e, password: p});
-                    setCurrentUser(user);
-                  }}
-              />
-          )}
-
-          {/* New View for Client Bookings */}
-          {currentView === 'CLIENT_MY_BOOKINGS' && (
-              <BookingRequests
-                  requests={requests}
-                  cars={cars}
-                  isReadOnly={true}
-              />
-          )}
-
-          {currentView === 'SETTINGS' && (
-              <Settings
-                  user={currentUser}
-                  onUpdate={async (updates) => {
-                    // Optimistic update for UI
-                    setCurrentUser(prev => prev ? ({
-                      ...prev, ...updates,
-                      settings: {...prev.settings, ...updates.settings}
-                    }) : null);
-                    await apiAction((u) => BackendAPI.updateGlobalUser(currentUser.id, u))(updates);
-                  }}
-                  onNavigate={setCurrentView}
-                  onLogout={() => BackendAPI.logout()}
-                  isOnline={isOnline}
-                  onGetPendingSyncCount={() => getOfflineQueue().then(q => q.length)}
-                  onClearLocalData={handleClearLocalData}
-                  onSyncNow={handleSyncNow}
-                  themePref={themePref}
-                  onSetThemePref={handleSetThemePref}
-              />
-          )}
-
-          {currentView === 'TARIFFS' && (
-              <Tariffs
-                  user={currentUser}
-                  carCount={cars.length}
-                  onUpdate={apiAction((u) => BackendAPI.updateGlobalUser(currentUser.id, u))}
-                  onBack={() => setCurrentView('SETTINGS')}
-              />
-          )}
-
-          {currentView === 'SUPPORT_CHAT' && (
-              <SupportChat currentUser={currentUser} />
-          )}
-        </div>
+      {/* Экраны живут внутри SwipeNavigator: он держит их абсолютными слоями со своим
+          скроллом и отвечает за переходы вперёд/назад и жест возврата от левого края. */}
+      <main className="flex-1 relative overflow-hidden md:ml-64">
+        <SwipeNavigator
+          entry={{ view: currentView, entityId: selectedEntityId }}
+          prev={history.length > 0 ? history[history.length - 1] : null}
+          direction={navIntent.direction}
+          navToken={navIntent.token}
+          onBack={goBack}
+          enabled={isCompactLayout}
+          render={renderPage}
+          layerClassName="pt-32 md:pt-12 pb-44 md:pb-12 p-6 bg-slate-50 dark:bg-slate-900"
+        />
       </main>
 
       <BottomNav

@@ -343,7 +343,7 @@ ${rental.prepayment ? `💸 *Предоплата:* ${rental.prepayment.toLocale
 
               <div>
                 <label className="block text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide mb-2 ml-2">Клиент</label>
-                <div onClick={() => setShowClientSearch(true)} className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold cursor-pointer flex justify-between items-center hover:bg-slate-100 border-2 border-transparent">
+                <div onClick={() => setShowClientSearch(true)} className="w-full p-4 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold cursor-pointer flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-700 border-2 border-transparent">
                   <span className={formData.clientName ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}>{formData.clientName || 'Выбрать клиента'}</span>
                   <i className="fas fa-search text-slate-300 dark:text-slate-600"></i>
                 </div>
@@ -458,7 +458,7 @@ ${rental.prepayment ? `💸 *Предоплата:* ${rental.prepayment.toLocale
 
               <button
                 onClick={handleCloseSuccess}
-                className="w-full py-5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-slate-200 transition-all"
+                className="w-full py-5 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
               >
                 Готово
               </button>

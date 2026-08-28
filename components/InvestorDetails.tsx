@@ -51,7 +51,7 @@ const InvestorDetails: React.FC<InvestorDetailsProps> = ({ investor, cars, renta
 
   return (
     <div className="space-y-5 animate-fadeIn pb-24 md:pb-0">
-      <button onClick={onBack} className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 font-bold hover:text-blue-600 transition-all">
+      <button onClick={onBack} className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 font-bold hover:text-blue-600 dark:hover:text-blue-400 transition-all">
         <i className="fas fa-arrow-left"></i> <span>Назад к списку</span>
       </button>
 
@@ -88,14 +88,14 @@ const InvestorDetails: React.FC<InvestorDetailsProps> = ({ investor, cars, renta
         <div className="flex border-b border-slate-100 dark:border-slate-700 bg-slate-50/50 dark:bg-slate-700">
           <button 
             onClick={() => setActiveTab('INFO')} 
-            className={`flex-1 py-5 font-semibold text-xs uppercase tracking-wide transition-all flex items-center justify-center space-x-2 ${activeTab === 'INFO' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border-b-4 border-indigo-600 dark:border-indigo-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'}`}
+            className={`flex-1 py-5 font-semibold text-xs uppercase tracking-wide transition-all flex items-center justify-center space-x-2 ${activeTab === 'INFO' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border-b-4 border-indigo-600 dark:border-indigo-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
           >
             <i className="fas fa-user-tie"></i>
             <span>Инвестор</span>
           </button>
           <button 
             onClick={() => setActiveTab('HISTORY')} 
-            className={`flex-1 py-5 font-semibold text-xs uppercase tracking-wide transition-all flex items-center justify-center space-x-2 ${activeTab === 'HISTORY' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border-b-4 border-indigo-600 dark:border-indigo-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'}`}
+            className={`flex-1 py-5 font-semibold text-xs uppercase tracking-wide transition-all flex items-center justify-center space-x-2 ${activeTab === 'HISTORY' ? 'bg-white dark:bg-slate-800 text-indigo-600 dark:text-indigo-400 border-b-4 border-indigo-600 dark:border-indigo-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
           >
             <i className="fas fa-history"></i>
             <span>История</span>
@@ -127,7 +127,7 @@ const InvestorDetails: React.FC<InvestorDetailsProps> = ({ investor, cars, renta
                       className="p-3 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-bold focus:ring-2 focus:ring-indigo-500 outline-none"
                     />
                     {(dateRange.start || dateRange.end) && (
-                      <button onClick={() => setDateRange({start:'', end:''})} className="w-10 h-10 flex items-center justify-center text-rose-500 dark:text-rose-400 hover:bg-rose-50 rounded-full transition-all">
+                      <button onClick={() => setDateRange({start:'', end:''})} className="w-10 h-10 flex items-center justify-center text-rose-500 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-full transition-all">
                         <i className="fas fa-times"></i>
                       </button>
                     )}
@@ -160,7 +160,7 @@ const InvestorDetails: React.FC<InvestorDetailsProps> = ({ investor, cars, renta
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-white uppercase tracking-tight">Авто в управлении</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {investorCars.map(car => (
-                    <div key={car.id} className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center space-x-5 group hover:border-indigo-200 transition-all shadow-sm">
+                    <div key={car.id} className="bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center space-x-5 group hover:border-indigo-200 dark:hover:border-indigo-500/30 transition-all shadow-sm">
                       <div className="w-20 h-20 rounded-2xl overflow-hidden shadow-inner flex-shrink-0">
                         <img src={car.images[0]} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" alt="" />
                       </div>
@@ -197,13 +197,13 @@ const InvestorDetails: React.FC<InvestorDetailsProps> = ({ investor, cars, renta
               </div>
               <div className="space-y-3">
                 {investorTransactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(t => (
-                  <div key={t.id} className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-between hover:bg-slate-50 transition-all group">
+                  <div key={t.id} className="p-4 bg-white dark:bg-slate-800 rounded-2xl border border-slate-100 dark:border-slate-700 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-700 transition-all group">
                     <div className="flex items-center space-x-5">
                       <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${t.type === TransactionType.EXPENSE ? 'bg-rose-50 dark:bg-rose-500/10 text-rose-500 dark:text-rose-400' : 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 dark:text-emerald-400'}`}>
                         <i className={`fas ${t.type === TransactionType.EXPENSE ? 'fa-arrow-up' : 'fa-arrow-down'} text-xl`}></i>
                       </div>
                       <div>
-                        <div className="font-bold text-slate-900 dark:text-white text-lg group-hover:text-indigo-600 transition-colors">{t.description || t.category}</div>
+                        <div className="font-bold text-slate-900 dark:text-white text-lg group-hover:text-indigo-600 dark:group-hover:text-indigo-400 transition-colors">{t.description || t.category}</div>
                         <div className="flex items-center space-x-3 mt-1">
                           <div className="text-[10px] text-slate-400 dark:text-slate-500 font-semibold uppercase tracking-wide">{new Date(t.date).toLocaleDateString()}</div>
                           <span className="w-1 h-1 bg-slate-200 dark:bg-slate-600 rounded-full"></span>

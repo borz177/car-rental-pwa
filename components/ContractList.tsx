@@ -260,7 +260,7 @@ const ContractList: React.FC<ContractListProps> = ({
 
           <button
             onClick={(e) => { e.stopPropagation(); setShowActions(showActions === rent.id ? null : rent.id); }}
-            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 text-slate-400 dark:text-slate-500 flex-shrink-0"
+            className="w-9 h-9 flex items-center justify-center rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-400 dark:text-slate-500 flex-shrink-0"
           >
             <i className="fas fa-ellipsis-vertical"></i>
           </button>
@@ -287,25 +287,25 @@ const ContractList: React.FC<ContractListProps> = ({
                 <button onClick={() => setShowActions(null)} className="p-2 -mr-2 text-slate-400 dark:text-slate-500"><i className="fas fa-xmark"></i></button>
               </div>
               <div className="p-2">
-                <button onClick={() => { handlePrint(rent); setShowActions(null); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm hover:bg-slate-50 ${!canPrint ? 'text-slate-400 dark:text-slate-500' : ''}`}>
+                <button onClick={() => { handlePrint(rent); setShowActions(null); }} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm hover:bg-slate-50 dark:hover:bg-slate-700 ${!canPrint ? 'text-slate-400 dark:text-slate-500' : ''}`}>
                   <i className={`fas ${canPrint ? 'fa-print' : 'fa-lock'} w-4`}></i> Печать договора{!canPrint ? ' (Бизнес+)' : ''}
                 </button>
                 {rent.isReservation && onIssueFromBooking && (
-                  <button onClick={() => { onIssueFromBooking(rent.id); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50">
+                  <button onClick={() => { onIssueFromBooking(rent.id); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-500/10">
                     <i className="fas fa-key w-4"></i> Выдать авто
                   </button>
                 )}
                 {!rent.isReservation && rent.status === 'ACTIVE' && (
                   <>
-                    <button onClick={() => { setExtendingRental(rent); setExtensionData({ endDate: '', endTime: '', extraPrice: 0 }); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50">
+                    <button onClick={() => { setExtendingRental(rent); setExtensionData({ endDate: '', endTime: '', extraPrice: 0 }); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-500/10">
                       <i className="fas fa-calendar-plus w-4"></i> Продлить
                     </button>
-                    <button onClick={() => { onComplete(rent); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50">
+                    <button onClick={() => { onComplete(rent); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10">
                       <i className="fas fa-check-circle w-4"></i> Завершить
                     </button>
                   </>
                 )}
-                <button onClick={() => { handleDelete(rent); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50">
+                <button onClick={() => { handleDelete(rent); setShowActions(null); }} className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-sm text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-500/10">
                   <i className="fas fa-trash w-4"></i> Удалить
                 </button>
               </div>
@@ -548,7 +548,7 @@ const ContractList: React.FC<ContractListProps> = ({
               className="w-full pl-9 pr-9 py-2.5 bg-slate-50 dark:bg-slate-700 rounded-xl text-sm font-medium outline-none border-2 border-transparent focus:border-blue-500 transition-all"
             />
             {search && (
-              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 hover:text-slate-600">
+              <button onClick={() => setSearch('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-300 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-300">
                 <i className="fas fa-xmark text-xs"></i>
               </button>
             )}
@@ -570,7 +570,7 @@ const ContractList: React.FC<ContractListProps> = ({
               key={f.id}
               onClick={() => setStatusFilter(f.id)}
               className={`px-3.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-all ${
-                statusFilter === f.id ? 'bg-blue-600 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600'
+                statusFilter === f.id ? 'bg-blue-600 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
               }`}
             >
               {f.label}
@@ -579,7 +579,7 @@ const ContractList: React.FC<ContractListProps> = ({
           {(search || searchDate || statusFilter !== 'ALL') && (
             <button
               onClick={() => { setSearch(''); setSearchDate(''); setStatusFilter('ALL'); }}
-              className="px-3.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400 hover:bg-blue-50"
+              className="px-3.5 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-500/10"
             >
               Сбросить
             </button>

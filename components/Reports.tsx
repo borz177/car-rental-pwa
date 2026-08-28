@@ -146,7 +146,7 @@ const Reports: React.FC<ReportsProps> = ({
               className={`flex-shrink-0 px-4 py-2.5 text-sm font-medium rounded-xl transition-all active:scale-95 ${
                 activeCategory === cat.id
                   ? 'bg-slate-900 text-white shadow-lg'
-                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 active:bg-slate-300'
+                  : 'bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 active:bg-slate-300 dark:active:bg-slate-600'
               }`}
               style={{ minHeight: '44px' }} // Минимальная тач-зона
             >
@@ -180,7 +180,7 @@ const Reports: React.FC<ReportsProps> = ({
             className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${
               activeVariant === v.id
                 ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-sm'
-                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700'
+                : 'text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
             }`}
             style={{ minHeight: '40px' }}
           >
@@ -202,7 +202,7 @@ const Reports: React.FC<ReportsProps> = ({
             type="date"
             value={filters.startDate}
             onChange={e => setFilters({ ...filters, startDate: e.target.value })}
-            className="px-3 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
+            className="px-3 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl outline-none focus:border-slate-400 dark:focus:border-slate-500 focus:ring-2 focus:ring-slate-100 transition-all"
             style={{ minHeight: '44px' }}
           />
         </div>
@@ -212,7 +212,7 @@ const Reports: React.FC<ReportsProps> = ({
             type="date"
             value={filters.endDate}
             onChange={e => setFilters({ ...filters, endDate: e.target.value })}
-            className="px-3 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all"
+            className="px-3 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl outline-none focus:border-slate-400 dark:focus:border-slate-500 focus:ring-2 focus:ring-slate-100 transition-all"
             style={{ minHeight: '44px' }}
           />
         </div>
@@ -221,7 +221,7 @@ const Reports: React.FC<ReportsProps> = ({
           <select
             value={filters.searchId}
             onChange={e => setFilters({ ...filters, searchId: e.target.value })}
-            className="px-3 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl outline-none focus:border-slate-400 focus:ring-2 focus:ring-slate-100 transition-all appearance-none"
+            className="px-3 py-2.5 text-sm bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl outline-none focus:border-slate-400 dark:focus:border-slate-500 focus:ring-2 focus:ring-slate-100 transition-all appearance-none"
             style={{ minHeight: '44px' }}
           >
             <option value="">Все объекты</option>
@@ -235,7 +235,7 @@ const Reports: React.FC<ReportsProps> = ({
       <div className="mt-3 flex justify-end">
         <button
           onClick={() => setFilters({ startDate: '', endDate: '', searchId: '' })}
-          className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
+          className="text-xs text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 px-3 py-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
         >
           Сбросить фильтры
         </button>
@@ -356,7 +356,7 @@ const Reports: React.FC<ReportsProps> = ({
       {/* Легенда в виде списка для мобильных */}
       <div className="grid grid-cols-2 gap-2 mt-4 max-h-40 overflow-y-auto">
         {pieData.slice(0, 8).map((item, idx) => (
-          <div key={item.name} className="flex items-center gap-2 text-xs p-2 rounded-lg hover:bg-slate-50">
+          <div key={item.name} className="flex items-center gap-2 text-xs p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-700">
             <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
             <span className="text-slate-600 dark:text-slate-300 truncate flex-1">{item.name}</span>
             <span className="text-slate-400 dark:text-slate-500 font-medium">{item.value.toLocaleString()}</span>
@@ -381,7 +381,7 @@ const Reports: React.FC<ReportsProps> = ({
           </thead>
           <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
             {filteredData.slice(0, 20).map((t: any) => (
-              <tr key={t.id} className="hover:bg-slate-50 transition-colors">
+              <tr key={t.id} className="hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors">
                 <td className="px-4 py-3 text-slate-600 dark:text-slate-300 whitespace-nowrap">
                   {new Date(t.date).toLocaleDateString('ru-RU', { day: '2-digit', month: 'short' })}
                 </td>
@@ -501,7 +501,7 @@ const Reports: React.FC<ReportsProps> = ({
           {activeCategory !== 'ALL' && (
             <button
               onClick={() => { setActiveCategory('ALL'); setFilters(f => ({...f, searchId: ''})); }}
-              className="p-2 hover:bg-slate-100 rounded-xl transition-colors active:scale-95"
+              className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-xl transition-colors active:scale-95"
               style={{ minHeight: '44px', minWidth: '44px' }}
             >
               <i className="fas fa-arrow-left text-slate-400 dark:text-slate-500"></i>

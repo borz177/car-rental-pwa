@@ -144,23 +144,23 @@ const CarCard: React.FC<{
               <button onClick={handleWhatsAppClick} className="flex-1 bg-emerald-500 text-white py-2.5 rounded-2xl font-semibold text-[10px] uppercase transition-all hover:bg-emerald-600 shadow-lg flex items-center justify-center gap-2">
                 <i className="fab fa-whatsapp"></i><span>Написать</span>
               </button>
-              <button onClick={onReserve} disabled={!canBookNew} title={isBlocked ? 'Превышен лимит тарифа' : undefined} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-2.5 rounded-2xl font-semibold text-[10px] uppercase hover:bg-slate-200 disabled:opacity-50 disabled:cursor-not-allowed">Бронь</button>
+              <button onClick={onReserve} disabled={!canBookNew} title={isBlocked ? 'Превышен лимит тарифа' : undefined} className="flex-1 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 py-2.5 rounded-2xl font-semibold text-[10px] uppercase hover:bg-slate-200 dark:hover:bg-slate-600 disabled:opacity-50 disabled:cursor-not-allowed">Бронь</button>
             </div>
           )}
           <div className="relative">
-            <button onClick={() => setShowMenu(!showMenu)} className="w-10 h-10 bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 rounded-2xl flex items-center justify-center hover:bg-slate-100 border border-slate-100 dark:border-slate-700 transition-all">
+            <button onClick={() => setShowMenu(!showMenu)} className="w-10 h-10 bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 rounded-2xl flex items-center justify-center hover:bg-slate-100 dark:hover:bg-slate-700 border border-slate-100 dark:border-slate-700 transition-all">
               <i className="fas fa-ellipsis-v text-xs"></i>
             </button>
             {showMenu && (
               <>
                 <div className="fixed inset-0 z-20" onClick={() => setShowMenu(false)}></div>
                 <div className="absolute bottom-14 right-0 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-50 dark:border-slate-800 z-30 py-1 animate-scaleIn">
-                  <button onClick={() => { onInfo(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 dark:text-slate-300"><i className="fas fa-circle-info text-blue-500 dark:text-blue-400 w-4"></i><span>Подробнее</span></button>
-                  {canEdit && <button onClick={() => { onEdit(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-slate-50 flex items-center space-x-3 text-amber-500 dark:text-amber-400"><i className="fas fa-edit w-4"></i><span>Изменить</span></button>}
+                  <button onClick={() => { onInfo(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center space-x-3 text-slate-600 dark:text-slate-300"><i className="fas fa-circle-info text-blue-500 dark:text-blue-400 w-4"></i><span>Подробнее</span></button>
+                  {canEdit && <button onClick={() => { onEdit(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center space-x-3 text-amber-500 dark:text-amber-400"><i className="fas fa-edit w-4"></i><span>Изменить</span></button>}
                   {activeRental && !activeRental.isReservation && canCreateBooking && (
-                    <button onClick={() => { onComplete(activeRental); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-blue-50 flex items-center space-x-3 text-blue-600 dark:text-blue-400"><i className="fas fa-check-circle w-4"></i><span>Завершить</span></button>
+                    <button onClick={() => { onComplete(activeRental); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-blue-50 dark:hover:bg-blue-500/10 flex items-center space-x-3 text-blue-600 dark:text-blue-400"><i className="fas fa-check-circle w-4"></i><span>Завершить</span></button>
                   )}
-                  {showDeleteButton && <button onClick={() => { onDelete(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-rose-50 text-rose-500 dark:text-rose-400 flex items-center space-x-3"><i className="fas fa-trash-alt w-4"></i><span>Удалить</span></button>}
+                  {showDeleteButton && <button onClick={() => { onDelete(); setShowMenu(false); }} className="w-full px-5 py-3 text-left text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-500/10 text-rose-500 dark:text-rose-400 flex items-center space-x-3"><i className="fas fa-trash-alt w-4"></i><span>Удалить</span></button>}
                 </div>
               </>
             )}
@@ -304,7 +304,7 @@ const CarList: React.FC<CarListProps> = ({
           {search && (
             <button
               onClick={() => setSearch('')}
-              className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg text-slate-300 dark:text-slate-600 hover:text-slate-600 transition-colors"
+              className="absolute right-3 top-1/2 -translate-y-1/2 w-6 h-6 rounded-lg text-slate-300 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
             >
               <i className="fas fa-xmark text-xs"></i>
             </button>
@@ -425,7 +425,7 @@ const CarList: React.FC<CarListProps> = ({
                      <input name="lastOilChangeMileage" type="number" defaultValue={editing?.lastOilChangeMileage} placeholder="Пробег последней замены" className="w-full p-3 bg-white dark:bg-slate-800 rounded-xl font-bold border border-amber-100 dark:border-amber-500/20 outline-none" />
                      <input name="oilChangeInterval" type="number" defaultValue={editing?.oilChangeInterval || 10000} placeholder="Интервал замены (км)" className="w-full p-3 bg-white dark:bg-slate-800 rounded-xl font-bold border border-amber-100 dark:border-amber-500/20 outline-none" />
                   </div>
-                  <div className="aspect-video bg-slate-50 dark:bg-slate-700 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-600 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 cursor-pointer hover:border-blue-400 hover:text-blue-500 transition-all" onClick={() => fileInputRef.current?.click()}>
+                  <div className="aspect-video bg-slate-50 dark:bg-slate-700 rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-600 flex flex-col items-center justify-center text-slate-400 dark:text-slate-500 cursor-pointer hover:border-blue-400 hover:text-blue-500 dark:hover:text-blue-400 transition-all" onClick={() => fileInputRef.current?.click()}>
                      <i className="fas fa-camera text-2xl"></i>
                      <span className="text-[10px] font-semibold uppercase mt-2">{tempImages.length > 0 ? `${tempImages.length} фото` : 'Добавить фото'}</span>
                   </div>
@@ -474,16 +474,16 @@ const ImageViewerModal: React.FC<{images: string[], onClose: () => void}> = ({ i
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md animate-fadeIn" onClick={onClose}>
       <img src={images[currentIndex]} alt="Car view" className="max-w-[90vw] max-h-[85vh] object-contain rounded-lg shadow-md" onClick={e => e.stopPropagation()} />
 
-      <button onClick={onClose} className="absolute top-5 right-5 w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20 transition-all text-lg">
+      <button onClick={onClose} className="absolute top-5 right-5 w-12 h-12 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20 dark:hover:bg-slate-800 transition-all text-lg">
         <i className="fas fa-times"></i>
       </button>
 
       {images.length > 1 && (
         <>
-          <button onClick={prevImage} className="absolute left-5 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20 transition-all text-xl">
+          <button onClick={prevImage} className="absolute left-5 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20 dark:hover:bg-slate-800 transition-all text-xl">
             <i className="fas fa-chevron-left"></i>
           </button>
-          <button onClick={nextImage} className="absolute right-5 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20 transition-all text-xl">
+          <button onClick={nextImage} className="absolute right-5 top-1/2 -translate-y-1/2 w-14 h-14 bg-white/10 text-white rounded-full flex items-center justify-center hover:bg-white/20 dark:hover:bg-slate-800 transition-all text-xl">
             <i className="fas fa-chevron-right"></i>
           </button>
           <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex gap-2">

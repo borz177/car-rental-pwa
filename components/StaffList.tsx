@@ -28,9 +28,9 @@ interface ToggleItemProps {
 }
 
 const ToggleItem: React.FC<ToggleItemProps> = ({ label, checked, onChange, color, description }) => (
-  <div onClick={onChange} className="flex items-center justify-between p-3 hover:bg-white rounded-xl cursor-pointer transition-all group">
+  <div onClick={onChange} className="flex items-center justify-between p-3 hover:bg-white dark:hover:bg-slate-800 rounded-xl cursor-pointer transition-all group">
     <div>
-      <div className="font-bold text-slate-700 dark:text-slate-200 text-sm group-hover:text-slate-900">{label}</div>
+      <div className="font-bold text-slate-700 dark:text-slate-200 text-sm group-hover:text-slate-900 dark:group-hover:text-white">{label}</div>
       {description && <div className="text-[10px] text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">{description}</div>}
     </div>
     <div className={`w-10 h-6 rounded-full p-1 transition-colors ${checked ? color : 'bg-slate-200 dark:bg-slate-600'}`}>
@@ -141,7 +141,7 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onAdd, onUpdate, onDelete,
               <div className="relative">
                 <button
                   onClick={() => setShowActions(showActions === member.id ? null : member.id)}
-                  className="w-10 h-10 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-slate-900 hover:bg-slate-50 rounded-xl transition-all"
+                  className="w-10 h-10 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-slate-900 dark:hover:text-white hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-all"
                 >
                   <i className="fas fa-ellipsis-v"></i>
                 </button>
@@ -149,13 +149,13 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onAdd, onUpdate, onDelete,
                   <>
                     <div className="fixed inset-0 z-40" onClick={() => setShowActions(null)}></div>
                     <div className="absolute right-0 top-12 w-48 bg-white dark:bg-slate-800 rounded-2xl shadow-md border border-slate-50 dark:border-slate-800 z-50 overflow-hidden animate-scaleIn">
-                      <button onClick={() => { onSelectStaff(member.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800">
+                      <button onClick={() => { onSelectStaff(member.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center space-x-3 text-slate-600 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800">
                         <i className="fas fa-id-card text-blue-500 dark:text-blue-400"></i> <span>Профиль</span>
                       </button>
-                      <button onClick={() => { setEditingMember(member); setIsModalOpen(true); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 flex items-center space-x-3 text-slate-600 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800">
+                      <button onClick={() => { setEditingMember(member); setIsModalOpen(true); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center space-x-3 text-slate-600 dark:text-slate-300 border-b border-slate-50 dark:border-slate-800">
                         <i className="fas fa-edit text-amber-500 dark:text-amber-400"></i> <span>Права доступа</span>
                       </button>
-                      <button onClick={() => { if(window.confirm('Удалить сотрудника?')) onDelete(member.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-rose-50 text-rose-500 dark:text-rose-400 flex items-center space-x-3">
+                      <button onClick={() => { if(window.confirm('Удалить сотрудника?')) onDelete(member.id); setShowActions(null); }} className="w-full px-5 py-3 text-left text-sm font-bold hover:bg-rose-50 dark:hover:bg-rose-500/10 text-rose-500 dark:text-rose-400 flex items-center space-x-3">
                         <i className="fas fa-trash-alt"></i> <span>Удалить</span>
                       </button>
                     </div>
@@ -236,7 +236,7 @@ const StaffList: React.FC<StaffListProps> = ({ staff, onAdd, onUpdate, onDelete,
             </div>
 
             <div className="flex gap-4">
-              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-slate-100 dark:bg-slate-700 rounded-2xl font-bold text-slate-600 dark:text-slate-300 transition-all hover:bg-slate-200">Отмена</button>
+              <button type="button" onClick={() => setIsModalOpen(false)} className="flex-1 py-4 bg-slate-100 dark:bg-slate-700 rounded-2xl font-bold text-slate-600 dark:text-slate-300 transition-all hover:bg-slate-200 dark:hover:bg-slate-600">Отмена</button>
               <button type="submit" className="flex-1 py-4 bg-blue-600 text-white rounded-2xl font-bold shadow-md transition-all hover:bg-blue-700">Сохранить</button>
             </div>
           </form>

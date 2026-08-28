@@ -194,7 +194,7 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
   return (
     <div className="space-y-5 animate-fadeIn pb-24 md:pb-0">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm text-slate-500 dark:text-slate-400 flex items-center justify-center hover:text-blue-600 hover:border-blue-100 transition-all">
+        <button onClick={onBack} className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm text-slate-500 dark:text-slate-400 flex items-center justify-center hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-100 dark:hover:border-blue-500/30 transition-all">
           <i className="fas fa-arrow-left"></i>
         </button>
         <div className={`w-10 h-10 rounded-2xl flex items-center justify-center ${iconBg}`}>
@@ -220,7 +220,7 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
                 <label className="text-[10px] font-semibold text-slate-400 dark:text-slate-500 uppercase tracking-wide ml-2 mb-1 block">Клиент (необязательно)</label>
                 <div
                   onClick={() => setShowClientList(true)}
-                  className="w-full p-5 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold border-2 border-transparent cursor-pointer flex justify-between items-center hover:bg-slate-100 transition-all text-slate-700 dark:text-slate-200"
+                  className="w-full p-5 bg-slate-50 dark:bg-slate-700 rounded-2xl font-bold border-2 border-transparent cursor-pointer flex justify-between items-center hover:bg-slate-100 dark:hover:bg-slate-700 transition-all text-slate-700 dark:text-slate-200"
                 >
                   <span className={searchClient ? 'text-slate-900 dark:text-white' : 'text-slate-400 dark:text-slate-500'}>
                     {searchClient || 'Нажмите для выбора клиента'}
@@ -233,7 +233,7 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
                     <div className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-md p-8 shadow-md animate-scaleIn flex flex-col max-h-[80vh]">
                       <div className="flex justify-between items-center mb-6">
                         <h4 className="font-semibold text-slate-900 dark:text-white uppercase tracking-tight text-xl">Выбор клиента</h4>
-                        <button type="button" onClick={() => setShowClientList(false)} className="w-10 h-10 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:bg-slate-50 rounded-full">
+                        <button type="button" onClick={() => setShowClientList(false)} className="w-10 h-10 flex items-center justify-center text-slate-400 dark:text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-700 rounded-full">
                           <i className="fas fa-times"></i>
                         </button>
                       </div>
@@ -419,7 +419,7 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
             <button
               onClick={exportCsv}
               disabled={visibleTransactions.length === 0}
-              className="text-blue-600 dark:text-blue-400 font-semibold text-xs uppercase tracking-wide hover:bg-blue-50 px-3 py-2 rounded-xl transition-all disabled:opacity-40"
+              className="text-blue-600 dark:text-blue-400 font-semibold text-xs uppercase tracking-wide hover:bg-blue-50 dark:hover:bg-blue-500/10 px-3 py-2 rounded-xl transition-all disabled:opacity-40"
             >
               <i className="fas fa-file-arrow-down mr-1.5"></i>Экспорт в CSV
             </button>
@@ -431,7 +431,7 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
                 key={id}
                 onClick={() => setPeriod(id)}
                 className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors ${
-                  period === id ? 'bg-slate-800 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600'
+                  period === id ? 'bg-slate-800 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'
                 }`}
               >
                 {label}
@@ -452,7 +452,7 @@ const TransactionTypePage: React.FC<TransactionTypePageProps> = ({
 
         <div className="divide-y divide-slate-50 dark:divide-slate-800">
           {pagedTransactions.map(t => (
-            <div key={t.id} className="px-4 py-3 hover:bg-slate-50/50 transition-colors flex items-center gap-3">
+            <div key={t.id} className="px-4 py-3 hover:bg-slate-50/50 dark:hover:bg-slate-700 transition-colors flex items-center gap-3">
               <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${iconBg}`}>
                 <i className={`fas ${theme.icon} text-xs`}></i>
               </div>

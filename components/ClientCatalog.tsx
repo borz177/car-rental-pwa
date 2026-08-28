@@ -242,9 +242,9 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
     return (
       <div className="bg-slate-50 dark:bg-slate-700 p-4 rounded-2xl select-none border border-slate-100 dark:border-slate-700">
         <div className="flex justify-between items-center mb-4 px-2">
-          <button type="button" onClick={() => changeMonth(-1)} className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-full text-slate-400 dark:text-slate-500 hover:text-slate-900 shadow-sm"><i className="fas fa-chevron-left"></i></button>
+          <button type="button" onClick={() => changeMonth(-1)} className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-full text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white shadow-sm"><i className="fas fa-chevron-left"></i></button>
           <div className="font-semibold text-slate-900 dark:text-white capitalize text-sm">{monthName}</div>
-          <button type="button" onClick={() => changeMonth(1)} className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-full text-slate-400 dark:text-slate-500 hover:text-slate-900 shadow-sm"><i className="fas fa-chevron-right"></i></button>
+          <button type="button" onClick={() => changeMonth(1)} className="w-8 h-8 flex items-center justify-center bg-white dark:bg-slate-800 rounded-full text-slate-400 dark:text-slate-500 hover:text-slate-900 dark:hover:text-white shadow-sm"><i className="fas fa-chevron-right"></i></button>
         </div>
         <div className="grid grid-cols-7 gap-1 md:gap-2 text-center mb-2">
           {['Пн','Вт','Ср','Чт','Пт','Сб','Вс'].map(d => <div key={d} className="text-[10px] font-bold text-slate-400 dark:text-slate-500 uppercase">{d}</div>)}
@@ -272,7 +272,7 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
             } else if (inRange) {
                 className += "bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400";
             } else {
-                className += "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-blue-50 hover:text-blue-600 cursor-pointer shadow-sm";
+                className += "bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:bg-blue-50 dark:hover:bg-blue-500/10 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer shadow-sm";
             }
 
             return (
@@ -459,7 +459,7 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
             </div>
 
             <div className="flex gap-4">
-              <button type="button" onClick={() => setSelectedCar(null)} className="flex-1 py-5 bg-slate-100 dark:bg-slate-700 rounded-2xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 transition-all">
+              <button type="button" onClick={() => setSelectedCar(null)} className="flex-1 py-5 bg-slate-100 dark:bg-slate-700 rounded-2xl font-bold text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">
                 Отмена
               </button>
               <button type="submit" className="flex-1 py-5 bg-blue-600 text-white rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-blue-700 transition-all shadow-md">
@@ -496,7 +496,7 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
 
             <button
               onClick={() => setShowSuccessModal(false)}
-              className="w-full py-4 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-slate-200 transition-all"
+              className="w-full py-4 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-2xl font-semibold uppercase tracking-wide text-xs hover:bg-slate-200 dark:hover:bg-slate-600 transition-all"
             >
               Закрыть
             </button>
@@ -512,7 +512,7 @@ const ClientCatalog: React.FC<ClientCatalogProps> = ({
                <h2 className="text-2xl font-semibold text-slate-900 dark:text-white tracking-tight">
                  {authMode === 'REGISTER' ? 'Регистрация' : 'Вход'}
                </h2>
-               <button onClick={() => setShowAuthModal(false)} className="text-slate-300 dark:text-slate-600 hover:text-slate-900"><i className="fas fa-times"></i></button>
+               <button onClick={() => setShowAuthModal(false)} className="text-slate-300 dark:text-slate-600 hover:text-slate-900 dark:hover:text-white"><i className="fas fa-times"></i></button>
             </div>
 
             <p className="text-slate-400 dark:text-slate-500 text-sm font-medium mb-8">

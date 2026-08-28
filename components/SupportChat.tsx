@@ -227,7 +227,7 @@ const SupportChat: React.FC<SupportChatProps> = ({ currentUser }) => {
             <button
               key={t.userId}
               onClick={() => setSelectedAdminId(t.userId)}
-              className={`w-full px-4 py-3 flex items-center gap-3 text-left border-b border-slate-50 dark:border-slate-800 hover:bg-slate-50 transition-colors ${
+              className={`w-full px-4 py-3 flex items-center gap-3 text-left border-b border-slate-50 dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors ${
                 selectedAdminId === t.userId ? 'bg-blue-50 dark:bg-blue-500/10' : ''
               }`}
             >

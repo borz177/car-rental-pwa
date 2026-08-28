@@ -143,7 +143,7 @@ const AllTransactions: React.FC<AllTransactionsProps> = ({
   return (
     <div className="space-y-5 animate-fadeIn pb-24 md:pb-0">
       <div className="flex items-center gap-3">
-        <button onClick={onBack} className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm text-slate-500 dark:text-slate-400 flex items-center justify-center hover:text-blue-600 hover:border-blue-100 transition-all">
+        <button onClick={onBack} className="w-10 h-10 rounded-full bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shadow-sm text-slate-500 dark:text-slate-400 flex items-center justify-center hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-100 dark:hover:border-blue-500/30 transition-all">
           <i className="fas fa-arrow-left"></i>
         </button>
         <h2 className="text-3xl font-semibold text-slate-900 dark:text-white flex-1">Все операции</h2>
@@ -172,20 +172,20 @@ const AllTransactions: React.FC<AllTransactionsProps> = ({
               История
               <span className="ml-2 text-xs font-medium text-slate-400 dark:text-slate-500">{visibleTransactions.length}</span>
             </h3>
-            <button onClick={exportCsv} disabled={visibleTransactions.length === 0} className="text-blue-600 dark:text-blue-400 font-semibold text-xs uppercase tracking-wide hover:bg-blue-50 px-3 py-2 rounded-xl transition-all disabled:opacity-40">
+            <button onClick={exportCsv} disabled={visibleTransactions.length === 0} className="text-blue-600 dark:text-blue-400 font-semibold text-xs uppercase tracking-wide hover:bg-blue-50 dark:hover:bg-blue-500/10 px-3 py-2 rounded-xl transition-all disabled:opacity-40">
               <i className="fas fa-file-arrow-down mr-1.5"></i>Экспорт в CSV
             </button>
           </div>
 
           <div className="flex flex-wrap gap-2 items-center">
             {(Object.keys(PERIOD_LABELS) as Period[]).map(id => (
-              <button key={id} onClick={() => setPeriod(id)} className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors ${period === id ? 'bg-slate-800 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600'}`}>
+              <button key={id} onClick={() => setPeriod(id)} className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors ${period === id ? 'bg-slate-800 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}>
                 {PERIOD_LABELS[id]}
               </button>
             ))}
             <span className="w-px bg-slate-200 dark:bg-slate-600 mx-1 self-stretch"></span>
             {([['ALL', 'Все'], [TransactionType.INCOME, 'Доходы'], [TransactionType.EXPENSE, 'Расходы']] as const).map(([id, label]) => (
-              <button key={String(id)} onClick={() => setTypeFilter(id as any)} className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors ${typeFilter === id ? 'bg-blue-600 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600'}`}>
+              <button key={String(id)} onClick={() => setTypeFilter(id as any)} className={`px-3 py-1.5 rounded-lg text-[10px] font-semibold uppercase tracking-wide transition-colors ${typeFilter === id ? 'bg-blue-600 text-white' : 'bg-slate-50 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}>
                 {label}
               </button>
             ))}
@@ -238,7 +238,7 @@ const AllTransactions: React.FC<AllTransactionsProps> = ({
           {pagedTransactions.map(t => {
             const linkLabel = getCarLabel(t.carId) || getStaffLabel(t.staffId) || getInvestorLabel(t.investorId);
             return (
-              <div key={t.id} className="px-4 py-3 hover:bg-slate-50/50 transition-colors flex items-center gap-3">
+              <div key={t.id} className="px-4 py-3 hover:bg-slate-50/50 dark:hover:bg-slate-700 transition-colors flex items-center gap-3">
                 <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${t.type === TransactionType.INCOME ? 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-500/15 text-rose-600 dark:text-rose-400'}`}>
                   <i className={`fas ${t.type === TransactionType.INCOME ? 'fa-arrow-down' : 'fa-arrow-up'} text-xs`}></i>
                 </div>
@@ -254,17 +254,17 @@ const AllTransactions: React.FC<AllTransactionsProps> = ({
                   {t.type === TransactionType.INCOME ? '+' : '−'}{t.amount.toLocaleString()} ₽
                 </div>
                 <div className="relative">
-                  <button onClick={() => setMenuOpenId(menuOpenId === t.id ? null : t.id)} className="w-8 h-8 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all">
+                  <button onClick={() => setMenuOpenId(menuOpenId === t.id ? null : t.id)} className="w-8 h-8 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-slate-600 dark:hover:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-all">
                     <i className="fas fa-ellipsis-v text-xs"></i>
                   </button>
                   {menuOpenId === t.id && (
                     <>
                       <div className="fixed inset-0 z-20" onClick={() => setMenuOpenId(null)}></div>
                       <div className="absolute top-9 right-0 w-44 bg-white dark:bg-slate-800 rounded-xl shadow-md border border-slate-100 dark:border-slate-700 z-30 py-1 animate-scaleIn">
-                        <button onClick={() => { setCorrectingTx(t); setMenuOpenId(null); }} className="w-full px-4 py-2.5 text-left text-xs font-bold hover:bg-slate-50 flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                        <button onClick={() => { setCorrectingTx(t); setMenuOpenId(null); }} className="w-full px-4 py-2.5 text-left text-xs font-bold hover:bg-slate-50 dark:hover:bg-slate-700 flex items-center gap-2 text-amber-600 dark:text-amber-400">
                           <i className="fas fa-rotate-left w-4"></i> Исправить
                         </button>
-                        <button onClick={() => handleDelete(t)} className="w-full px-4 py-2.5 text-left text-xs font-bold hover:bg-rose-50 flex items-center gap-2 text-rose-500 dark:text-rose-400">
+                        <button onClick={() => handleDelete(t)} className="w-full px-4 py-2.5 text-left text-xs font-bold hover:bg-rose-50 dark:hover:bg-rose-500/10 flex items-center gap-2 text-rose-500 dark:text-rose-400">
                           <i className="fas fa-trash-alt w-4"></i> Удалить
                         </button>
                       </div>
@@ -352,7 +352,7 @@ const BreakdownCard: React.FC<{ title: string; items: { category: string; amount
         {items.map(it => (
           <button key={it.category} onClick={() => onSelect(it.category)} className="w-full text-left group">
             <div className="flex justify-between items-baseline text-xs mb-1">
-              <span className="font-semibold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 transition-colors">{it.category}</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-200 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{it.category}</span>
               <span className="text-slate-400 dark:text-slate-500 font-medium">{it.amount.toLocaleString()} ₽</span>
             </div>
             <div className="h-1.5 bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden">
@@ -387,7 +387,7 @@ const CorrectionModal: React.FC<{
   return (
     <div className="fixed inset-0 z-[90] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-md overflow-y-auto">
       <form onSubmit={handleSubmit} className="bg-white dark:bg-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-md animate-scaleIn relative">
-        <button type="button" onClick={onClose} className="absolute top-8 right-8 w-10 h-10 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-slate-900 bg-slate-50 dark:bg-slate-700 rounded-full transition-all">
+        <button type="button" onClick={onClose} className="absolute top-8 right-8 w-10 h-10 flex items-center justify-center text-slate-300 dark:text-slate-600 hover:text-slate-900 dark:hover:text-white bg-slate-50 dark:bg-slate-700 rounded-full transition-all">
           <i className="fas fa-times"></i>
         </button>
 

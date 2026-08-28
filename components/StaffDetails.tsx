@@ -12,7 +12,7 @@ const StaffDetails: React.FC<StaffDetailsProps> = ({ member, onBack }) => {
 
   return (
     <div className="space-y-5 animate-fadeIn pb-24 md:pb-0">
-      <button onClick={onBack} className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 font-bold hover:text-blue-600 transition-all">
+      <button onClick={onBack} className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 font-bold hover:text-blue-600 dark:hover:text-blue-400 transition-all">
         <i className="fas fa-arrow-left"></i> <span>Назад к списку</span>
       </button>
 

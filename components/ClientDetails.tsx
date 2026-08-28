@@ -107,7 +107,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, rentals, transact
 
   return (
     <div className="space-y-5 animate-fadeIn pb-24 md:pb-0">
-      <button onClick={onBack} className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 font-bold hover:text-blue-600 transition-all">
+      <button onClick={onBack} className="flex items-center space-x-2 text-slate-500 dark:text-slate-400 font-bold hover:text-blue-600 dark:hover:text-blue-400 transition-all">
         <i className="fas fa-arrow-left"></i> <span>Назад к списку</span>
       </button>
 
@@ -131,9 +131,9 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, rentals, transact
         </div>
 
         <div className="flex border-b border-slate-100 dark:border-slate-700">
-          <button onClick={() => setActiveTab('INFO')} className={`flex-1 py-5 font-semibold text-xs uppercase tracking-wide transition-all ${activeTab === 'INFO' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 border-b-4 border-blue-600 dark:border-blue-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 bg-slate-50 dark:bg-slate-700'}`}>Информация</button>
-          <button onClick={() => setActiveTab('HISTORY')} className={`flex-1 py-5 font-semibold text-xs uppercase tracking-wide transition-all ${activeTab === 'HISTORY' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 border-b-4 border-blue-600 dark:border-blue-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 bg-slate-50 dark:bg-slate-700'}`}>История</button>
-          <button onClick={() => setActiveTab('FINES')} className={`flex-1 py-5 font-semibold text-xs uppercase tracking-wide transition-all ${activeTab === 'FINES' ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 border-b-4 border-rose-600' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 bg-slate-50 dark:bg-slate-700'}`}>Штрафы</button>
+          <button onClick={() => setActiveTab('INFO')} className={`flex-1 py-5 font-semibold text-xs uppercase tracking-wide transition-all ${activeTab === 'INFO' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 border-b-4 border-blue-600 dark:border-blue-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-50 dark:bg-slate-700'}`}>Информация</button>
+          <button onClick={() => setActiveTab('HISTORY')} className={`flex-1 py-5 font-semibold text-xs uppercase tracking-wide transition-all ${activeTab === 'HISTORY' ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 border-b-4 border-blue-600 dark:border-blue-400' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-50 dark:bg-slate-700'}`}>История</button>
+          <button onClick={() => setActiveTab('FINES')} className={`flex-1 py-5 font-semibold text-xs uppercase tracking-wide transition-all ${activeTab === 'FINES' ? 'bg-white dark:bg-slate-800 text-rose-600 dark:text-rose-400 border-b-4 border-rose-600' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 bg-slate-50 dark:bg-slate-700'}`}>Штрафы</button>
         </div>
 
         <div className="p-5 md:p-8">
@@ -150,13 +150,13 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, rentals, transact
           {activeTab === 'HISTORY' && (
             <div className="space-y-4 animate-fadeIn">
               {history.map((item, idx) => (
-                <div key={idx} onClick={() => setSelectedOperation(item)} className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 hover:bg-slate-50 cursor-pointer transition-all flex items-center justify-between group">
+                <div key={idx} onClick={() => setSelectedOperation(item)} className="p-4 rounded-xl border border-slate-100 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700 cursor-pointer transition-all flex items-center justify-between group">
                   <div className="flex items-center space-x-5">
                     <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${item.type === 'PAYMENT' ? 'bg-emerald-100 dark:bg-emerald-500/15 text-emerald-600 dark:text-emerald-400' : item.type === 'EXTENSION' ? 'bg-amber-100 dark:bg-amber-500/15 text-amber-600 dark:text-amber-400' : 'bg-blue-100 dark:bg-blue-500/15 text-blue-600 dark:text-blue-400'}`}>
                       <i className={`fas ${item.type === 'PAYMENT' ? 'fa-money-bill-wave' : item.type === 'EXTENSION' ? 'fa-calendar-plus' : 'fa-car'}`}></i>
                     </div>
                     <div>
-                      <div className="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 transition-colors">
+                      <div className="font-bold text-slate-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                         {item.displayTitle}
                         {item.type === 'EXTENSION' && <span className="ml-2 text-[10px] font-semibold text-amber-600 dark:text-amber-400 uppercase">До {new Date(item.newEndDate).toLocaleDateString()}</span>}
                       </div>
@@ -241,7 +241,7 @@ const ClientDetails: React.FC<ClientDetailsProps> = ({ client, rentals, transact
               <br/><span className="text-[10px] text-slate-400 dark:text-slate-500 mt-2 block">Сумма будет автоматически зачислена в кассу как доход.</span>
             </p>
             <div className="flex gap-4">
-              <button type="button" onClick={() => setFineToPay(null)} className="flex-1 py-4 bg-slate-100 dark:bg-slate-700 rounded-2xl font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-200 transition-all">Отмена</button>
+              <button type="button" onClick={() => setFineToPay(null)} className="flex-1 py-4 bg-slate-100 dark:bg-slate-700 rounded-2xl font-bold text-slate-500 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">Отмена</button>
               <button onClick={confirmPayFine} className="flex-1 py-4 bg-emerald-600 text-white rounded-2xl font-bold shadow-md hover:bg-emerald-700 transition-all">Подтвердить</button>
             </div>
           </div>

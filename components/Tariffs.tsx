@@ -85,7 +85,7 @@ const Tariffs: React.FC<TariffsProps> = ({ user, carCount = 0, onUpdate, onBack 
     <div className="space-y-12 animate-fadeIn max-w-6xl mx-auto">
       <div className="flex justify-between items-center">
         <div>
-          <button onClick={onBack} className="text-slate-400 dark:text-slate-500 font-bold hover:text-blue-600 mb-2 flex items-center space-x-2">
+          <button onClick={onBack} className="text-slate-400 dark:text-slate-500 font-bold hover:text-blue-600 dark:hover:text-blue-400 mb-2 flex items-center space-x-2">
             <i className="fas fa-arrow-left"></i> <span>Назад</span>
           </button>
           <h2 className="text-4xl font-semibold text-slate-900 dark:text-white tracking-tight">Тарифные планы</h2>
@@ -106,7 +106,7 @@ const Tariffs: React.FC<TariffsProps> = ({ user, carCount = 0, onUpdate, onBack 
             <button
               key={m}
               onClick={() => setMonths(m)}
-              className={`px-8 py-4 rounded-2xl font-semibold text-sm uppercase tracking-wide transition-all ${months === m ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-md' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600'}`}
+              className={`px-8 py-4 rounded-2xl font-semibold text-sm uppercase tracking-wide transition-all ${months === m ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-md' : 'text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300'}`}
             >
               {m === 1 ? '1 месяц' : m === 6 ? '6 месяцев (-10%)' : '1 год (-20%)'}
             </button>
@@ -176,7 +176,7 @@ const Tariffs: React.FC<TariffsProps> = ({ user, carCount = 0, onUpdate, onBack 
               </div>
             ) : (
               <>
-                <button onClick={() => setSelectedPlan(null)} className="absolute top-8 right-8 text-slate-300 dark:text-slate-600 hover:text-slate-900">
+                <button onClick={() => setSelectedPlan(null)} className="absolute top-8 right-8 text-slate-300 dark:text-slate-600 hover:text-slate-900 dark:hover:text-white">
                   <i className="fas fa-times"></i>
                 </button>
                 <h2 className="text-3xl font-semibold mb-2 tracking-tight">Оплата</h2>
