@@ -1,0 +1,61 @@
+/* Все стили приложения собираются здесь и уезжают в бандл на своём домене.
+   Раньше и Tailwind, и иконки, и шрифт грузились с внешних CDN
+   (cdn.tailwindcss.com, cdnjs.cloudflare.com, fonts.googleapis.com) — если хотя бы
+   один из них недоступен в сети пользователя, приложение оставалось без стилей.
+   Теперь единственный источник — сам waycar.pro. */
+
+/* Шрифт Inter — те же начертания, что запрашивались у Google Fonts.
+   Файлы шрифта Vite положит в /assets рядом с бандлом. */
+@import '@fontsource/inter/300.css';
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+@import '@fontsource/inter/800.css';
+@import '@fontsource/inter/900.css';
+
+/* Иконки: в разметке используются классы fas/fab (solid и brands). */
+@import '@fortawesome/fontawesome-free/css/fontawesome.min.css';
+@import '@fortawesome/fontawesome-free/css/solid.min.css';
+@import '@fortawesome/fontawesome-free/css/brands.min.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    font-family: 'Inter', sans-serif;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #f1f1f1; }
+  ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+  html.dark ::-webkit-scrollbar-track { background: #1e293b; }
+  html.dark ::-webkit-scrollbar-thumb { background: #475569; }
+}
+
+@layer utilities {
+  .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+  .pt-safe { padding-top: env(safe-area-inset-top); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-scaleIn { animation: scaleIn 0.2s ease-out forwards; }
+
+@keyframes splashLogoIn {
+  from { opacity: 0; transform: scale(0.9) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+.animate-splash-logo { animation: splashLogoIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+
+@keyframes splashBar {
+  0% { transform: translateX(-100%); }
+  50% { transform: translateX(0); }
+  100% { transform: translateX(100%); }
+}
+.animate-splash-bar { animation: splashBar 1.3s ease-in-out infinite; }

@@ -10,19 +10,6 @@
     <link rel="apple-touch-icon" href="/icon-192.png">
     <title>AutoPro AI - Car Rental</title>
     <script>
-      // dark: варианты в classы включаются вручную переключателем (Настройки → Интерфейс),
-      // а не системной темой напрямую — поэтому стратегия 'class', не 'media' по умолчанию.
-      // hoverOnlyWhenSupported оборачивает hover: в @media (hover: hover). На тач-экранах
-      // браузер иначе применяет :hover при касании и оставляет его «залипшим» — при
-      // прокрутке пальцем по списку кнопки под пальцем подсвечивались и такими оставались.
-      tailwind = {
-        config: {
-          darkMode: 'class',
-          future: { hoverOnlyWhenSupported: true }
-        }
-      };
-    </script>
-    <script>
       // Синхронно, до первой отрисовки — иначе при сохранённой тёмной теме страница на
       // мгновение мигает светлой вёрсткой, пока не отработает React и не проставит класс.
       (function () {
@@ -33,62 +20,13 @@
         } catch (e) {}
       })();
     </script>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="manifest" href="/metadata.json">
-    <style>
-      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
-      body {
-        font-family: 'Inter', sans-serif;
-        -webkit-tap-highlight-color: transparent;
-      }
-      ::-webkit-scrollbar { width: 6px; }
-      ::-webkit-scrollbar-track { background: #f1f1f1; }
-      ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
-      html.dark ::-webkit-scrollbar-track { background: #1e293b; }
-      html.dark ::-webkit-scrollbar-thumb { background: #475569; }
-
-      .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-      .pt-safe { padding-top: env(safe-area-inset-top); }
-
-      @keyframes scaleIn {
-        from { opacity: 0; transform: scale(0.95); }
-        to { opacity: 1; transform: scale(1); }
-      }
-      .animate-scaleIn { animation: scaleIn 0.2s ease-out forwards; }
-
-      @keyframes splashLogoIn {
-        from { opacity: 0; transform: scale(0.9) translateY(4px); }
-        to { opacity: 1; transform: scale(1) translateY(0); }
-      }
-      .animate-splash-logo { animation: splashLogoIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-
-      @keyframes splashBar {
-        0% { transform: translateX(-100%); }
-        50% { transform: translateX(0); }
-        100% { transform: translateX(100%); }
-      }
-      .animate-splash-bar { animation: splashBar 1.3s ease-in-out infinite; }
-    </style>
-<script type="importmap">
-{
-  "imports": {
-    "react": "https://esm.sh/react@19.0.0",
-    "react-dom": "https://esm.sh/react-dom@19.0.0",
-    "react-dom/client": "https://esm.sh/react-dom@19.0.0/client",
-    "recharts": "https://esm.sh/recharts@2.15.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "dotenv/": "https://esm.sh/dotenv@^17.2.3/",
-    "express": "https://esm.sh/express@^5.2.1",
-    "jsonwebtoken": "https://esm.sh/jsonwebtoken@^9.0.3",
-    "bcrypt": "https://esm.sh/bcrypt@^6.0.0",
-    "cors": "https://esm.sh/cors@^2.8.6",
-    "pg": "https://esm.sh/pg@^8.17.2",
-    "crypto": "https://esm.sh/crypto@^1.0.1"
-  }
-}
-</script>
+    <!-- Стили, иконки и шрифт больше не грузятся с внешних CDN: они собираются
+         в бандл из index.css и раздаются с этого же домена. Раньше страница
+         зависела от cdn.tailwindcss.com, cdnjs.cloudflare.com и fonts.googleapis.com —
+         недоступность любого из них в сети пользователя оставляла приложение без
+         оформления. Importmap на esm.sh убран по той же причине: Vite и так
+         резолвит react/recharts из бандла, а в сыром HTML он больше не нужен. -->
 </head>
 <body class="bg-gray-50 dark:bg-slate-900 text-gray-900 dark:text-slate-100 overflow-x-hidden selection:bg-blue-100">
     <div id="root"></div>
